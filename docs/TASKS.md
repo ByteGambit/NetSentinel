@@ -37,6 +37,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-003 — psutil connection collector adapter'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Windows'taki TCP/UDP connection bilgisini psutil'den alıp domain snapshot'larına normalize etmek.
 - **Yapılacaklar:** Collector portunu tanımla; `psutil.net_connections` satırlarını IPv4/IPv6, TCP/UDP ve boş remote endpoint durumlarında dönüştür; erişim reddi ve yarış koşullarını typed adapter hatalarına çevir.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/ports.py`, `src/netsentinel/infrastructure/psutil_connections.py`, `tests/unit/infrastructure/test_psutil_connections.py`.

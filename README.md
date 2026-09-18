@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001 proje/test iskeleti ve NS-002 connection domain modelleri tamamlandı. Henüz connection toplama, networking veya GUI özelliği uygulanmadı.
+> Durum: NS-001–NS-003 tamamlandı. TCP/UDP connection snapshot'larını psutil'den normalize eden collector hazır; process metadata zenginleştirme, monitoring loop ve GUI henüz uygulanmadı.
 
 ## Tasarım ilkeleri
 
@@ -47,4 +47,4 @@ python -m venv .venv
 .\.venv\Scripts\python -m netsentinel --help
 ```
 
-Runtime bağımlılıkları, ilgili özellik taskı uygulanırken eklenecektir. NS-001 aşamasında yalnızca geliştirme/test bağımlılığı olarak pytest kullanılır.
+Runtime bağımlılıkları ilgili özellik taskı uygulanırken eklenir. NS-003 ile psutil runtime bağımlılığı, geliştirme/test için pytest kullanılır.

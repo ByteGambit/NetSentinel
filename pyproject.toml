@@ -8,7 +8,9 @@ version = "0.1.0"
 description = "A Windows-focused network security monitoring application."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "psutil>=6.1,<8",
+]
 
 [project.optional-dependencies]
 dev = [
