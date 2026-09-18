@@ -67,6 +67,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-006 — Engine yaşam döngüsü ve event dispatcher
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Polling, tracking ve event dağıtımını GUI'den bağımsız, güvenli başlayıp duran bir monitoring engine altında birleştirmek.
 - **Yapılacaklar:** `MonitoringEngine`, interval scheduler, cancellation ve typed dispatcher oluştur; subscriber hatalarını izole et; health/capability snapshot'ı üret; üst üste polling çalışmasını engelle.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/engine.py`, `src/netsentinel/application/events.py`, `src/netsentinel/shared/diagnostics.py`, `src/netsentinel/bootstrap.py`, `tests/unit/application/test_engine.py`.
