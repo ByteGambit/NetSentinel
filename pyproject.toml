@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netsentinel"
+version = "0.1.0"
+description = "A Windows-focused network security monitoring application."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<10",
+]
+
+[project.scripts]
+netsentinel = "netsentinel.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+]
+testpaths = ["tests"]

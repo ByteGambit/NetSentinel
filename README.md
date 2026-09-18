@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: Tasarım aşaması. Henüz uygulama kodu veya tamamlanmış bir task yoktur.
+> Durum: NS-001 proje/test iskeleti tamamlandı. Henüz networking veya GUI özelliği uygulanmadı.
 
 ## Tasarım ilkeleri
 
@@ -34,4 +34,17 @@ Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı ge
 - SQLite
 - pytest
 
-Teknik kararlar ve task sırası için dokümantasyon kaynak kabul edilir. Geliştirme başlamadan önce ilk iş `NS-001` olacaktır.
+Teknik kararlar ve task sırası için dokümantasyon kaynak kabul edilir.
+
+## Geliştirme ortamı
+
+Python 3.12 veya daha yeni bir sürümle, repository kökünde:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install --editable ".[dev]"
+.\.venv\Scripts\python -m pytest
+.\.venv\Scripts\python -m netsentinel --help
+```
+
+Runtime bağımlılıkları, ilgili özellik taskı uygulanırken eklenecektir. NS-001 aşamasında yalnızca geliştirme/test bağımlılığı olarak pytest kullanılır.

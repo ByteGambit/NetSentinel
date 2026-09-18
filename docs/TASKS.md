@@ -17,6 +17,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-001 — Python proje ve test iskeleti
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Sonraki taskların üzerinde çalışacağı minimal, paketlenebilir `src` layout ve kalite altyapısını kurmak.
 - **Yapılacaklar:** `pyproject.toml`, `src/netsentinel`, `tests` alt dizinleri ve pytest yapılandırmasını oluştur; runtime/dev bağımlılık gruplarını ayır; boş uygulama giriş noktasını yalnızca import edilebilirlik için tanımla.
 - **Etkilenecek muhtemel dosyalar:** `pyproject.toml`, `src/netsentinel/__init__.py`, `src/netsentinel/__main__.py`, `tests/conftest.py`, `.gitignore`.
