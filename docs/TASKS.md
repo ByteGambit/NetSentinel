@@ -91,6 +91,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-008 — PyQt6 uygulama kabuğu ve navigasyon
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Dashboard, Connections, Devices, DNS ve Alerts için genişletilebilir masaüstü kabuğu kurmak.
 - **Yapılacaklar:** `QApplication`, ana pencere, sol navigasyon ve placeholder sayfaları oluştur; uygulama kapanışını composition root'a bağla; ekran üretimini ayrı view sınıflarında tut.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/app.py`, `src/netsentinel/presentation/views/main_window.py`, `src/netsentinel/presentation/views/*.py`, `src/netsentinel/bootstrap.py`.

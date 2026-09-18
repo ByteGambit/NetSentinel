@@ -9,12 +9,14 @@ description = "A Windows-focused network security monitoring application."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "PyQt6>=6.8,<7",
     "psutil>=6.1,<8",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3,<10",
+    "pytest-qt>=4.4,<5",
 ]
 
 [project.scripts]

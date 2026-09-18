@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001–NS-006 tamamlandı. TCP/UDP connection pipeline'ı; process enrichment, lifecycle tracking, typed event dağıtımı ve kontrollü engine yaşam döngüsüyle GUI'den bağımsız çalışıyor. NS-007 entegrasyon/Windows smoke testleri ve GUI henüz uygulanmadı.
+> Durum: NS-001–NS-008 tamamlandı. TCP/UDP connection pipeline'ı; process enrichment, lifecycle tracking, typed event dağıtımı ve kontrollü engine yaşam döngüsüyle çalışıyor. PyQt6 masaüstü kabuğu; Dashboard, Connections, Devices, DNS ve Alerts sayfaları arasında genişletilebilir navigasyon sağlıyor. Canlı engine eventlerinin GUI'ye aktarımı NS-009 kapsamındadır.
 
 ## Tasarım ilkeleri
 
@@ -45,6 +45,7 @@ python -m venv .venv
 .\.venv\Scripts\python -m pip install --editable ".[dev]"
 .\.venv\Scripts\python -m pytest
 .\.venv\Scripts\python -m netsentinel --help
+.\.venv\Scripts\python -m netsentinel --gui
 ```
 
-Runtime bağımlılıkları ilgili özellik taskı uygulanırken eklenir. NS-003 ile psutil runtime bağımlılığı, geliştirme/test için pytest kullanılır.
+`python -m netsentinel --gui` composition root üzerinden monitoring engine'i ve PyQt6 masaüstü kabuğunu başlatır. Pencere kapatıldığında engine için tek ve bounded bir stop isteği yapılır. NS-003 ile psutil, NS-008 ile PyQt6 runtime bağımlılığı; geliştirme/test için pytest ve pytest-qt kullanılır. GUI testleri varsayılan olarak Qt'nin `offscreen` platformunda çalışır ve ekran, canlı ağ ya da yönetici yetkisi gerektirmez.

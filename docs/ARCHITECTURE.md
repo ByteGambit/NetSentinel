@@ -273,6 +273,22 @@ PyQt6 katmanı:
 
 Bu sınır sayesinde detector ve tracker testleri GUI açmadan, GUI testleri ise fake engine ile çalıştırılabilir.
 
+### NS-008 uygulama kabuğu ve yaşam döngüsü
+
+`presentation.app`, `QApplication` oluşturma/yeniden kullanma, `MainWindow`
+oluşturma ve engine yaşam döngüsünü bir araya getirir. Engine somut bağımlılıkları
+yalnızca `bootstrap.py` composition root'undan alınır. Uygulama çalıştırıldığında
+engine event loop öncesinde başlatılır; pencere kapanışı, Qt `aboutToQuit` sinyali
+ve event loop çıkışı aynı idempotent lifecycle controller üzerinden tek bounded
+`engine.stop()` isteğine indirgenir.
+
+`MainWindow`, Dashboard, Connections, Devices, DNS ve Alerts view örneklerinin
+composition sorumluluğunu taşır. Sol `QListWidget` kararlı `PageId` değerleriyle
+bir `QStackedWidget` içeriğini seçer; varsayılan sayfa Dashboard'dur ve aynı
+sayfanın tekrar seçilmesi idempotenttir. NS-008 view'ları yalnızca profesyonel
+placeholder içerir. Engine event bridge'i, connection modelleri ve canlı
+istatistikler sırasıyla NS-009 ve sonraki taskların kapsamındadır.
+
 ## 9. Persistence tasarımı
 
 SQLite tek yerel veri deposudur. İlk planlanan tablolar:
