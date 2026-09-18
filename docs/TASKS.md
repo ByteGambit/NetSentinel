@@ -57,6 +57,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-005 — Connection snapshot diff ve lifecycle tracker
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Ardışık snapshot'lar arasından yeni, güncellenen ve kapanan connection olaylarını deterministik üretmek.
 - **Yapılacaklar:** `ConnectionTrackingService` yaz; kararlı anahtar/eşleme kuralını uygula; first/last seen ve status değişimini tut; UDP “kaybolma” semantiğini belgeleyen close reason kullan.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/connections.py`, `src/netsentinel/domain/connections.py`, `tests/unit/application/test_connection_tracking.py`.

@@ -19,6 +19,7 @@ from netsentinel.domain.connections import (
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
+    TrackedConnection,
     TransportProtocol,
 )
 
@@ -420,3 +421,25 @@ def test_lifecycle_events_are_immutable() -> None:
 
     with pytest.raises(FrozenInstanceError):
         event.snapshot = tcp_snapshot()  # type: ignore[misc]
+
+
+def test_tracked_connection_exposes_first_last_seen_and_current_metadata() -> None:
+    snapshot = tcp_snapshot()
+    tracked = TrackedConnection(
+        first_seen=OBSERVED_AT - timedelta(seconds=1),
+        last_seen=OBSERVED_AT,
+        snapshot=snapshot,
+    )
+
+    assert tracked.key == snapshot.key
+    assert tracked.state is snapshot.state
+    assert tracked.process is snapshot.process
+
+
+def test_tracked_connection_requires_snapshot_time_to_match_last_seen() -> None:
+    with pytest.raises(ValueError, match="must equal last_seen"):
+        TrackedConnection(
+            first_seen=OBSERVED_AT,
+            last_seen=OBSERVED_AT + timedelta(seconds=1),
+            snapshot=tcp_snapshot(),
+        )

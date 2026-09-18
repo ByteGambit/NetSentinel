@@ -301,7 +301,12 @@ class ConnectionUpdated:
 
 @dataclass(frozen=True, slots=True)
 class ConnectionClosed:
-    """Signals that a connection is no longer present in a later snapshot."""
+    """Signals that a connection is no longer present in a later snapshot.
+
+    ``NOT_OBSERVED`` describes snapshot visibility only. It does not claim that
+    a TCP FIN/RST was captured, and for UDP it must not be interpreted as a
+    protocol-level session close.
+    """
 
     last_snapshot: ConnectionSnapshot
     occurred_at: datetime
@@ -325,6 +330,45 @@ class ConnectionClosed:
         return self.last_snapshot.key
 
 
+@dataclass(frozen=True, slots=True)
+class TrackedConnection:
+    """Current lifecycle state retained for one active connection key."""
+
+    first_seen: datetime
+    last_seen: datetime
+    snapshot: ConnectionSnapshot
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "first_seen",
+            _require_utc(self.first_seen, "first_seen"),
+        )
+        object.__setattr__(
+            self,
+            "last_seen",
+            _require_utc(self.last_seen, "last_seen"),
+        )
+        if not isinstance(self.snapshot, ConnectionSnapshot):
+            raise TypeError("snapshot must be a ConnectionSnapshot")
+        if self.last_seen < self.first_seen:
+            raise ValueError("last_seen cannot precede first_seen")
+        if self.snapshot.observed_at != self.last_seen:
+            raise ValueError("snapshot observation time must equal last_seen")
+
+    @property
+    def key(self) -> ConnectionKey:
+        return self.snapshot.key
+
+    @property
+    def state(self) -> ConnectionState:
+        return self.snapshot.state
+
+    @property
+    def process(self) -> ProcessInfo:
+        return self.snapshot.process
+
+
 ConnectionLifecycleEvent: TypeAlias = (
     ConnectionOpened | ConnectionUpdated | ConnectionClosed
 )
@@ -343,5 +387,6 @@ __all__ = (
     "ProcessIdentity",
     "ProcessInfo",
     "ProcessInfoStatus",
+    "TrackedConnection",
     "TransportProtocol",
 )

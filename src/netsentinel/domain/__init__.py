@@ -13,6 +13,7 @@ from netsentinel.domain.connections import (
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
+    TrackedConnection,
     TransportProtocol,
 )
 
@@ -29,5 +30,6 @@ __all__ = (
     "ProcessIdentity",
     "ProcessInfo",
     "ProcessInfoStatus",
+    "TrackedConnection",
     "TransportProtocol",
 )
