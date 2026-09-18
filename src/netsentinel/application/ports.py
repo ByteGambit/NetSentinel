@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from netsentinel.domain.connections import ConnectionSnapshot
+from netsentinel.domain.connections import ConnectionSnapshot, ProcessInfo
 
 
 class ConnectionCollectionError(RuntimeError):
@@ -26,9 +26,17 @@ class ConnectionCollector(Protocol):
         """Return the connections visible in one collection pass."""
 
 
+class ProcessMetadataResolver(Protocol):
+    """Port for resolving portable metadata for one process identifier."""
+
+    def resolve(self, pid: int) -> ProcessInfo:
+        """Return process metadata without leaking provider-specific types."""
+
+
 __all__ = (
     "ConnectionCollectionError",
     "ConnectionCollectionPermissionDenied",
     "ConnectionCollectionTransientError",
     "ConnectionCollector",
+    "ProcessMetadataResolver",
 )

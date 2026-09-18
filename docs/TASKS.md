@@ -47,6 +47,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-004 — Process metadata resolver
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Connection PID'lerini güvenli biçimde process adı ve create-time bilgisiyle zenginleştirmek.
 - **Yapılacaklar:** Resolver portu ve psutil implementasyonu ekle; kısa ömürlü process, PID reuse, `AccessDenied`, `NoSuchProcess` ve PID'siz connection davranışını tanımla; snapshot turu içinde sınırlı cache kullan.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/ports.py`, `src/netsentinel/infrastructure/psutil_connections.py`, `src/netsentinel/application/services/processes.py`, `tests/unit/application/test_process_resolver.py`.
