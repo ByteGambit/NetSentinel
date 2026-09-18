@@ -77,6 +77,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-007 — M1 entegrasyon ve Windows smoke testleri
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Core connection monitor'ün gerçek adapter sınırında beklenen davranışını doğrulamak.
 - **Yapılacaklar:** Katman contract testleri, işaretlenmiş Windows smoke testleri ve kontrollü local socket fixture'ı ekle; bilinen psutil kısıtlarını test notlarında belirt.
 - **Etkilenecek muhtemel dosyalar:** `tests/integration/test_connection_monitor.py`, `tests/fixtures/connections.py`, `pyproject.toml`, `docs/ARCHITECTURE.md`.

@@ -330,9 +330,30 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 
 Canlı ağ erişimi gerektiren testler varsayılan test suite'inde çalışmaz; açık marker ve kontrollü lab gerektirir.
 
+### M1 Windows live smoke testi
+
+`windows_live` marker'ı gerçek `psutil` adapter sınırını yalnızca açıkça istendiğinde
+çalıştırır. Varsayılan `python -m pytest` komutu bu marker'ı dışlar; M1 smoke testi
+Windows üzerinde `python -m pytest -m windows_live` ile seçilir. Test external bir
+hosta bağlanmaz, yönetici yetkisi istemez ve yalnızca `127.0.0.1` üzerinde işletim
+sisteminin atadığı geçici bir portu kullanır. Listener ve bağlantının iki ucu test
+boyunca kontrollü biçimde açık tutulur; teardown tüm socket'lerin kapandığını,
+engine stop kontrolleri de poller worker'ının kalmadığını doğrular.
+
+Smoke testi endpoint, TCP protokolü, normalize portlar, PID/process enrichment ve
+en az bir `ConnectionOpened` olayını gerçek composition root üzerinden denetler.
+Sabit bir uykuya dayanmak yerine event sinyalleri ve bounded timeout kullanır.
+System-wide connection tablosu Windows politikası tarafından tamamen reddedilirse
+test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşulu yapmaz.
+
 ## 13. Bilinen teknik sınırlamalar
 
 - psutil snapshot tabanlı polling, iki tur arasında açılıp kapanan çok kısa bağlantıları kaçırabilir.
+- Windows ve psutil, standart kullanıcıya bazı system-wide connection satırlarının
+  PID bilgisini göstermeyebilir veya tablo erişimini tamamen reddedebilir.
+- Process adı/create-time sorgusu izin nedeniyle kısıtlanabilir ya da process'in
+  snapshot ile metadata sorgusu arasında kapanması sonucu unavailable olabilir;
+  bu durum connection görünürlüğünü düşürmeden degraded metadata olarak modellenir.
 - UDP satırları gerçek bir “oturum” değil, işletim sistemi endpoint görünümüdür.
 - Paket ile PID/process arasında her durumda güvenilir bire bir ilişki kurulamaz.
 - Capture sonucu kullanılan driver, interface ve Windows güvenlik politikasına bağlıdır.
