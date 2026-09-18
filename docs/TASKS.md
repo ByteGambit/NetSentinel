@@ -27,6 +27,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-002 — Connection domain modelleri
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** TCP/UDP endpoint, process ve connection yaşam döngüsü için immutable, framework bağımsız veri sözleşmelerini tanımlamak.
 - **Yapılacaklar:** Protokol/durum enum'ları, `Endpoint`, `ProcessIdentity`, `ConnectionKey`, `ConnectionSnapshot` ve connection event tiplerini oluştur; eksik remote endpoint ve erişilemeyen process bilgisini açıkça modelle; UTC doğrulaması ekle.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/domain/connections.py`, `src/netsentinel/domain/observations.py`, `tests/unit/domain/test_connections.py`.

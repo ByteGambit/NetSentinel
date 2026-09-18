@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001 proje/test iskeleti tamamlandı. Henüz networking veya GUI özelliği uygulanmadı.
+> Durum: NS-001 proje/test iskeleti ve NS-002 connection domain modelleri tamamlandı. Henüz connection toplama, networking veya GUI özelliği uygulanmadı.
 
 ## Tasarım ilkeleri
 
