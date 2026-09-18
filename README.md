@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001–NS-008 tamamlandı. TCP/UDP connection pipeline'ı; process enrichment, lifecycle tracking, typed event dağıtımı ve kontrollü engine yaşam döngüsüyle çalışıyor. PyQt6 masaüstü kabuğu; Dashboard, Connections, Devices, DNS ve Alerts sayfaları arasında genişletilebilir navigasyon sağlıyor. Canlı engine eventlerinin GUI'ye aktarımı NS-009 kapsamındadır.
+> Durum: NS-001–NS-009 tamamlandı. TCP/UDP connection pipeline'ı; process enrichment, lifecycle tracking, typed event dağıtımı ve kontrollü engine yaşam döngüsüyle çalışıyor. PyQt6 masaüstü kabuğu; Dashboard, Connections, Devices, DNS ve Alerts sayfaları arasında genişletilebilir navigasyon sağlıyor. Bounded `QtEngineBridge`, portable engine eventlerini Qt ana thread'ine güvenli ve batch'li biçimde taşıyor.
 
 ## Tasarım ilkeleri
 
@@ -48,4 +48,4 @@ python -m venv .venv
 .\.venv\Scripts\python -m netsentinel --gui
 ```
 
-`python -m netsentinel --gui` composition root üzerinden monitoring engine'i ve PyQt6 masaüstü kabuğunu başlatır. Pencere kapatıldığında engine için tek ve bounded bir stop isteği yapılır. NS-003 ile psutil, NS-008 ile PyQt6 runtime bağımlılığı; geliştirme/test için pytest ve pytest-qt kullanılır. GUI testleri varsayılan olarak Qt'nin `offscreen` platformunda çalışır ve ekran, canlı ağ ya da yönetici yetkisi gerektirmez.
+`python -m netsentinel --gui` composition root üzerinden monitoring engine'i, thread-safe Qt bridge'i ve PyQt6 masaüstü kabuğunu başlatır. Bridge engine başlamadan önce event dispatcher'a attach edilir; pencere kapatıldığında önce detach edilir ve engine için tek, bounded bir stop isteği yapılır. NS-003 ile psutil, NS-008 ile PyQt6 runtime bağımlılığı; geliştirme/test için pytest ve pytest-qt kullanılır. GUI testleri varsayılan olarak Qt'nin `offscreen` platformunda çalışır ve ekran, canlı ağ ya da yönetici yetkisi gerektirmez.

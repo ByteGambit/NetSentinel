@@ -9,6 +9,7 @@ from typing import Protocol
 
 from PyQt6.QtWidgets import QApplication
 
+from netsentinel.presentation.bridge import EngineEventSource, QtEngineBridge
 from netsentinel.presentation.views.main_window import MainWindow
 
 
@@ -20,11 +21,16 @@ class EngineLifecycle(Protocol):
     def stop(self, timeout: float | None = None) -> bool: ...
 
 
-class ApplicationLifecycle:
-    """Own the engine's start and single controlled shutdown request."""
+class DesktopEngine(EngineLifecycle, EngineEventSource, Protocol):
+    """Combined engine surface required by the composed desktop application."""
 
-    def __init__(self, engine: EngineLifecycle) -> None:
+
+class ApplicationLifecycle:
+    """Own bridge attachment and the engine's controlled lifecycle."""
+
+    def __init__(self, engine: EngineLifecycle, bridge: QtEngineBridge) -> None:
         self._engine = engine
+        self._bridge = bridge
         self._start_requested = False
         self._shutdown_requested = False
         self._shutdown_result: bool | None = None
@@ -34,19 +40,25 @@ class ApplicationLifecycle:
         return self._shutdown_requested
 
     def start(self) -> bool:
-        """Start the engine at most once for this application run."""
+        """Attach the bridge before starting the engine, at most once."""
 
         if self._start_requested:
             return False
         self._start_requested = True
-        return self._engine.start()
+        self._bridge.start()
+        try:
+            return self._engine.start()
+        except BaseException:
+            self._bridge.stop()
+            raise
 
     def shutdown(self) -> bool:
-        """Request the engine's bounded, idempotent stop exactly once."""
+        """Detach GUI delivery, then request one bounded engine stop."""
 
         if self._shutdown_requested:
             return bool(self._shutdown_result)
         self._shutdown_requested = True
+        self._bridge.stop()
         self._shutdown_result = self._engine.stop()
         return self._shutdown_result
 
@@ -57,11 +69,12 @@ class ApplicationShell:
 
     application: QApplication
     window: MainWindow
+    bridge: QtEngineBridge
     lifecycle: ApplicationLifecycle
 
 
 def create_application(
-    engine: EngineLifecycle,
+    engine: DesktopEngine,
     argv: Sequence[str] | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
@@ -77,16 +90,18 @@ def create_application(
     application.setApplicationName("NetSentinel")
     application.setOrganizationName("NetSentinel")
 
-    lifecycle = ApplicationLifecycle(engine)
+    bridge = QtEngineBridge(engine)
+    lifecycle = ApplicationLifecycle(engine, bridge)
     window = MainWindow(on_close=lifecycle.shutdown)
+    bridge.setParent(window)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, lifecycle)
+    return ApplicationShell(application, window, bridge, lifecycle)
 
 
 def run_application(
     argv: Sequence[str] | None = None,
     *,
-    engine: EngineLifecycle | None = None,
+    engine: DesktopEngine | None = None,
 ) -> int:
     """Compose dependencies, start monitoring, and enter the Qt event loop."""
 
@@ -124,6 +139,7 @@ if __name__ == "__main__":
 __all__ = (
     "ApplicationLifecycle",
     "ApplicationShell",
+    "DesktopEngine",
     "EngineLifecycle",
     "create_application",
     "run_application",

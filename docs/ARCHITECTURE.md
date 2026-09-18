@@ -289,6 +289,41 @@ sayfanın tekrar seçilmesi idempotenttir. NS-008 view'ları yalnızca profesyon
 placeholder içerir. Engine event bridge'i, connection modelleri ve canlı
 istatistikler sırasıyla NS-009 ve sonraki taskların kapsamındadır.
 
+### NS-009 Qt engine bridge ve thread sınırı
+
+```text
+MonitoringEngine connection poller worker
+  -> EventDispatcher synchronous callback
+  -> QtEngineBridge bounded handoff queue
+  -> coalesced queued Qt signal
+  -> Qt main-thread batch drain
+  -> views/models (NS-010 ve sonrası)
+```
+
+`QtEngineBridge` presentation katmanında oluşturulur; application veya domain
+katmanına PyQt6 bağımlılığı taşımaz ve engine içine Qt bilgisi eklemez. Dispatcher
+callback'i widget/model erişimi, sıralama, formatlama veya render yapmaz. Yalnızca
+portable `ConnectionOpened`, `ConnectionUpdated` ve `ConnectionClosed` olayını
+kilitli ve bounded handoff queue'ya ekler. Boş queue için yalnızca bir queued
+drain planlanır; böylece event başına thread oluşturulmaz ve yoğun burst Qt event
+queue'sunda gereksiz wake-up çoğaltmaz. Qt thread'indeki her drain sınırlı bir
+batch alır; kalan iş bir sonraki event-loop turuna bırakılır.
+
+Queue dolduğunda bekleyen eski sırayı korumak için yeni event düşürülür. Toplam
+drop sayısı, queue kapasitesi ve mevcut queue derinliği immutable bridge health
+snapshot'ında; mevcut `EngineHealthSnapshot` ile birlikte `health_changed`
+sinyalinden sunulur. Engine health yeni bir worker/poller yerine presentation
+seviyesindeki `QTimer` ile mevcut `health_snapshot()` API'sinden okunur.
+
+Application composition bridge'i engine başlamadan önce attach eder. Kapanışta
+önce bridge detach edilir, pending handoff temizlenir ve daha sonra bounded engine
+stop istenir. Attach/detach idempotenttir. Her attachment bir generation ile
+korunur; eski queued drain'ler yeniden attach sonrasında event yayımlayamaz.
+Dispatcher callback'i bridge'e yalnızca weak reference taşır. Açık stop yoluna ek
+olarak QObject destruction ve Python finalization subscription'ları temizler;
+publish sırasında alınmış eski subscriber snapshot'ları inactive state'i görüp
+no-op olur.
+
 ## 9. Persistence tasarımı
 
 SQLite tek yerel veri deposudur. İlk planlanan tablolar:

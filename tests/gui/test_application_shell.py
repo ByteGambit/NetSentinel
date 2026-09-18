@@ -7,15 +7,17 @@ from pathlib import Path
 from threading import Event, Thread
 
 import pytest
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget
 from pytestqt.qtbot import QtBot
 
+from netsentinel.application.events import EventDispatcher
 from netsentinel.presentation.app import (
     ApplicationLifecycle,
     create_application,
     run_application,
 )
+from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.connections import ConnectionsView
 from netsentinel.presentation.views.dashboard import DashboardView
@@ -26,6 +28,12 @@ from netsentinel.presentation.views.main_window import (
     MainWindow,
     PageId,
 )
+from netsentinel.shared.diagnostics import (
+    CapabilitySnapshot,
+    EngineCounters,
+    EngineHealthSnapshot,
+    EngineState,
+)
 
 
 class FakeEngine:
@@ -33,6 +41,15 @@ class FakeEngine:
         self.running = running
         self.start_calls = 0
         self.stop_calls = 0
+        self.dispatcher = EventDispatcher()
+
+    def health_snapshot(self) -> EngineHealthSnapshot:
+        return EngineHealthSnapshot(
+            state=EngineState.RUNNING if self.running else EngineState.STOPPED,
+            capabilities=CapabilitySnapshot(),
+            counters=EngineCounters(),
+            worker_alive=self.running,
+        )
 
     def start(self) -> bool:
         self.start_calls += 1
@@ -90,6 +107,9 @@ def test_application_shell_can_be_created_offscreen(
     assert shell.application is qapp
     assert shell.application.applicationName() == "NetSentinel"
     assert isinstance(shell.window, MainWindow)
+    assert isinstance(shell.bridge, QtEngineBridge)
+    assert shell.bridge.parent() is shell.window
+    assert shell.bridge.attached is False
     assert engine.start_calls == 0
 
     shell.window.close()
@@ -189,6 +209,7 @@ def test_window_close_uses_one_stop_request_and_leaves_no_worker(
     shell = create_application(engine, argv=[])
     qtbot.addWidget(shell.window)
     assert shell.lifecycle.start() is True
+    assert shell.bridge.attached is True
     shell.window.show()
     assert engine.worker.is_alive()
 
@@ -198,6 +219,7 @@ def test_window_close_uses_one_stop_request_and_leaves_no_worker(
     assert shell.lifecycle.shutdown_requested is True
     assert engine.stop_calls == 1
     assert engine.worker.is_alive() is False
+    assert shell.bridge.attached is False
     assert shell.window.isVisible() is False
 
 
@@ -214,23 +236,33 @@ def test_window_can_close_when_engine_is_already_stopped(qtbot: QtBot) -> None:
     assert shell.window.isVisible() is False
 
 
-def test_application_lifecycle_starts_and_stops_only_once() -> None:
+def test_application_lifecycle_starts_and_stops_only_once(
+    qapp: QApplication,
+) -> None:
     engine = FakeEngine()
-    lifecycle = ApplicationLifecycle(engine)
+    bridge = QtEngineBridge(engine)
+    lifecycle = ApplicationLifecycle(engine, bridge)
 
     assert lifecycle.start() is True
     assert lifecycle.start() is False
+    assert bridge.attached is True
     assert lifecycle.shutdown() is True
     assert lifecycle.shutdown() is True
     assert engine.start_calls == 1
     assert engine.stop_calls == 1
+    assert bridge.attached is False
 
 
 def test_run_application_starts_engine_and_stops_it_when_qt_quits(
     qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = FakeEngine()
-    QTimer.singleShot(0, qapp.quit)
+    # QApplication.exec() leaves the session-wide pytest-qt QApplication in a
+    # quit state, preventing later queued-signal tests from pumping events.
+    # The event loop itself is Qt-owned; this test needs only the composition
+    # around its return value and therefore replaces that one blocking call.
+    monkeypatch.setattr(QApplication, "exec", lambda _self: 0)
 
     exit_code = run_application(argv=[], engine=engine)
 

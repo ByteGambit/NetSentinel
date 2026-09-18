@@ -101,6 +101,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-009 — Thread-safe Qt engine bridge
 
+- **Durum:** ✅ Tamamlandı (2026-09-18)
 - **Amaç:** Engine event'lerini Qt ana thread'ine güvenli ve batch'li biçimde taşımak.
 - **Yapılacaklar:** `QtEngineBridge` ve immutable view event tiplerini ekle; bounded handoff queue/queued signal uygula; overflow ve engine health durumunu UI'ya aktar.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/bridge.py`, `src/netsentinel/application/events.py`, `tests/gui/test_engine_bridge.py`.
