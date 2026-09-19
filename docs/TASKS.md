@@ -165,6 +165,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-015 — Connection history repository
 
+- **Durum:** ✅ Tamamlandı (2026-09-19)
 - **Amaç:** Connection yaşam döngüsünü SQL ayrıntısını application katmanına sızdırmadan saklamak ve sayfalı sorgulamak.
 - **Yapılacaklar:** Repository portu, SQLite mapping ve time/process/endpoint filtreli query nesnesi ekle; parameterized SQL ve kararlı pagination uygula.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/ports.py`, `src/netsentinel/infrastructure/sqlite/repositories.py`, `src/netsentinel/domain/connections.py`, `tests/integration/sqlite/test_connection_repository.py`.

@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from ipaddress import ip_address
 from typing import TypeAlias
+from uuid import UUID
 
 
 class TransportProtocol(str, Enum):
@@ -369,6 +370,66 @@ class TrackedConnection:
         return self.snapshot.process
 
 
+@dataclass(frozen=True, slots=True)
+class ConnectionHistoryRecord:
+    """Portable persisted view of one complete connection lifecycle.
+
+    ``record_id`` is persistence identity and is deliberately distinct from
+    :class:`ConnectionKey`, which identifies an active lifecycle across
+    observations.  A later lifecycle may therefore reuse the same key while
+    retaining a different record ID.
+    """
+
+    record_id: UUID
+    first_seen: datetime
+    last_seen: datetime
+    snapshot: ConnectionSnapshot
+    closed_at: datetime | None = None
+    close_reason: ConnectionClosureReason | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.record_id, UUID):
+            raise TypeError("record_id must be a UUID")
+        object.__setattr__(
+            self,
+            "first_seen",
+            _require_utc(self.first_seen, "first_seen"),
+        )
+        object.__setattr__(
+            self,
+            "last_seen",
+            _require_utc(self.last_seen, "last_seen"),
+        )
+        if not isinstance(self.snapshot, ConnectionSnapshot):
+            raise TypeError("snapshot must be a ConnectionSnapshot")
+        if self.last_seen < self.first_seen:
+            raise ValueError("last_seen cannot precede first_seen")
+        if self.snapshot.observed_at != self.last_seen:
+            raise ValueError("snapshot observation time must equal last_seen")
+        if (self.closed_at is None) != (self.close_reason is None):
+            raise ValueError("closed_at and close_reason must be set together")
+        if self.closed_at is not None:
+            object.__setattr__(
+                self,
+                "closed_at",
+                _require_utc(self.closed_at, "closed_at"),
+            )
+            if self.closed_at < self.last_seen:
+                raise ValueError("closed_at cannot precede last_seen")
+        if self.close_reason is not None and not isinstance(
+            self.close_reason, ConnectionClosureReason
+        ):
+            raise TypeError("close_reason must be a ConnectionClosureReason or None")
+
+    @property
+    def key(self) -> ConnectionKey:
+        return self.snapshot.key
+
+    @property
+    def is_closed(self) -> bool:
+        return self.closed_at is not None
+
+
 ConnectionLifecycleEvent: TypeAlias = (
     ConnectionOpened | ConnectionUpdated | ConnectionClosed
 )
@@ -377,6 +438,7 @@ ConnectionLifecycleEvent: TypeAlias = (
 __all__ = (
     "ConnectionClosed",
     "ConnectionClosureReason",
+    "ConnectionHistoryRecord",
     "ConnectionKey",
     "ConnectionLifecycleEvent",
     "ConnectionOpened",

@@ -456,9 +456,9 @@ SQLite tek yerel veri deposudur. İlk planlanan tablolar:
 ```text
 application / domain
         ↓
-future repository port (NS-015)
+ConnectionHistoryRepository port
         ↓
-SQLite infrastructure adapter
+SQLiteConnectionHistoryRepository adapter
         ↓
 ordered migrations / versioned schema
 ```
@@ -495,6 +495,34 @@ seçim float dönüşümünü önler ve timezone-aware domain değerleri için d
 mikrosaniye hassasiyetli NS-015 round-trip sözleşmesi sağlar. Zaman/kararlı ID ve
 process filtreleri için iki başlangıç index'i bulunur; ek query index'leri gerçek
 repository sorguları ölçülmeden eklenmez.
+
+### NS-015 connection history repository
+
+`application.ports.ConnectionHistoryRepository`, lifecycle yazımı ile bounded
+history sorgusunu SQLite ve filesystem tiplerinden bağımsız tanımlar. Immutable
+`ConnectionHistoryRecord` DB UUID kimliğini, en son portable snapshot'ı,
+first/last seen zamanlarını ve nullable kapanış bilgisini taşır. Bu UUID,
+snapshot'lar arası eşleme yapan `ConnectionKey` değildir; aynı endpoint/PID daha
+sonra yeniden açıldığında yeni lifecycle kaydı oluşturulabilir. Process
+create-time mevcutsa key eşlemesine katıldığı için PID reuse kayıtları birleşmez.
+
+`SQLiteConnectionHistoryRepository`, her senkron operasyon için sahibi olduğu
+tek migrated connection açar ve scope sonunda kapatır. OPENED aynı key ve
+first-seen ile tekrarlandığında mevcut kaydı döndürür; UPDATED aktif kaydın
+first-seen değerini koruyarak son snapshot'ı ilerletir; CLOSED close time/reason
+alanlarını atomik yazar ve aynı close eventinin tekrarını no-op olarak döndürür.
+Tüm write operasyonları NS-014 `transaction` helper'ını kullanır. Adapter thread,
+queue, batching veya background writer oluşturmaz; bunlar NS-016 kapsamındadır.
+
+History query `limit` gerektirir (1–500), negatif offset'i reddeder ve
+first-seen zaman aralığı, protocol, process name/PID ve local/remote endpoint IP
+filtrelerini parametre binding ile uygular. Sonuçlar
+`first_seen_utc_us DESC, id DESC` ile kararlıdır; aynı timestamp'e sahip kayıtlar
+sayfalar arasında atlanmaz. SQLite row/exception nesneleri port sınırını geçmez;
+bozuk enum veya unsupported persisted değer kontrollü `HistoryDataCorrupt`,
+adapter/transaction sorunları sanitize edilmiş `HistoryRepositoryError` olur.
+UTC zaman mapping'i float kullanmadan epoch mikrosaniye `INTEGER` üzerinden tam
+round-trip yapar ve naive/non-UTC datetime değerlerini reddeder.
 
 ## 10. Detection yaklaşımı
 

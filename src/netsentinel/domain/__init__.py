@@ -3,6 +3,7 @@
 from netsentinel.domain.connections import (
     ConnectionClosed,
     ConnectionClosureReason,
+    ConnectionHistoryRecord,
     ConnectionKey,
     ConnectionLifecycleEvent,
     ConnectionOpened,
@@ -20,6 +21,7 @@ from netsentinel.domain.connections import (
 __all__ = (
     "ConnectionClosed",
     "ConnectionClosureReason",
+    "ConnectionHistoryRecord",
     "ConnectionKey",
     "ConnectionLifecycleEvent",
     "ConnectionOpened",

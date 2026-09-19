@@ -77,6 +77,9 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   sorumluluğundadır; ürün bunu varmış gibi varsaymaz.
 - Connection history yalnızca lifecycle metadata'sı saklar; ham paket veya payload
   kolonu içermez.
+- Connection history sorgularındaki zaman, process, PID, protocol ve endpoint
+  filtreleri yalnızca SQLite parameter binding ile uygulanır; process/IP girdisi
+  SQL metnine eklenmez. Sonuçlar zorunlu ve üst sınırı olan pagination ile okunur.
 - Uygulamanın bildiğinden yeni schema version'ı yazma modunda reddedilir. Otomatik
   downgrade, tablo silme veya version geri çekme uygulanmaz.
 

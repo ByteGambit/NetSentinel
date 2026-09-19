@@ -23,6 +23,11 @@ from netsentinel.infrastructure.sqlite.migrations import (
     builtin_migrations,
     default_migration_runner,
 )
+from netsentinel.infrastructure.sqlite.repositories import (
+    SQLiteConnectionHistoryRepository,
+    datetime_to_epoch_microseconds,
+    epoch_microseconds_to_datetime,
+)
 
 __all__ = (
     "DEFAULT_BUSY_TIMEOUT_MS",
@@ -39,9 +44,12 @@ __all__ = (
     "NestedTransactionError",
     "SQLiteAdapterError",
     "SQLiteConnectionFactory",
+    "SQLiteConnectionHistoryRepository",
     "SQLiteDatabase",
     "builtin_migrations",
     "default_database_path",
     "default_migration_runner",
+    "datetime_to_epoch_microseconds",
+    "epoch_microseconds_to_datetime",
     "transaction",
 )

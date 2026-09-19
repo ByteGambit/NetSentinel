@@ -2,9 +2,24 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from ipaddress import ip_address
 from typing import Protocol
+from uuid import UUID
 
-from netsentinel.domain.connections import ConnectionSnapshot, ProcessInfo
+from netsentinel.domain.connections import (
+    ConnectionClosed,
+    ConnectionHistoryRecord,
+    ConnectionOpened,
+    ConnectionSnapshot,
+    ConnectionUpdated,
+    ProcessInfo,
+    TransportProtocol,
+)
+
+
+MAX_HISTORY_QUERY_LIMIT = 500
 
 
 class ConnectionCollectionError(RuntimeError):
@@ -33,10 +48,130 @@ class ProcessMetadataResolver(Protocol):
         """Return process metadata without leaking provider-specific types."""
 
 
+class HistoryRepositoryError(RuntimeError):
+    """A sanitized connection-history persistence operation failed."""
+
+
+class HistoryRecordNotFound(HistoryRepositoryError):
+    """No lifecycle record matches the requested identity or active key."""
+
+
+class HistoryDataCorrupt(HistoryRepositoryError):
+    """Persisted history data cannot be mapped to the portable model."""
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionHistoryQuery:
+    """Bounded, portable filters for connection-history reads.
+
+    Time bounds are inclusive and apply to ``first_seen``.  Endpoint filtering
+    matches either the local or remote canonical IP address.  Ordering is an
+    adapter contract: newest ``first_seen`` first, then stable record ID.
+    """
+
+    limit: int
+    offset: int = 0
+    first_seen_from: datetime | None = None
+    first_seen_to: datetime | None = None
+    protocol: TransportProtocol | None = None
+    process_name: str | None = None
+    pid: int | None = None
+    endpoint_address: str | None = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.limit, bool) or not isinstance(self.limit, int):
+            raise TypeError("limit must be an integer")
+        if not 1 <= self.limit <= MAX_HISTORY_QUERY_LIMIT:
+            raise ValueError(
+                f"limit must be between 1 and {MAX_HISTORY_QUERY_LIMIT}"
+            )
+        if isinstance(self.offset, bool) or not isinstance(self.offset, int):
+            raise TypeError("offset must be an integer")
+        if self.offset < 0:
+            raise ValueError("offset must be zero or greater")
+        if self.first_seen_from is not None:
+            object.__setattr__(
+                self,
+                "first_seen_from",
+                _require_utc(self.first_seen_from, "first_seen_from"),
+            )
+        if self.first_seen_to is not None:
+            object.__setattr__(
+                self,
+                "first_seen_to",
+                _require_utc(self.first_seen_to, "first_seen_to"),
+            )
+        if (
+            self.first_seen_from is not None
+            and self.first_seen_to is not None
+            and self.first_seen_from > self.first_seen_to
+        ):
+            raise ValueError("first_seen_from cannot follow first_seen_to")
+        if self.protocol is not None and not isinstance(
+            self.protocol, TransportProtocol
+        ):
+            raise TypeError("protocol must be a TransportProtocol or None")
+        if self.process_name is not None:
+            if not isinstance(self.process_name, str):
+                raise TypeError("process_name must be a string or None")
+            if not self.process_name.strip():
+                raise ValueError("process_name must not be empty")
+        if self.pid is not None:
+            if isinstance(self.pid, bool) or not isinstance(self.pid, int):
+                raise TypeError("pid must be an integer or None")
+            if self.pid < 0:
+                raise ValueError("pid must be zero or greater")
+        if self.endpoint_address is not None:
+            if not isinstance(self.endpoint_address, str):
+                raise TypeError("endpoint_address must be a string or None")
+            try:
+                canonical = str(ip_address(self.endpoint_address))
+            except ValueError as error:
+                raise ValueError("endpoint_address must be a valid IP address") from error
+            object.__setattr__(self, "endpoint_address", canonical)
+
+
+class ConnectionHistoryRepository(Protocol):
+    """Application port for synchronous connection-lifecycle persistence."""
+
+    def record_opened(self, event: ConnectionOpened) -> ConnectionHistoryRecord:
+        """Create a lifecycle record, idempotently handling the same event."""
+
+    def record_updated(self, event: ConnectionUpdated) -> ConnectionHistoryRecord:
+        """Update the matching active lifecycle without changing first_seen."""
+
+    def record_closed(self, event: ConnectionClosed) -> ConnectionHistoryRecord:
+        """Close the matching lifecycle, idempotently handling the same event."""
+
+    def get(self, record_id: UUID) -> ConnectionHistoryRecord | None:
+        """Return one record by persistence identity, if present."""
+
+    def query(
+        self, query: ConnectionHistoryQuery
+    ) -> tuple[ConnectionHistoryRecord, ...]:
+        """Return one bounded, deterministically ordered history page."""
+
+
+def _require_utc(value: datetime, field_name: str) -> datetime:
+    if not isinstance(value, datetime):
+        raise TypeError(f"{field_name} must be a datetime")
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"{field_name} must be timezone-aware and in UTC")
+    if value.utcoffset() != timedelta(0):
+        raise ValueError(f"{field_name} must use a UTC offset")
+    return value.astimezone(UTC)
+
+
 __all__ = (
+    "ConnectionHistoryQuery",
+    "ConnectionHistoryRepository",
     "ConnectionCollectionError",
     "ConnectionCollectionPermissionDenied",
     "ConnectionCollectionTransientError",
     "ConnectionCollector",
+    "HistoryDataCorrupt",
+    "HistoryRecordNotFound",
+    "HistoryRepositoryError",
+    "MAX_HISTORY_QUERY_LIMIT",
     "ProcessMetadataResolver",
 )
