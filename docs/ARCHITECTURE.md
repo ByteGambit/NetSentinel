@@ -348,6 +348,33 @@ state, process, PID, endpoint parçaları, stabil row ID ve sayısal süreyi sun
 Süre timer ile ilerletilmez; modele ulaşan son lifecycle observation zamanı ile
 satırın ilk görülme zamanı arasındaki negatif olmayan snapshot süresidir.
 
+### NS-011 Connections ekranı, filtreleme ve detay
+
+```text
+QtEngineBridge connection_opened / connection_updated / connection_closed
+  -> ConnectionsTableModel (Qt ana thread, incremental lifecycle mutation)
+  -> ConnectionsFilterProxyModel (raw-role search/filter + semantic sort)
+  -> ConnectionsView (QTableView + stable-ID selection + detail panel)
+```
+
+`MainWindow`, tek `ConnectionsTableModel` örneğini oluşturur ve bridge'in üç
+lifecycle sinyalini modelin karşılık gelen handler'larına bir kez bağlar. View,
+engine, dispatcher, worker veya infrastructure adapter'ına abone olmaz. Bridge
+health sinyali de yalnızca portable snapshot olarak view'a aktarılır; unavailable
+connection monitoring ve kısıtlı process metadata kullanıcıya açıkça gösterilir.
+
+Proxy araması process adı, PID ve local/remote address/port raw rollerinden
+oluşturulur; display endpoint text'i parse edilmez. Protocol ve portable state
+filtreleri exact raw value ile birleşir. PID, endpoint portları ve duration sayısal;
+IP adresleri adres ailesi ve sayısal adres; protocol/state ise tanımlı enum sırası
+ile karşılaştırılır. Filtre veya sort değişikliği source modeli resetlemez.
+
+Seçim `ConnectionRowId` ile izlenir. Proxy sırası değiştiğinde görünür row yeniden
+bulunur; update seçili detayı tazeler. Filtre seçimi gizlerse veya CLOSED source
+satırını kaldırırsa seçim ve detay paneli temizlenir, komşu satırın detayına
+yanlışlıkla geçilmez. Pause yalnızca view painting ve kontrollerini dondurur;
+model lifecycle eventlerini almaya devam eder ve resume güncel state'i gösterir.
+
 ## 9. Persistence tasarımı
 
 SQLite tek yerel veri deposudur. İlk planlanan tablolar:

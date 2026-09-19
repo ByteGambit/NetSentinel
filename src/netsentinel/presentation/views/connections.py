@@ -1,22 +1,468 @@
-"""Connections placeholder for the NS-008 application shell."""
+"""Live Connections page backed by the incremental NS-010 model."""
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QWidget
+from collections.abc import Callable
 
-from netsentinel.presentation.views.placeholder import PlaceholderPage
+from PyQt6.QtCore import (
+    QModelIndex,
+    QItemSelectionModel,
+    QSignalBlocker,
+    Qt,
+    pyqtSlot,
+)
+from PyQt6.QtWidgets import (
+    QAbstractItemView,
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
+
+from netsentinel.domain.connections import ConnectionState, TransportProtocol
+from netsentinel.presentation.bridge import BridgeHealthSnapshot
+from netsentinel.presentation.models.connection_filter import (
+    ConnectionsFilterProxyModel,
+)
+from netsentinel.presentation.models.connections import (
+    ConnectionColumn,
+    ConnectionRole,
+    ConnectionsTableModel,
+)
+from netsentinel.presentation.viewmodels import ConnectionRowId
+from netsentinel.presentation.widgets.connection_details import (
+    ConnectionDetailsWidget,
+)
+from netsentinel.shared.diagnostics import CapabilityStatus, EngineState
 
 
-class ConnectionsView(PlaceholderPage):
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(
-            title="Connections",
-            description=(
-                "Live connection data, filtering, and details will be added in "
-                "NS-010 and NS-011."
-            ),
-            parent=parent,
+class ConnectionsView(QWidget):
+    """Searchable, sortable active connections with stable-ID details."""
+
+    def __init__(
+        self,
+        model: ConnectionsTableModel | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("connectionsPage")
+        self.setAccessibleName("Connections")
+
+        self.source_model = (
+            ConnectionsTableModel(self) if model is None else model
         )
+        self.proxy_model = ConnectionsFilterProxyModel(self)
+        self._selected_row_id: ConnectionRowId | None = None
+        self._selection_syncing = False
+        self._selected_row_removing = False
+        self._paused = False
+        self._monitoring_unavailable = False
+        # Register before the proxy so a selected identity is captured before
+        # QItemSelectionModel reacts to proxy row removal and selects a neighbor.
+        self.source_model.rowsAboutToBeRemoved.connect(
+            self._on_source_rows_about_to_be_removed
+        )
+        self.proxy_model.setSourceModel(self.source_model)
+
+        self.title_label = QLabel("Connections", self)
+        self.title_label.setObjectName("pageTitle")
+        self.title_label.setStyleSheet(
+            "font-size: 24px; font-weight: 700; color: #102a43;"
+        )
+        self.subtitle_label = QLabel(
+            "Active TCP and UDP connections observed by NetSentinel.", self
+        )
+        self.subtitle_label.setObjectName("pageDescription")
+        self.subtitle_label.setStyleSheet("color: #627d98;")
+
+        self.health_label = QLabel("Waiting for monitoring status…", self)
+        self.health_label.setObjectName("connectionsHealth")
+        self.health_label.setWordWrap(True)
+        self.health_label.setStyleSheet(
+            "background: #eef4fb; color: #334e68; border-radius: 4px; padding: 7px;"
+        )
+
+        self.search_edit = QLineEdit(self)
+        self.search_edit.setObjectName("connectionSearch")
+        self.search_edit.setPlaceholderText(
+            "Search process, PID, local or remote endpoint"
+        )
+        self.search_edit.setClearButtonEnabled(True)
+        self.search_edit.setAccessibleName("Search connections")
+
+        self.protocol_filter = QComboBox(self)
+        self.protocol_filter.setObjectName("protocolFilter")
+        self.protocol_filter.setAccessibleName("Protocol filter")
+        self.protocol_filter.addItem("All protocols", None)
+        self.protocol_filter.addItem("TCP", TransportProtocol.TCP.value)
+        self.protocol_filter.addItem("UDP", TransportProtocol.UDP.value)
+
+        self.state_filter = QComboBox(self)
+        self.state_filter.setObjectName("stateFilter")
+        self.state_filter.setAccessibleName("Connection state filter")
+        self.state_filter.addItem("All states", None)
+        for state in ConnectionState:
+            self.state_filter.addItem(_state_label(state), state.value)
+
+        self.pause_button = QPushButton("Pause view", self)
+        self.pause_button.setObjectName("pauseConnectionsView")
+        self.pause_button.setCheckable(True)
+        self.pause_button.setToolTip(
+            "Freeze painting while monitoring continues in the background"
+        )
+        self.pause_notice = QLabel(
+            "View paused; monitoring continues in the background.", self
+        )
+        self.pause_notice.setObjectName("connectionsPauseNotice")
+        self.pause_notice.setStyleSheet("color: #8d5b00;")
+        self.pause_notice.hide()
+
+        self.table = QTableView(self)
+        self.table.setObjectName("connectionsTable")
+        self.table.setAccessibleName("Active connections")
+        self.table.setModel(self.proxy_model)
+        self.table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setWordWrap(False)
+        self.table.setSortingEnabled(True)
+        self.table.sortByColumn(
+            int(ConnectionColumn.PROCESS),
+            Qt.SortOrder.AscendingOrder,
+        )
+        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(28)
+        header = self.table.horizontalHeader()
+        header.setSectionsClickable(True)
+        header.setSectionsMovable(False)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setMinimumSectionSize(54)
+        header.setStretchLastSection(False)
+        for column, width in enumerate((150, 72, 86, 190, 190, 112, 96)):
+            self.table.setColumnWidth(column, width)
+        self.table.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+
+        self.empty_label = QLabel("No active connections.", self)
+        self.empty_label.setObjectName("connectionsEmptyState")
+        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
+
+        self.details = ConnectionDetailsWidget(self)
+
+        table_frame = QFrame(self)
+        table_layout = QVBoxLayout(table_frame)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.setSpacing(4)
+        table_layout.addWidget(self.empty_label)
+        table_layout.addWidget(self.table, 1)
+
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+        splitter.setObjectName("connectionsSplitter")
+        splitter.setChildrenCollapsible(False)
+        splitter.addWidget(table_frame)
+        splitter.addWidget(self.details)
+        splitter.setStretchFactor(0, 4)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([430, 190])
+
+        toolbar = QHBoxLayout()
+        toolbar.setSpacing(8)
+        toolbar.addWidget(self.search_edit, 1)
+        toolbar.addWidget(self.protocol_filter)
+        toolbar.addWidget(self.state_filter)
+        toolbar.addWidget(self.pause_button)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(10)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.subtitle_label)
+        layout.addWidget(self.health_label)
+        layout.addLayout(toolbar)
+        layout.addWidget(self.pause_notice)
+        layout.addWidget(splitter, 1)
+
+        self.search_edit.textChanged.connect(self._set_search_filter)
+        self.protocol_filter.currentIndexChanged.connect(self._set_protocol_filter)
+        self.state_filter.currentIndexChanged.connect(self._set_state_filter)
+        self.pause_button.toggled.connect(self.set_paused)
+        self.table.selectionModel().currentRowChanged.connect(
+            self._on_current_row_changed
+        )
+        self.proxy_model.dataChanged.connect(self._on_proxy_data_changed)
+        self.proxy_model.rowsInserted.connect(self._on_proxy_structure_changed)
+        self.proxy_model.rowsRemoved.connect(self._on_proxy_structure_changed)
+        self.proxy_model.modelReset.connect(self._on_proxy_structure_changed)
+        self.proxy_model.layoutChanged.connect(self._on_proxy_structure_changed)
+        self._update_empty_state()
+
+    @property
+    def selected_row_id(self) -> ConnectionRowId | None:
+        return self._selected_row_id
+
+    @property
+    def paused(self) -> bool:
+        return self._paused
+
+    @pyqtSlot(BridgeHealthSnapshot)
+    def set_health(self, health: BridgeHealthSnapshot) -> None:
+        """Present portable engine/bridge health without engine access."""
+
+        connection_status = health.engine.capabilities.connection_monitoring
+        process_status = health.engine.capabilities.process_metadata
+        self._monitoring_unavailable = (
+            connection_status is CapabilityStatus.UNAVAILABLE
+        )
+
+        if health.engine.state is EngineState.STOPPED:
+            message = "Connection monitoring is stopped."
+            severity = "warning"
+        elif connection_status is CapabilityStatus.UNAVAILABLE:
+            message = (
+                "Connection monitoring is unavailable. Check Windows permissions "
+                "and monitoring diagnostics."
+            )
+            severity = "error"
+        elif connection_status is CapabilityStatus.DEGRADED:
+            message = (
+                "Connection monitoring is degraded; some active connections may "
+                "be unavailable."
+            )
+            severity = "warning"
+        elif health.engine.last_error is not None:
+            message = (
+                "Connection monitoring reported an error; displayed data may be "
+                "incomplete. Review monitoring diagnostics."
+            )
+            severity = "error"
+        elif process_status is not CapabilityStatus.AVAILABLE:
+            message = (
+                "Process metadata is limited; unavailable process values are "
+                "shown as —."
+            )
+            severity = "warning"
+        else:
+            message = "Connection monitoring is active."
+            severity = "normal"
+
+        if health.dropped_events:
+            message += (
+                f" {health.dropped_events} UI update event(s) were dropped; "
+                "the view may be incomplete."
+            )
+            severity = "error"
+
+        colors = {
+            "normal": ("#edf8f0", "#276749"),
+            "warning": ("#fff8e6", "#8d5b00"),
+            "error": ("#fff0f0", "#9b2c2c"),
+        }
+        background, foreground = colors[severity]
+        self.health_label.setText(message)
+        self.health_label.setStyleSheet(
+            f"background: {background}; color: {foreground}; "
+            "border-radius: 4px; padding: 7px;"
+        )
+        self._update_empty_state()
+
+    @pyqtSlot(bool)
+    def set_paused(self, paused: bool) -> None:
+        """Freeze visible painting while retaining every source-model event."""
+
+        paused = bool(paused)
+        if paused == self._paused:
+            return
+        self._paused = paused
+        if self.pause_button.isChecked() != paused:
+            self.pause_button.setChecked(paused)
+        self.pause_button.setText("Resume view" if paused else "Pause view")
+        self.pause_notice.setVisible(paused)
+        self.search_edit.setEnabled(not paused)
+        self.protocol_filter.setEnabled(not paused)
+        self.state_filter.setEnabled(not paused)
+        self.table.setEnabled(not paused)
+        self.table.viewport().setUpdatesEnabled(not paused)
+        if not paused:
+            self._restore_selected_row()
+            self.table.viewport().update()
+
+    def clear_filters(self) -> None:
+        """Restore all connection rows without mutating the source model."""
+
+        selected = self._selected_row_id
+        self._selection_syncing = True
+        blockers = (
+            QSignalBlocker(self.search_edit),
+            QSignalBlocker(self.protocol_filter),
+            QSignalBlocker(self.state_filter),
+        )
+        try:
+            self.search_edit.clear()
+            self.protocol_filter.setCurrentIndex(0)
+            self.state_filter.setCurrentIndex(0)
+            self.proxy_model.set_search_text("")
+            self.proxy_model.set_protocol_filter(None)
+            self.proxy_model.set_state_filter(None)
+        finally:
+            del blockers
+            self._selection_syncing = False
+        self._selected_row_id = selected
+        self._restore_selected_row()
+        self._update_empty_state()
+
+    def _set_search_filter(self, text: str) -> None:
+        self._apply_filter_change(lambda: self.proxy_model.set_search_text(text))
+
+    def _set_protocol_filter(self) -> None:
+        value = self.protocol_filter.currentData()
+        self._apply_filter_change(
+            lambda: self.proxy_model.set_protocol_filter(value)
+        )
+
+    def _set_state_filter(self) -> None:
+        value = self.state_filter.currentData()
+        self._apply_filter_change(lambda: self.proxy_model.set_state_filter(value))
+
+    def _apply_filter_change(self, change: Callable[[], None]) -> None:
+        selected = self._selected_row_id
+        self._selection_syncing = True
+        try:
+            change()
+        finally:
+            self._selection_syncing = False
+        self._selected_row_id = selected
+        self._restore_selected_row()
+        self._update_empty_state()
+
+    def _on_current_row_changed(
+        self,
+        current: QModelIndex,
+        _previous: QModelIndex,
+    ) -> None:
+        if self._selection_syncing:
+            return
+        if not current.isValid():
+            self._selected_row_id = None
+            self.details.clear()
+            return
+        row_id = self.proxy_model.data(current, int(ConnectionRole.ROW_ID))
+        if not isinstance(row_id, ConnectionRowId):
+            self._selected_row_id = None
+            self.details.clear()
+            return
+        self._selected_row_id = row_id
+        self.details.set_connection(current.siblingAtColumn(0))
+
+    def _on_proxy_data_changed(
+        self,
+        _top_left: QModelIndex,
+        _bottom_right: QModelIndex,
+        _roles: list[int],
+    ) -> None:
+        if not self._paused:
+            self._restore_selected_row()
+
+    def _on_proxy_structure_changed(self, *_args: object) -> None:
+        if self._selected_row_removing:
+            self._selected_row_removing = False
+            self._selection_syncing = False
+            self._selected_row_id = None
+            self.table.selectionModel().clear()
+            self.details.clear()
+            self._update_empty_state()
+            return
+        if not self._selection_syncing:
+            self._restore_selected_row()
+        self._update_empty_state()
+
+    def _on_source_rows_about_to_be_removed(
+        self,
+        _parent: QModelIndex,
+        first: int,
+        last: int,
+    ) -> None:
+        if self._selected_row_id is None:
+            return
+        for row in range(first, last + 1):
+            index = self.source_model.index(row, 0)
+            if (
+                self.source_model.data(index, int(ConnectionRole.ROW_ID))
+                == self._selected_row_id
+            ):
+                self._selected_row_removing = True
+                self._selection_syncing = True
+                return
+
+    def _restore_selected_row(self) -> None:
+        if self._selected_row_id is None:
+            self.table.selectionModel().clearSelection()
+            self.details.clear()
+            return
+
+        row = self._find_proxy_row(self._selected_row_id)
+        if row is None:
+            self._selection_syncing = True
+            try:
+                self.table.selectionModel().clear()
+            finally:
+                self._selection_syncing = False
+            self._selected_row_id = None
+            self.details.clear()
+            return
+
+        index = self.proxy_model.index(row, 0)
+        self._selection_syncing = True
+        try:
+            self.table.selectionModel().setCurrentIndex(
+                index,
+                QItemSelectionModel.SelectionFlag.ClearAndSelect
+                | QItemSelectionModel.SelectionFlag.Rows,
+            )
+        finally:
+            self._selection_syncing = False
+        if not self._paused:
+            self.details.set_connection(index)
+
+    def _find_proxy_row(self, row_id: ConnectionRowId) -> int | None:
+        for row in range(self.proxy_model.rowCount()):
+            index = self.proxy_model.index(row, 0)
+            if self.proxy_model.data(index, int(ConnectionRole.ROW_ID)) == row_id:
+                return row
+        return None
+
+    def _update_empty_state(self) -> None:
+        empty = self.proxy_model.rowCount() == 0
+        if self._monitoring_unavailable:
+            text = "Connection monitoring is unavailable."
+        elif self.source_model.rowCount() and empty:
+            text = "No connections match the current filters."
+        else:
+            text = "No active connections."
+        self.empty_label.setText(text)
+        self.empty_label.setVisible(empty)
+
+
+def _state_label(state: ConnectionState) -> str:
+    if state is ConnectionState.NONE:
+        return "None (UDP)"
+    return state.value.replace("_", " ").title()
 
 
 __all__ = ("ConnectionsView",)

@@ -94,6 +94,7 @@ def create_application(
     lifecycle = ApplicationLifecycle(engine, bridge)
     window = MainWindow(on_close=lifecycle.shutdown)
     bridge.setParent(window)
+    window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
     return ApplicationShell(application, window, bridge, lifecycle)
 

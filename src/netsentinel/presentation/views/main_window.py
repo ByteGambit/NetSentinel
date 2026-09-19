@@ -19,6 +19,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from netsentinel.presentation.bridge import QtEngineBridge
+from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.connections import ConnectionsView
 from netsentinel.presentation.views.dashboard import DashboardView
@@ -60,12 +62,19 @@ class MainWindow(QMainWindow):
         self,
         *,
         on_close: Callable[[], object] | None = None,
+        connections_model: ConnectionsTableModel | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._on_close = on_close
         self._close_notified = False
         self._current_page = PageId.DASHBOARD
+        self._engine_bridge: QtEngineBridge | None = None
+        self.connections_model = (
+            ConnectionsTableModel(self)
+            if connections_model is None
+            else connections_model
+        )
 
         self.setObjectName("mainWindow")
         self.setWindowTitle("NetSentinel")
@@ -96,7 +105,10 @@ class MainWindow(QMainWindow):
 
         self._pages: dict[PageId, QWidget] = {
             PageId.DASHBOARD: DashboardView(self.content),
-            PageId.CONNECTIONS: ConnectionsView(self.content),
+            PageId.CONNECTIONS: ConnectionsView(
+                model=self.connections_model,
+                parent=self.content,
+            ),
             PageId.DEVICES: DevicesView(self.content),
             PageId.DNS: DnsView(self.content),
             PageId.ALERTS: AlertsView(self.content),
@@ -112,6 +124,31 @@ class MainWindow(QMainWindow):
         self.navigation.currentRowChanged.connect(self._on_navigation_changed)
         self.setCentralWidget(self._build_shell())
         self.navigate_to(PageId.DASHBOARD)
+
+    def bind_engine_bridge(self, bridge: QtEngineBridge) -> bool:
+        """Wire one bridge to the connection model and health view exactly once."""
+
+        if not isinstance(bridge, QtEngineBridge):
+            raise TypeError("bridge must be a QtEngineBridge")
+        if self._engine_bridge is bridge:
+            return False
+        if self._engine_bridge is not None:
+            raise RuntimeError("MainWindow is already bound to an engine bridge")
+
+        bridge.connection_opened.connect(
+            self.connections_model.handle_connection_opened
+        )
+        bridge.connection_updated.connect(
+            self.connections_model.handle_connection_updated
+        )
+        bridge.connection_closed.connect(
+            self.connections_model.handle_connection_closed
+        )
+        connections_view = self.page_widget(PageId.CONNECTIONS)
+        assert isinstance(connections_view, ConnectionsView)
+        bridge.health_changed.connect(connections_view.set_health)
+        self._engine_bridge = bridge
+        return True
 
     @property
     def current_page(self) -> PageId:

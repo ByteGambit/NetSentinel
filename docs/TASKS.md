@@ -121,6 +121,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-011 — Connections ekranı, filtreleme ve detay
 
+- **Durum:** ✅ Tamamlandı (2026-09-19)
 - **Amaç:** Canlı bağlantıları aranabilir, sıralanabilir ve açıklanabilir bir ekranda sunmak.
 - **Yapılacaklar:** Table view, proxy filter/sort, TCP/UDP ve state filtreleri, detay paneli ve paused-view davranışı ekle; boş/yetkisiz/hata durumlarını tasarla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/views/connections.py`, `src/netsentinel/presentation/widgets/connection_details.py`, `tests/gui/test_connections_view.py`.
