@@ -84,6 +84,7 @@ class DashboardView(QWidget):
 
         health_frame = QFrame(self)
         health_frame.setObjectName("dashboardHealthCard")
+        health_frame.setAccessibleName("Monitoring health summary")
         health_frame.setFrameShape(QFrame.Shape.StyledPanel)
         health_frame.setStyleSheet(
             "QFrame#dashboardHealthCard { background: #f8fafc; "
@@ -101,16 +102,19 @@ class DashboardView(QWidget):
             "Waiting for monitoring status.", health_frame
         )
         self.health_detail_label.setObjectName("dashboardHealthDetail")
+        self.health_detail_label.setAccessibleName("Monitoring health detail")
         self.health_detail_label.setStyleSheet("color: #243b53;")
         self.capability_label = QLabel(
             "Capability status is not available yet.", health_frame
         )
         self.capability_label.setObjectName("dashboardCapability")
+        self.capability_label.setAccessibleName("Monitoring capability")
         self.capability_label.setStyleSheet("color: #334e68;")
         self.diagnostic_label = QLabel(
             "No monitoring status has been received.", health_frame
         )
         self.diagnostic_label.setObjectName("dashboardDiagnostic")
+        self.diagnostic_label.setAccessibleName("Monitoring diagnostic")
         self.diagnostic_label.setWordWrap(True)
         self.diagnostic_label.setStyleSheet("color: #334e68;")
 
@@ -124,6 +128,7 @@ class DashboardView(QWidget):
         dropped_caption.setStyleSheet("color: #627d98;")
         self.dropped_events_label = QLabel("0", health_frame)
         self.dropped_events_label.setObjectName("dashboardDroppedEvents")
+        self.dropped_events_label.setAccessibleName("Dropped UI events")
         self.dropped_events_label.setStyleSheet("color: #243b53;")
 
         facts = QGridLayout()

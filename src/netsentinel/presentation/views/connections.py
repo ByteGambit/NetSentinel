@@ -85,6 +85,7 @@ class ConnectionsView(QWidget):
 
         self.health_label = QLabel("Waiting for monitoring status…", self)
         self.health_label.setObjectName("connectionsHealth")
+        self.health_label.setAccessibleName("Connection monitoring status")
         self.health_label.setWordWrap(True)
         self.health_label.setStyleSheet(
             "background: #eef4fb; color: #334e68; border-radius: 4px; padding: 7px;"
@@ -114,6 +115,7 @@ class ConnectionsView(QWidget):
 
         self.pause_button = QPushButton("Pause view", self)
         self.pause_button.setObjectName("pauseConnectionsView")
+        self.pause_button.setAccessibleName("Pause connection updates")
         self.pause_button.setCheckable(True)
         self.pause_button.setToolTip(
             "Freeze painting while monitoring continues in the background"
@@ -145,7 +147,9 @@ class ConnectionsView(QWidget):
         self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(28)
+        self.table.verticalHeader().setDefaultSectionSize(
+            max(28, self.table.fontMetrics().height() + 10)
+        )
         header = self.table.horizontalHeader()
         header.setSectionsClickable(True)
         header.setSectionsMovable(False)
@@ -161,6 +165,7 @@ class ConnectionsView(QWidget):
 
         self.empty_label = QLabel("No active connections.", self)
         self.empty_label.setObjectName("connectionsEmptyState")
+        self.empty_label.setAccessibleName("Connections empty state")
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
@@ -231,7 +236,10 @@ class ConnectionsView(QWidget):
             connection_status is CapabilityStatus.UNAVAILABLE
         )
 
-        if health.engine.state is EngineState.STOPPED:
+        if health.engine.state is EngineState.STOPPING:
+            message = "Connection monitoring is stopping."
+            severity = "warning"
+        elif health.engine.state is EngineState.STOPPED:
             message = "Connection monitoring is stopped."
             severity = "warning"
         elif connection_status is CapabilityStatus.UNAVAILABLE:
@@ -461,7 +469,7 @@ class ConnectionsView(QWidget):
 
 def _state_label(state: ConnectionState) -> str:
     if state is ConnectionState.NONE:
-        return "None (UDP)"
+        return "Not applicable (UDP)"
     return state.value.replace("_", " ").title()
 
 

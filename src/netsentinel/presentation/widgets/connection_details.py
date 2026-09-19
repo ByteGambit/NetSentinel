@@ -31,8 +31,10 @@ class ConnectionDetailsWidget(QGroupBox):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Selected connection", parent)
         self.setObjectName("connectionDetails")
+        self.setAccessibleName("Connection details")
         self.status_label = QLabel(self)
         self.status_label.setObjectName("connectionDetailsStatus")
+        self.status_label.setAccessibleName("Connection details status")
         self.status_label.setStyleSheet("color: #627d98;")
 
         self.value_labels: dict[str, QLabel] = {}

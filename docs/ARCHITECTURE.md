@@ -406,6 +406,25 @@ oluşturmaz; rolling pencerenin sona ermesi için yalnızca tek-shot presentatio
 timer'ı kullanır. Health mapping portable enum ve diagnostic code'larından
 üretilir; raw exception/traceback metni presentation state'ine taşınmaz.
 
+### NS-013 GUI lifecycle, erişilebilirlik ve responsiveness doğrulaması
+
+Kritik pencere, navigasyon, filtre, tablo, detay ve health öğeleri açık
+`accessibleName` değerleri taşır. Connections sayfasındaki temel focus zinciri
+Qt'nin doğal keyboard davranışı korunarak sidebar, arama, protokol/state
+filtreleri, pause ve tablo sırasına bağlanır. Sayfa değişimi, focus'u gizlenen bir
+widget üzerinde bırakmaz. Sidebar genişliği ve satır yükseklikleri tek bir sabit
+geometriye kilitlenmez; test suite'i ayrıca `QT_SCALE_FACTOR=2` ile bağımsız bir
+offscreen smoke süreci çalıştırır.
+
+Lifecycle regresyonları window close, `QApplication.aboutToQuit`, önceden
+detach edilmiş bridge, tekrarlı shutdown, queued event ve aktif burst sırasında
+kapanışı bounded sürelerle doğrular. Bridge detach sonrası dispatcher callback'i
+kalmaz; eski queued drain generation kontrolü nedeniyle model/widget mutate
+edemez. Responsiveness testi gerçek ağ kullanmadan fake dispatcher'a sentetik
+burst yayınlar. Sıfır aralıklı `QTimer` heartbeat'in bounded batch drain'leri
+arasında çalışması ve tüm kabul edilen eventlerin 5 saniyelik geniş CI smoke
+eşiği içinde tamamlanması beklenir; bu eşik bir performans benchmark'ı değildir.
+
 ## 9. Persistence tasarımı
 
 SQLite tek yerel veri deposudur. İlk planlanan tablolar:

@@ -141,6 +141,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-013 — GUI lifecycle, erişilebilirlik ve regresyon testleri
 
+- **Durum:** ✅ Tamamlandı (2026-09-19)
 - **Amaç:** M2 arayüzünün temel kullanılabilirlik ve kapanış davranışını güvenceye almak.
 - **Yapılacaklar:** Klavye navigasyonu, accessible name, yüksek DPI varsayımları, boş/loading/error state ve kapanış testlerini ekle; hızlı event burst altında responsiveness ölçümü tanımla.
 - **Etkilenecek muhtemel dosyalar:** `tests/gui/test_app_lifecycle.py`, `tests/gui/test_accessibility.py`, `tests/gui/test_event_burst.py`, ilgili `presentation` dosyaları.

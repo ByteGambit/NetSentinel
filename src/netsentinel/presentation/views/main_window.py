@@ -8,6 +8,7 @@ from enum import Enum
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import (
+    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -80,6 +81,7 @@ class MainWindow(QMainWindow):
         self.statistics = StatisticsService() if statistics is None else statistics
 
         self.setObjectName("mainWindow")
+        self.setAccessibleName("NetSentinel main window")
         self.setWindowTitle("NetSentinel")
         self.resize(1080, 680)
         self.setMinimumSize(760, 480)
@@ -87,7 +89,10 @@ class MainWindow(QMainWindow):
         self.navigation = QListWidget(self)
         self.navigation.setObjectName("navigation")
         self.navigation.setAccessibleName("Primary navigation")
-        self.navigation.setFixedWidth(220)
+        # Keep the sidebar bounded without forcing one device-pixel geometry.
+        # Qt can therefore expand it when a larger logical font/DPI needs room.
+        self.navigation.setMinimumWidth(180)
+        self.navigation.setMaximumWidth(300)
         self.navigation.setSpacing(4)
         self.navigation.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
@@ -124,12 +129,19 @@ class MainWindow(QMainWindow):
         for page_id in PAGE_ORDER:
             item = QListWidgetItem(PAGE_LABELS[page_id])
             item.setData(Qt.ItemDataRole.UserRole, page_id.value)
-            item.setSizeHint(QSize(0, 42))
+            item.setData(
+                Qt.ItemDataRole.AccessibleTextRole,
+                f"{PAGE_LABELS[page_id]} page",
+            )
+            item.setSizeHint(
+                QSize(0, max(42, self.navigation.fontMetrics().height() + 18))
+            )
             self.navigation.addItem(item)
             self.content.addWidget(self._pages[page_id])
 
         self.navigation.currentRowChanged.connect(self._on_navigation_changed)
         self.setCentralWidget(self._build_shell())
+        self._configure_tab_order()
         self.navigate_to(PageId.DASHBOARD)
 
     def bind_engine_bridge(self, bridge: QtEngineBridge) -> bool:
@@ -240,8 +252,32 @@ class MainWindow(QMainWindow):
         self._show_page(PAGE_ORDER[row])
 
     def _show_page(self, page_id: PageId) -> None:
+        previous_page = self.content.currentWidget()
+        focused = QApplication.focusWidget()
         self.content.setCurrentWidget(self._pages[page_id])
         self._current_page = page_id
+        if (
+            previous_page is not self._pages[page_id]
+            and focused is not None
+            and (
+                focused is previous_page
+                or previous_page.isAncestorOf(focused)
+            )
+        ):
+            # Programmatic page changes must not leave focus on a now-hidden
+            # child. Keyboard navigation changes already keep focus here.
+            self.navigation.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _configure_tab_order(self) -> None:
+        """Define the one critical keyboard path while retaining Qt defaults."""
+
+        connections = self.page_widget(PageId.CONNECTIONS)
+        assert isinstance(connections, ConnectionsView)
+        QWidget.setTabOrder(self.navigation, connections.search_edit)
+        QWidget.setTabOrder(connections.search_edit, connections.protocol_filter)
+        QWidget.setTabOrder(connections.protocol_filter, connections.state_filter)
+        QWidget.setTabOrder(connections.state_filter, connections.pause_button)
+        QWidget.setTabOrder(connections.pause_button, connections.table)
 
 
 __all__ = ("MainWindow", "PAGE_LABELS", "PAGE_ORDER", "PageId")
