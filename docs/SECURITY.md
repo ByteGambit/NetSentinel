@@ -71,7 +71,14 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Loglarda sırlar, payload, tam hata dump'ı veya gereksiz kullanıcı yolu bulunmamalıdır.
 - Retention süresi yapılandırılabilir; temizlik transaction'lı ve testli olmalıdır.
 - UI, hassas alanların kopyalanması veya dışa aktarılması ileride eklenirse kullanıcıyı kapsam konusunda bilgilendirmelidir.
-- SQLite dosyası kullanıcı profiline uygun izinlerle yazılır. Disk şifreleme işletim sisteminin sorumluluğundadır; ürün bunu varmış gibi varsaymaz.
+- SQLite dosyası `%LOCALAPPDATA%/NetSentinel/netsentinel.sqlite3` altında kullanıcı
+  profiline uygun izinlerle yerel tutulur; repository/install/current-working
+  directory içine production verisi yazılmaz. Disk şifreleme işletim sisteminin
+  sorumluluğundadır; ürün bunu varmış gibi varsaymaz.
+- Connection history yalnızca lifecycle metadata'sı saklar; ham paket veya payload
+  kolonu içermez.
+- Uygulamanın bildiğinden yeni schema version'ı yazma modunda reddedilir. Otomatik
+  downgrade, tablo silme veya version geri çekme uygulanmaz.
 
 ## 6. Güven sınırları ve tehditler
 

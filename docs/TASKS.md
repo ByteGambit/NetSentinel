@@ -155,6 +155,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-014 — SQLite bağlantısı, migration sistemi ve başlangıç şeması
 
+- **Durum:** ✅ Tamamlandı (2026-09-19)
 - **Amaç:** Sürümlenebilir, güvenli ve ilerletilebilir yerel veri tabanı temelini oluşturmak.
 - **Yapılacaklar:** DB path politikası, connection factory, WAL/busy timeout, transaction helper ve sıralı migration runner ekle; connection history ve migration tablolarını oluştur.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/sqlite/database.py`, `src/netsentinel/infrastructure/sqlite/migrations.py`, `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `tests/integration/sqlite/test_migrations.py`.

@@ -451,6 +451,51 @@ SQLite tek yerel veri deposudur. İlk planlanan tablolar:
 - Retention politikası tablo türüne göre yapılandırılabilir ve güvenli transaction ile uygulanır.
 - Veritabanı bozulması veya migration hatası uygulamayı anlaşılmaz biçimde çökertmez; diagnostics ve kurtarma yönlendirmesi sunulur.
 
+### NS-014 SQLite temeli ve katman sınırı
+
+```text
+application / domain
+        ↓
+future repository port (NS-015)
+        ↓
+SQLite infrastructure adapter
+        ↓
+ordered migrations / versioned schema
+```
+
+Domain ve application katmanları `sqlite3`, connection nesnesi, SQL veya şema
+ayrıntısı bilmez. NS-014 yalnızca infrastructure katmanındaki bağlantı ve şema
+temelini sağlar; repository mapping'i, lifecycle event yazımı ve async writer
+NS-015/NS-016 kapsamındadır.
+
+Production veritabanı Windows kullanıcı profilinin Local Application Data
+dizinindeki `NetSentinel/netsentinel.sqlite3` dosyasıdır. Test ve composition
+kodları açık bir path enjekte edebilir. Path çözümü import sırasında dizin veya
+dosya oluşturmaz; parent dizin ilk bağlantıda hazırlanır. Bağlantılar
+`foreign_keys=ON`, `journal_mode=WAL` ve 5000 ms `busy_timeout` ile açılır.
+Autocommit yalnızca transaction dışındaki işlemler içindir; yazma blokları açık
+`BEGIN IMMEDIATE`/commit/rollback helper'ı kullanır. Connection threadler arasında
+paylaşılmaz ve sahibi tarafından kapatılır. Bu ayarlar NS-016'daki kısa batch ve
+tek-writer modeline hazırlıktır; writer thread/queue bu taskta oluşturulmaz.
+
+Migration manifest'i package içindeki numaralı SQL kaynaklarını explicit sırayla
+yükler; filesystem sırasına güvenmez. Her migration kendi transaction'ında DDL'i
+ve `schema_migrations` ledger kaydını birlikte yazar. Hata ikisini de rollback
+eder. Uygulamanın desteklediğinden yüksek version yazma modunda
+`DatabaseSchemaTooNew` ile reddedilir; otomatik downgrade veya destructive
+kurtarma yapılmaz. Bozuk metadata ve adapter hataları raw SQLite mesajını üst
+katmanlara taşımayan typed infrastructure hatalarıdır.
+
+`connection_history` başlangıç şeması UUID metin kimliği; protocol, endpoint,
+process identity/availability/name, portable connection state, first/last seen
+ve nullable close time/reason alanlarını içerir. Domain'in nullable remote/process
+semantiği ve lifecycle zaman sırası `CHECK` constraint'leriyle korunur. Zamanlar
+UTC Unix epoch mikrosaniye olarak signed SQLite `INTEGER` içinde saklanır; bu
+seçim float dönüşümünü önler ve timezone-aware domain değerleri için deterministik,
+mikrosaniye hassasiyetli NS-015 round-trip sözleşmesi sağlar. Zaman/kararlı ID ve
+process filtreleri için iki başlangıç index'i bulunur; ek query index'leri gerçek
+repository sorguları ölçülmeden eklenmez.
+
 ## 10. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
