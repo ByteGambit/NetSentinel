@@ -324,6 +324,30 @@ olarak QObject destruction ve Python finalization subscription'ları temizler;
 publish sırasında alınmış eski subscriber snapshot'ları inactive state'i görüp
 no-op olur.
 
+### NS-010 Connections tablo modeli
+
+```text
+QtEngineBridge events_ready / lifecycle signals
+  -> ConnectionsTableModel (Qt ana thread, incremental state)
+  -> QTableView + proxy/detail katmanı (NS-011)
+```
+
+`ConnectionsTableModel`, insertion sırasını koruyan immutable `ConnectionRow`
+değerleri ile `ConnectionRowId -> row index` haritası tutar. Row ID, domain
+`ConnectionKey` alanlarından türetilir; process create-time mevcut olduğunda PID
+reuse yeni bir kimlik üretir. OPENED satır ekler, UPDATED aynı index'te
+`dataChanged` yayar ve CLOSED yalnızca eşleşen satırı kaldırır. Normal lifecycle
+akışında model reset kullanılmaz. Duplicate/stale OPENED güvenli no-op veya aynı
+satırda ileri güncellemedir; kaçırılmış OPENED sonrasındaki bilinmeyen UPDATED
+upsert ile toparlanır, bilinmeyen CLOSED no-op'tur.
+
+Display değerleri presentation mapper'ında üretilir; IPv6 endpoint portları
+köşeli parantezle ayrılır ve eksik process/remote endpoint değerleri güvenli bir
+placeholder alır. Raw roller gelecekteki NS-011 filtre/sort katmanına protokol,
+state, process, PID, endpoint parçaları, stabil row ID ve sayısal süreyi sunar.
+Süre timer ile ilerletilmez; modele ulaşan son lifecycle observation zamanı ile
+satırın ilk görülme zamanı arasındaki negatif olmayan snapshot süresidir.
+
 ## 9. Persistence tasarımı
 
 SQLite tek yerel veri deposudur. İlk planlanan tablolar:

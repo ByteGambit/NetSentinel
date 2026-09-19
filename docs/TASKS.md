@@ -111,6 +111,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-010 — Connections tablo modeli
 
+- **Durum:** ✅ Tamamlandı (2026-09-19)
 - **Amaç:** Aktif connection verisini tam tablo reseti yapmadan gösteren test edilebilir Qt modelini oluşturmak.
 - **Yapılacaklar:** `QAbstractTableModel` tabanlı model ve connection view model mapper'ı ekle; stable row ID, kolonlar, display/raw roller ve incremental insert/update/remove uygula.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/models/connections.py`, `src/netsentinel/presentation/viewmodels.py`, `tests/gui/test_connections_model.py`.
