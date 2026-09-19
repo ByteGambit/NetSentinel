@@ -177,6 +177,12 @@ class ConnectionsTableModel(QAbstractTableModel):
         )
         return names
 
+    def rows_snapshot(self) -> tuple[ConnectionRow, ...]:
+        """Return immutable presentation rows for same-thread summaries."""
+
+        self._require_model_thread()
+        return tuple(self._rows)
+
     @pyqtSlot(ConnectionOpened)
     def handle_connection_opened(self, event: ConnectionOpened) -> None:
         self._apply_event(event)

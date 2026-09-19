@@ -8,6 +8,11 @@ from netsentinel.presentation.models.connections import (
     ConnectionRole,
     ConnectionsTableModel,
 )
+from netsentinel.presentation.models.dashboard import (
+    DashboardHealthState,
+    DashboardMetrics,
+    DashboardViewModel,
+)
 
 
 __all__ = (
@@ -15,4 +20,7 @@ __all__ = (
     "ConnectionRole",
     "ConnectionsFilterProxyModel",
     "ConnectionsTableModel",
+    "DashboardHealthState",
+    "DashboardMetrics",
+    "DashboardViewModel",
 )

@@ -9,6 +9,7 @@ from typing import Protocol
 
 from PyQt6.QtWidgets import QApplication
 
+from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import EngineEventSource, QtEngineBridge
 from netsentinel.presentation.views.main_window import MainWindow
 
@@ -92,7 +93,10 @@ def create_application(
 
     bridge = QtEngineBridge(engine)
     lifecycle = ApplicationLifecycle(engine, bridge)
-    window = MainWindow(on_close=lifecycle.shutdown)
+    window = MainWindow(
+        on_close=lifecycle.shutdown,
+        statistics=StatisticsService(),
+    )
     bridge.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)

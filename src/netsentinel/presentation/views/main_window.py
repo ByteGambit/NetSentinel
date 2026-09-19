@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
@@ -63,6 +64,7 @@ class MainWindow(QMainWindow):
         *,
         on_close: Callable[[], object] | None = None,
         connections_model: ConnectionsTableModel | None = None,
+        statistics: StatisticsService | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -75,6 +77,7 @@ class MainWindow(QMainWindow):
             if connections_model is None
             else connections_model
         )
+        self.statistics = StatisticsService() if statistics is None else statistics
 
         self.setObjectName("mainWindow")
         self.setWindowTitle("NetSentinel")
@@ -104,7 +107,11 @@ class MainWindow(QMainWindow):
         self.content.setAccessibleName("Page content")
 
         self._pages: dict[PageId, QWidget] = {
-            PageId.DASHBOARD: DashboardView(self.content),
+            PageId.DASHBOARD: DashboardView(
+                model=self.connections_model,
+                statistics=self.statistics,
+                parent=self.content,
+            ),
             PageId.CONNECTIONS: ConnectionsView(
                 model=self.connections_model,
                 parent=self.content,
@@ -147,6 +154,10 @@ class MainWindow(QMainWindow):
         connections_view = self.page_widget(PageId.CONNECTIONS)
         assert isinstance(connections_view, ConnectionsView)
         bridge.health_changed.connect(connections_view.set_health)
+        dashboard_view = self.page_widget(PageId.DASHBOARD)
+        assert isinstance(dashboard_view, DashboardView)
+        bridge.events_ready.connect(dashboard_view.view_model.handle_events)
+        bridge.health_changed.connect(dashboard_view.view_model.set_health)
         self._engine_bridge = bridge
         return True
 

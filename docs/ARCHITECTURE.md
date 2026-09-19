@@ -375,6 +375,37 @@ satırını kaldırırsa seçim ve detay paneli temizlenir, komşu satırın det
 yanlışlıkla geçilmez. Pause yalnızca view painting ve kontrollerini dondurur;
 model lifecycle eventlerini almaya devam eder ve resume güncel state'i gösterir.
 
+### NS-012 Dashboard ve canlı istatistikler
+
+```text
+QtEngineBridge lifecycle signals
+  -> ConnectionsTableModel (tek aktif-connection source of truth)
+  -> DashboardViewModel -> Dashboard connection kartları
+
+QtEngineBridge events_ready
+  -> bounded StatisticsService (60 saniyelik opened/closed olay penceresi)
+  -> DashboardViewModel -> recent event kartları
+
+QtEngineBridge health_changed
+  -> EngineHealthSnapshot + bridge drop sayacı
+  -> DashboardViewModel -> kullanıcı dostu health/capability/diagnostic metni
+```
+
+Dashboard yeni snapshot toplamaz ve `MonitoringEngine`, psutil ya da başka bir
+infrastructure adapter'ına erişmez. Anlık total/TCP/UDP/listening/unique remote
+host değerleri `MainWindow` tarafından Connections ekranıyla paylaştırılan tek
+`ConnectionsTableModel` örneğinin immutable presentation satırlarından bir
+geçişte hesaplanır. Model insert/remove/update/reset sinyalleri kartları Qt ana
+thread'inde günceller; canonical remote address kullanılır ve display endpoint
+metni parse edilmez.
+
+Framework-bağımsız `StatisticsService` yalnızca bridge'in batch lifecycle
+eventlerinden kısa pencere içindeki opened/closed olay sayılarını tutar. State'i
+hem zaman hem kapasite bakımından bounded'dır. Dashboard network polling timer'ı
+oluşturmaz; rolling pencerenin sona ermesi için yalnızca tek-shot presentation
+timer'ı kullanır. Health mapping portable enum ve diagnostic code'larından
+üretilir; raw exception/traceback metni presentation state'ine taşınmaz.
+
 ## 9. Persistence tasarımı
 
 SQLite tek yerel veri deposudur. İlk planlanan tablolar:

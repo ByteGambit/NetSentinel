@@ -131,6 +131,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-012 — Dashboard ve temel canlı istatistikler
 
+- **Durum:** ✅ Tamamlandı (2026-09-19)
 - **Amaç:** Aktif connection sayısı, protokol dağılımı, yeni/kapanan olay sayısı ve engine health'i özetlemek.
 - **Yapılacaklar:** Bounded `StatisticsService`, dashboard read model ve kart/widget'ları ekle; kısa rolling window tanımla; “paket byte trafiği” ile “connection sayısı”nı karıştırmayan etiketler kullan.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/statistics.py`, `src/netsentinel/presentation/models/dashboard.py`, `src/netsentinel/presentation/views/dashboard.py`, `tests/unit/application/test_statistics.py`.
