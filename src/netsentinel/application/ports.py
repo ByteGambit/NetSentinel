@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
@@ -152,6 +153,35 @@ class ConnectionHistoryRepository(Protocol):
         """Return one bounded, deterministically ordered history page."""
 
 
+class ConnectionHistoryWriteSession(Protocol):
+    """One writer-owned repository session with portable batch semantics.
+
+    The session is created inside the persistence worker and is never shared
+    with producers.  Infrastructure adapters may use one connection for the
+    lifetime of the session and one transaction for each ``batch`` scope.
+    """
+
+    def batch(self) -> AbstractContextManager[None]:
+        """Return an atomic write scope for one ordered event batch."""
+
+    def record_opened(self, event: ConnectionOpened) -> ConnectionHistoryRecord:
+        """Persist one opened event within the current batch."""
+
+    def record_updated(self, event: ConnectionUpdated) -> ConnectionHistoryRecord:
+        """Persist one updated event within the current batch."""
+
+    def record_closed(self, event: ConnectionClosed) -> ConnectionHistoryRecord:
+        """Persist one closed event within the current batch."""
+
+
+class ConnectionHistoryWriteSessionFactory(Protocol):
+    """Create a worker-owned history session when called by the writer thread."""
+
+    def __call__(
+        self,
+    ) -> AbstractContextManager[ConnectionHistoryWriteSession]: ...
+
+
 def _require_utc(value: datetime, field_name: str) -> datetime:
     if not isinstance(value, datetime):
         raise TypeError(f"{field_name} must be a datetime")
@@ -165,6 +195,8 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 __all__ = (
     "ConnectionHistoryQuery",
     "ConnectionHistoryRepository",
+    "ConnectionHistoryWriteSession",
+    "ConnectionHistoryWriteSessionFactory",
     "ConnectionCollectionError",
     "ConnectionCollectionPermissionDenied",
     "ConnectionCollectionTransientError",

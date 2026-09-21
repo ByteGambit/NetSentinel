@@ -28,6 +28,11 @@ from netsentinel.infrastructure.sqlite.repositories import (
     datetime_to_epoch_microseconds,
     epoch_microseconds_to_datetime,
 )
+from netsentinel.infrastructure.sqlite.writer import (
+    SQLiteConnectionHistoryWriteSession,
+    SQLiteHistoryWriteSessionFactory,
+    SQLiteHistoryWriter,
+)
 
 __all__ = (
     "DEFAULT_BUSY_TIMEOUT_MS",
@@ -45,7 +50,10 @@ __all__ = (
     "SQLiteAdapterError",
     "SQLiteConnectionFactory",
     "SQLiteConnectionHistoryRepository",
+    "SQLiteConnectionHistoryWriteSession",
     "SQLiteDatabase",
+    "SQLiteHistoryWriteSessionFactory",
+    "SQLiteHistoryWriter",
     "builtin_migrations",
     "default_database_path",
     "default_migration_runner",

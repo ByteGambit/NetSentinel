@@ -113,9 +113,9 @@ def run_application(
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
-        from netsentinel.bootstrap import create_monitoring_engine
+        from netsentinel.bootstrap import create_desktop_engine
 
-        engine = create_monitoring_engine()
+        engine = create_desktop_engine()
 
     shell = create_application(
         engine,

@@ -524,6 +524,65 @@ adapter/transaction sorunları sanitize edilmiş `HistoryRepositoryError` olur.
 UTC zaman mapping'i float kullanmadan epoch mikrosaniye `INTEGER` üzerinden tam
 round-trip yapar ve naive/non-UTC datetime değerlerini reddeder.
 
+### NS-016 asenkron history writer ve backpressure
+
+```text
+MonitoringEngine lifecycle events
+        ↓ synchronous subscriber / put_nowait
+ConnectionHistoryPersistence
+        ↓
+ConnectionHistoryWriter (bounded FIFO, varsayılan 2048)
+        ↓ tek worker, küçük bounded batch (varsayılan 64 / 100 ms)
+ConnectionHistoryWriteSession
+        ↓ tek writer-owned connection + batch transaction
+SQLiteConnectionHistoryRepository mapping
+        ↓
+SQLite connection_history
+```
+
+Producer tarafı yalnızca portable `ConnectionOpened`, `ConnectionUpdated` ve
+`ConnectionClosed` eventlerini `put_nowait` ile kuyruğa kabul etmeyi dener; DB
+I/O, retry veya connection açma poller thread'inde yapılmaz. Queue doluyken yeni
+event düşürülür, bekleyen eski FIFO sırası korunur. Drop yalnızca bounded
+counter ve son typed diagnostic snapshot'ını günceller; raw exception, SQL veya
+DB path üst katmana taşınmaz. Varsayılan capacity 2048'dir ve composition'da
+yapılandırılabilir.
+
+Writer her çalışma döneminde yalnızca bir daemon worker oluşturur. SQLite write
+session ve migrated connection worker thread içinde açılır, threadler arasında
+paylaşılmaz ve worker çıkarken kapatılır. Kabul edilen eventler FIFO batch'e
+alınır; her batch tek transaction'da OPENED → `record_opened`, UPDATED →
+`record_updated`, CLOSED → `record_closed` olarak map edilir. Repository'nin
+idempotency kuralları writer'da yeniden uygulanmaz. Sanitize edilmiş repository
+hatasında varsayılan iki bounded retry ve artan, bounded kısa backoff uygulanır.
+Batch kalıcı olarak başarısızsa eventler orijinal sırada tek tek izole edilir;
+bir bozuk event sonraki eventleri veya uzun ömürlü worker'ı öldürmez.
+
+Portable persistence health snapshot'ı lifecycle state, queue depth/capacity,
+accepted/persisted/dropped/failed/retry/batch sayaçları, son başarılı write zamanı
+ve son typed diagnostic'i taşır. Snapshot lock altında kopyalanır; lock tutulurken
+DB I/O yapılmaz. Overflow diagnostic'i dışarıya event başına log/sinyal spam'i
+üretmez; son durum ve toplam sayaç üzerinden gözlemlenir.
+
+Production composition `create_desktop_engine` içinde yapılır; engine SQLite,
+path veya concrete repository bilmez. Start sırasında writer önce başlatılır ve
+dispatcher'a her lifecycle tipi için bir kez subscribe edilir. GUI shutdown sırası:
+
+```text
+Qt bridge detach
+  -> MonitoringEngine poller cancellation/join
+  -> persistence subscriber detach
+  -> writer acceptance close
+  -> bounded queue drain / writer session close
+```
+
+Normal stop kabul edilmiş kuyruğu flush eder. Stop timeout aşılırsa producer'a
+kapı kapalı kalır, henüz in-flight olmayan queue item'ları drop sayacına eklenir
+ve `persistence_shutdown_timeout` görünür olur; devam eden SQLite çağrısı zorla
+iptal edilmez, döndüğünde daemon worker kaynaklarını kapatır. `start`/`stop`
+idempotenttir; tamamen durmuş writer yeniden başladığında yeni bir worker-owned
+session açar. Presentation view'ları writer/repository referansı almaz.
+
 ## 10. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

@@ -175,6 +175,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-016 — Asenkron history writer ve backpressure
 
+- **Durum:** ✅ Tamamlandı (2026-09-21)
 - **Amaç:** Monitoring worker'larını SQLite I/O'dan ayıran tek yazıcılı, bounded persistence hattı kurmak.
 - **Yapılacaklar:** Persistence queue, batch boyutu/zamanı, retry sınırı, flush-on-stop ve health metriklerini uygula; event'leri repository komutlarına map et.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/history.py`, `src/netsentinel/infrastructure/sqlite/writer.py`, `src/netsentinel/application/engine.py`, `tests/integration/sqlite/test_writer.py`.

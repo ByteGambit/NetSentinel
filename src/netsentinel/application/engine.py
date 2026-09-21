@@ -31,6 +31,7 @@ from netsentinel.shared.diagnostics import (
     EngineCounters,
     EngineHealthSnapshot,
     EngineState,
+    PersistenceHealthSnapshot,
 )
 
 
@@ -48,6 +49,16 @@ class LifecycleTracker(Protocol):
     def track(
         self, snapshots: Iterable[ConnectionSnapshot]
     ) -> tuple[ConnectionLifecycleEvent, ...]: ...
+
+
+class PersistencePipeline(Protocol):
+    """Optional application-level lifecycle sink managed with the poller."""
+
+    def start(self) -> bool: ...
+
+    def stop(self, timeout: float | None = None) -> bool: ...
+
+    def health_snapshot(self) -> PersistenceHealthSnapshot: ...
 
 
 class EngineLifecycleError(RuntimeError):
@@ -75,6 +86,7 @@ class MonitoringEngine:
         clock: WallClock | None = None,
         monotonic_clock: MonotonicClock | None = None,
         thread_name: str = "netsentinel-connection-poller",
+        persistence: PersistencePipeline | None = None,
     ) -> None:
         if (
             isinstance(polling_interval, bool)
@@ -102,6 +114,7 @@ class MonitoringEngine:
         self._clock = clock if clock is not None else (lambda: datetime.now(UTC))
         self._monotonic = monotonic_clock if monotonic_clock is not None else monotonic
         self._thread_name = thread_name
+        self._persistence = persistence
 
         self._lock = RLock()
         self._cancel = Event()
@@ -129,12 +142,22 @@ class MonitoringEngine:
 
         return self.health
 
+    def persistence_health_snapshot(self) -> PersistenceHealthSnapshot | None:
+        """Return portable persistence health when the pipeline is configured."""
+
+        persistence = self._persistence
+        return None if persistence is None else persistence.health_snapshot()
+
     def start(self) -> bool:
         """Start polling once; return ``False`` when already running/stopping."""
 
         with self._lock:
             self._reject_worker_lifecycle_control()
             if self._worker is not None and self._worker.is_alive():
+                return False
+
+            persistence = self._persistence
+            if persistence is not None and not persistence.start():
                 return False
 
             self._cancel = Event()
@@ -150,7 +173,18 @@ class MonitoringEngine:
                 polling=False,
                 worker_alive=True,
             )
-            worker.start()
+            try:
+                worker.start()
+            except BaseException:
+                self._worker = None
+                self._health = replace(
+                    self._health,
+                    state=EngineState.STOPPED,
+                    worker_alive=False,
+                )
+                if persistence is not None:
+                    persistence.stop()
+                raise
             return True
 
     def stop(self, timeout: float | None = None) -> bool:
@@ -175,13 +209,17 @@ class MonitoringEngine:
             self._reject_worker_lifecycle_control()
             worker = self._worker
             if worker is None or not worker.is_alive():
+                persistence = self._persistence
+                persistence_stopped = (
+                    True if persistence is None else persistence.stop(timeout)
+                )
                 self._health = replace(
                     self._health,
                     state=EngineState.STOPPED,
                     polling=False,
                     worker_alive=False,
                 )
-                return True
+                return persistence_stopped
             self._cancel.set()
             self._health = replace(self._health, state=EngineState.STOPPING)
 
@@ -229,6 +267,18 @@ class MonitoringEngine:
                 if self._cancel.wait(self._polling_interval):
                     break
         finally:
+            persistence = self._persistence
+            if persistence is not None:
+                try:
+                    persistence_stopped = persistence.stop()
+                except Exception:
+                    persistence_stopped = False
+                if not persistence_stopped:
+                    self._record_error(
+                        DiagnosticCode.PERSISTENCE_SHUTDOWN_TIMEOUT,
+                        DiagnosticComponent.PERSISTENCE,
+                        severity=DiagnosticSeverity.WARNING,
+                    )
             with self._lock:
                 self._health = replace(
                     self._health,
@@ -491,5 +541,6 @@ __all__ = (
     "EngineLifecycleError",
     "LifecycleTracker",
     "MonitoringEngine",
+    "PersistencePipeline",
     "SnapshotEnricher",
 )

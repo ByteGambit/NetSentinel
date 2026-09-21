@@ -15,6 +15,14 @@ class EngineState(str, Enum):
     STOPPING = "stopping"
 
 
+class PersistenceState(str, Enum):
+    """Lifecycle state of the asynchronous persistence writer."""
+
+    STOPPED = "stopped"
+    RUNNING = "running"
+    STOPPING = "stopping"
+
+
 class CapabilityStatus(str, Enum):
     """Availability of one monitoring capability."""
 
@@ -44,6 +52,12 @@ class DiagnosticCode(str, Enum):
     POLLING_OVERRUN = "polling_overrun"
     SHUTDOWN_TIMEOUT = "shutdown_timeout"
     WORKER_ERROR = "worker_error"
+    PERSISTENCE_OVERFLOW = "persistence_overflow"
+    PERSISTENCE_WRITE_FAILED = "persistence_write_failed"
+    PERSISTENCE_UNEXPECTED_ERROR = "persistence_unexpected_error"
+    PERSISTENCE_START_FAILED = "persistence_start_failed"
+    PERSISTENCE_SHUTDOWN_TIMEOUT = "persistence_shutdown_timeout"
+    PERSISTENCE_NOT_RUNNING = "persistence_not_running"
 
 
 class DiagnosticComponent(str, Enum):
@@ -55,6 +69,7 @@ class DiagnosticComponent(str, Enum):
     TRACKER = "tracker"
     DISPATCHER = "dispatcher"
     SUBSCRIBER = "subscriber"
+    PERSISTENCE = "persistence"
 
 
 def _require_utc(value: datetime, field_name: str) -> datetime:
@@ -145,6 +160,35 @@ class EngineHealthSnapshot:
         return self.capabilities.overall
 
 
+@dataclass(frozen=True, slots=True)
+class PersistenceCounters:
+    """Cumulative counters for one bounded persistence pipeline."""
+
+    accepted_events: int = 0
+    persisted_events: int = 0
+    dropped_events: int = 0
+    failed_writes: int = 0
+    retry_attempts: int = 0
+    batches: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class PersistenceHealthSnapshot:
+    """Portable, immutable writer health safe for concurrent readers."""
+
+    state: PersistenceState
+    queue_depth: int
+    queue_capacity: int
+    counters: PersistenceCounters
+    last_successful_write_at: datetime | None = None
+    last_error: Diagnostic | None = None
+    worker_alive: bool = False
+
+    @property
+    def running(self) -> bool:
+        return self.state is PersistenceState.RUNNING
+
+
 __all__ = (
     "CapabilitySnapshot",
     "CapabilityStatus",
@@ -155,4 +199,7 @@ __all__ = (
     "EngineCounters",
     "EngineHealthSnapshot",
     "EngineState",
+    "PersistenceCounters",
+    "PersistenceHealthSnapshot",
+    "PersistenceState",
 )

@@ -104,29 +104,7 @@ class SQLiteConnectionHistoryRepository:
         try:
             with self._database.connection() as connection:
                 with transaction(connection):
-                    existing_row = self._find_by_key_and_first_seen(
-                        connection,
-                        event.key,
-                        datetime_to_epoch_microseconds(event.occurred_at),
-                    )
-                    if existing_row is None:
-                        existing_row = self._find_active(connection, event.key)
-                    if existing_row is not None:
-                        existing = _row_to_record(existing_row)
-                        if existing.is_closed:
-                            return existing
-                        if event.occurred_at >= existing.last_seen:
-                            self._update_snapshot(
-                                connection,
-                                existing.record_id,
-                                event.snapshot,
-                            )
-                            return self._get_required(connection, existing.record_id)
-                        return existing
-
-                    record_id = self._new_record_id()
-                    self._insert_open(connection, record_id, event.snapshot)
-                    return self._get_required(connection, record_id)
+                    return self._record_opened_in_transaction(connection, event)
         except HistoryRepositoryError:
             raise
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
@@ -140,22 +118,7 @@ class SQLiteConnectionHistoryRepository:
         try:
             with self._database.connection() as connection:
                 with transaction(connection):
-                    row = self._find_active(connection, event.key)
-                    if row is None:
-                        raise HistoryRecordNotFound(
-                            "The active connection history record was not found."
-                        )
-                    existing = _row_to_record(row)
-                    if event.current.observed_at < existing.last_seen:
-                        raise HistoryRepositoryError(
-                            "Connection history cannot move backwards in time."
-                        )
-                    self._update_snapshot(
-                        connection,
-                        existing.record_id,
-                        event.current,
-                    )
-                    return self._get_required(connection, existing.record_id)
+                    return self._record_updated_in_transaction(connection, event)
         except HistoryRepositoryError:
             raise
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
@@ -169,33 +132,85 @@ class SQLiteConnectionHistoryRepository:
         try:
             with self._database.connection() as connection:
                 with transaction(connection):
-                    row = self._find_active(connection, event.key)
-                    if row is None:
-                        return self._get_duplicate_close(connection, event)
-
-                    existing = _row_to_record(row)
-                    if event.occurred_at < existing.first_seen:
-                        return self._get_duplicate_close(connection, event)
-                    if event.last_snapshot.observed_at < existing.last_seen:
-                        raise HistoryRepositoryError(
-                            "Connection history cannot move backwards in time."
-                        )
-                    if event.occurred_at < existing.last_seen:
-                        raise HistoryRepositoryError(
-                            "Connection close time precedes the last observation."
-                        )
-                    self._close_record(
-                        connection,
-                        existing.record_id,
-                        event,
-                    )
-                    return self._get_required(connection, existing.record_id)
+                    return self._record_closed_in_transaction(connection, event)
         except HistoryRepositoryError:
             raise
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
             raise HistoryRepositoryError(
                 "Connection history could not be written."
             ) from error
+
+    def _record_opened_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        event: ConnectionOpened,
+    ) -> ConnectionHistoryRecord:
+        """Map OPENED using a caller-owned active transaction."""
+
+        existing_row = self._find_by_key_and_first_seen(
+            connection,
+            event.key,
+            datetime_to_epoch_microseconds(event.occurred_at),
+        )
+        if existing_row is None:
+            existing_row = self._find_active(connection, event.key)
+        if existing_row is not None:
+            existing = _row_to_record(existing_row)
+            if existing.is_closed:
+                return existing
+            if event.occurred_at >= existing.last_seen:
+                self._update_snapshot(connection, existing.record_id, event.snapshot)
+                return self._get_required(connection, existing.record_id)
+            return existing
+
+        record_id = self._new_record_id()
+        self._insert_open(connection, record_id, event.snapshot)
+        return self._get_required(connection, record_id)
+
+    def _record_updated_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        event: ConnectionUpdated,
+    ) -> ConnectionHistoryRecord:
+        """Map UPDATED using a caller-owned active transaction."""
+
+        row = self._find_active(connection, event.key)
+        if row is None:
+            raise HistoryRecordNotFound(
+                "The active connection history record was not found."
+            )
+        existing = _row_to_record(row)
+        if event.current.observed_at < existing.last_seen:
+            raise HistoryRepositoryError(
+                "Connection history cannot move backwards in time."
+            )
+        self._update_snapshot(connection, existing.record_id, event.current)
+        return self._get_required(connection, existing.record_id)
+
+    def _record_closed_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        event: ConnectionClosed,
+    ) -> ConnectionHistoryRecord:
+        """Map CLOSED using a caller-owned active transaction."""
+
+        row = self._find_active(connection, event.key)
+        if row is None:
+            return self._get_duplicate_close(connection, event)
+
+        existing = _row_to_record(row)
+        if event.occurred_at < existing.first_seen:
+            return self._get_duplicate_close(connection, event)
+        if event.last_snapshot.observed_at < existing.last_seen:
+            raise HistoryRepositoryError(
+                "Connection history cannot move backwards in time."
+            )
+        if event.occurred_at < existing.last_seen:
+            raise HistoryRepositoryError(
+                "Connection close time precedes the last observation."
+            )
+        self._close_record(connection, existing.record_id, event)
+        return self._get_required(connection, existing.record_id)
 
     def get(self, record_id: UUID) -> ConnectionHistoryRecord | None:
         if not isinstance(record_id, UUID):

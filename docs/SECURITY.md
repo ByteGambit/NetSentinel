@@ -77,6 +77,13 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   sorumluluğundadır; ürün bunu varmış gibi varsaymaz.
 - Connection history yalnızca lifecycle metadata'sı saklar; ham paket veya payload
   kolonu içermez.
+- Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
+  yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
+  thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı
+  ile typed overflow diagnostic'i görünür olur.
+- Persistence retry ve shutdown drain süreleri bounded'dır. Diagnostic'ler raw
+  SQL, DB path, exception mesajı, stack trace veya process secret taşımaz; yalnızca
+  kararlı hata kodu, component, severity ve UTC zaman içerir.
 - Connection history sorgularındaki zaman, process, PID, protocol ve endpoint
   filtreleri yalnızca SQLite parameter binding ile uygulanır; process/IP girdisi
   SQL metnine eklenmez. Sonuçlar zorunlu ve üst sınırı olan pagination ile okunur.
