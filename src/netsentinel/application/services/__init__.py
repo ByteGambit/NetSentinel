@@ -5,6 +5,10 @@ from netsentinel.application.services.history import (
     ConnectionHistoryPersistence,
     ConnectionHistoryWriter,
 )
+from netsentinel.application.services.history_query import (
+    ConnectionHistoryPage,
+    ConnectionHistoryQueryService,
+)
 from netsentinel.application.services.retention import (
     HistoryCleanupResult,
     HistoryRetentionError,
@@ -20,6 +24,8 @@ __all__ = (
     "ConnectionTrackingService",
     "ConnectionHistoryPersistence",
     "ConnectionHistoryWriter",
+    "ConnectionHistoryPage",
+    "ConnectionHistoryQueryService",
     "HistoryCleanupResult",
     "HistoryRetentionError",
     "HistoryRetentionService",

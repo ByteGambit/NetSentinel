@@ -23,6 +23,7 @@ from netsentinel.presentation.views.connections import ConnectionsView
 from netsentinel.presentation.views.dashboard import DashboardView
 from netsentinel.presentation.views.devices import DevicesView
 from netsentinel.presentation.views.dns import DnsView
+from netsentinel.presentation.views.history import HistoryView
 from netsentinel.presentation.views.main_window import (
     PAGE_ORDER,
     MainWindow,
@@ -122,6 +123,7 @@ def test_main_window_owns_one_instance_of_each_planned_view(
     expected_types = {
         PageId.DASHBOARD: DashboardView,
         PageId.CONNECTIONS: ConnectionsView,
+        PageId.HISTORY: HistoryView,
         PageId.DEVICES: DevicesView,
         PageId.DNS: DnsView,
         PageId.ALERTS: AlertsView,

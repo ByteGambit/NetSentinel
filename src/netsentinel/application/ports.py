@@ -6,6 +6,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
+from collections.abc import Callable
 from typing import Protocol
 from uuid import UUID
 
@@ -59,6 +60,10 @@ class HistoryRecordNotFound(HistoryRepositoryError):
 
 class HistoryDataCorrupt(HistoryRepositoryError):
     """Persisted history data cannot be mapped to the portable model."""
+
+
+class HistoryQueryCancelled(HistoryRepositoryError):
+    """A connection-history read was cancelled before completion."""
 
 
 class HistoryRetentionRepositoryError(RuntimeError):
@@ -191,9 +196,12 @@ class ConnectionHistoryRepository(Protocol):
         """Return one record by persistence identity, if present."""
 
     def query(
-        self, query: ConnectionHistoryQuery
+        self,
+        query: ConnectionHistoryQuery,
+        *,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> tuple[ConnectionHistoryRecord, ...]:
-        """Return one bounded, deterministically ordered history page."""
+        """Return one bounded page, cooperatively cancelling when requested."""
 
 
 class HistoryRetentionRepository(Protocol):
@@ -263,6 +271,7 @@ __all__ = (
     "ConnectionCollector",
     "HistoryDataCorrupt",
     "HistoryRecordNotFound",
+    "HistoryQueryCancelled",
     "HistoryRepositoryError",
     "HistoryRetentionRepository",
     "HistoryRetentionRepositoryError",

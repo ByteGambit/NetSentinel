@@ -195,6 +195,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-018 — Connection history ekranı ve M3 entegrasyonu
 
+- **Durum:** ✅ Tamamlandı (2026-09-21)
 - **Amaç:** Kalıcı connection geçmişini UI'da sayfalı ve filtreli göstermek.
 - **Yapılacaklar:** History read service, async query bridge, tablo modeli, tarih/process/endpoint filtreleri ve detay görünümü ekle; uzun sorgu iptalini destekle.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/history.py`, `src/netsentinel/presentation/models/history.py`, `src/netsentinel/presentation/views/connections.py`, `tests/gui/test_connection_history.py`.

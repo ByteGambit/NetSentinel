@@ -22,12 +22,14 @@ from PyQt6.QtWidgets import (
 
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import QtEngineBridge
+from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.connections import ConnectionsView
 from netsentinel.presentation.views.dashboard import DashboardView
 from netsentinel.presentation.views.devices import DevicesView
 from netsentinel.presentation.views.dns import DnsView
+from netsentinel.presentation.views.history import HistoryView
 
 
 class PageId(str, Enum):
@@ -35,6 +37,7 @@ class PageId(str, Enum):
 
     DASHBOARD = "dashboard"
     CONNECTIONS = "connections"
+    HISTORY = "history"
     DEVICES = "devices"
     DNS = "dns"
     ALERTS = "alerts"
@@ -43,6 +46,7 @@ class PageId(str, Enum):
 PAGE_ORDER: tuple[PageId, ...] = (
     PageId.DASHBOARD,
     PageId.CONNECTIONS,
+    PageId.HISTORY,
     PageId.DEVICES,
     PageId.DNS,
     PageId.ALERTS,
@@ -51,6 +55,7 @@ PAGE_ORDER: tuple[PageId, ...] = (
 PAGE_LABELS: dict[PageId, str] = {
     PageId.DASHBOARD: "Dashboard",
     PageId.CONNECTIONS: "Connections",
+    PageId.HISTORY: "History",
     PageId.DEVICES: "Devices",
     PageId.DNS: "DNS",
     PageId.ALERTS: "Alerts",
@@ -66,6 +71,7 @@ class MainWindow(QMainWindow):
         on_close: Callable[[], object] | None = None,
         connections_model: ConnectionsTableModel | None = None,
         statistics: StatisticsService | None = None,
+        history_queries: HistoryQueryCoordinator | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -121,6 +127,7 @@ class MainWindow(QMainWindow):
                 model=self.connections_model,
                 parent=self.content,
             ),
+            PageId.HISTORY: HistoryView(history_queries, parent=self.content),
             PageId.DEVICES: DevicesView(self.content),
             PageId.DNS: DnsView(self.content),
             PageId.ALERTS: AlertsView(self.content),
@@ -278,6 +285,20 @@ class MainWindow(QMainWindow):
         QWidget.setTabOrder(connections.protocol_filter, connections.state_filter)
         QWidget.setTabOrder(connections.state_filter, connections.pause_button)
         QWidget.setTabOrder(connections.pause_button, connections.table)
+        history = self.page_widget(PageId.HISTORY)
+        assert isinstance(history, HistoryView)
+        QWidget.setTabOrder(self.navigation, history.process_filter)
+        QWidget.setTabOrder(history.process_filter, history.pid_filter)
+        QWidget.setTabOrder(history.pid_filter, history.endpoint_filter)
+        QWidget.setTabOrder(history.endpoint_filter, history.protocol_filter)
+        QWidget.setTabOrder(history.protocol_filter, history.from_enabled)
+        QWidget.setTabOrder(history.from_enabled, history.from_time)
+        QWidget.setTabOrder(history.from_time, history.to_enabled)
+        QWidget.setTabOrder(history.to_enabled, history.to_time)
+        QWidget.setTabOrder(history.to_time, history.refresh_button)
+        QWidget.setTabOrder(history.refresh_button, history.table)
+        QWidget.setTabOrder(history.table, history.previous_button)
+        QWidget.setTabOrder(history.previous_button, history.next_button)
 
 
 __all__ = ("MainWindow", "PAGE_LABELS", "PAGE_ORDER", "PageId")

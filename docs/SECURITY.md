@@ -101,6 +101,10 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Connection history sorgularındaki zaman, process, PID, protocol ve endpoint
   filtreleri yalnızca SQLite parameter binding ile uygulanır; process/IP girdisi
   SQL metnine eklenmez. Sonuçlar zorunlu ve üst sınırı olan pagination ile okunur.
+- History GUI sorgu hatalarını sabit kullanıcı mesajına dönüştürür; raw SQLite
+  exception, SQL metni, traceback veya DB path widget/signal payload'ına taşınmaz.
+  Hızlı filtre değişiklikleri capacity-one query handoff ve cooperative cancellation
+  ile sınırlandırılır; eski request sonucu daha yeni görünür state'i değiştiremez.
 - Uygulamanın bildiğinden yeni schema version'ı yazma modunda reddedilir. Otomatik
   downgrade, tablo silme veya version geri çekme uygulanmaz.
 

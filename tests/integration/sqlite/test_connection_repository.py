@@ -15,6 +15,7 @@ from netsentinel.application.ports import (
     ConnectionHistoryQuery,
     HistoryDataCorrupt,
     HistoryRecordNotFound,
+    HistoryQueryCancelled,
     HistoryRepositoryError,
 )
 from netsentinel.domain.connections import (
@@ -470,6 +471,16 @@ def test_repository_closes_each_owned_connection(database: SQLiteDatabase) -> No
     assert len(capturing.opened) == 1
     with pytest.raises(sqlite3.ProgrammingError):
         capturing.opened[0].execute("SELECT 1")
+
+
+def test_query_honors_portable_cancellation_before_sql(
+    repository: SQLiteConnectionHistoryRepository,
+) -> None:
+    with pytest.raises(HistoryQueryCancelled):
+        repository.query(
+            ConnectionHistoryQuery(limit=10),
+            is_cancelled=lambda: True,
+        )
 
 
 def test_domain_application_are_sqlite_free_and_repository_has_no_async_worker() -> None:

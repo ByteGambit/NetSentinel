@@ -628,6 +628,46 @@ verir; filesystem path taşımaz. WAL yoksa `wal_bytes=0` olur. Cleanup otomatik
 `VACUUM` çalıştırmaz; bu nedenle silme sonrasında dosya boyutunun hemen küçülmesi
 beklenmez.
 
+### NS-018 connection history okuma ve GUI akışı
+
+```text
+HistoryView (Qt main thread)
+  -> HistoryQueryCoordinator (latest-generation, capacity-one handoff)
+  -> one persistent query worker
+  -> ConnectionHistoryQueryService
+  -> ConnectionHistoryRepository port
+  -> SQLiteConnectionHistoryRepository (query-owned connection)
+```
+
+History ekranı SQLite, DB path veya concrete adapter bilmez. Presentation yalnızca
+`ConnectionHistoryQuery`, `ConnectionHistoryPage` ve immutable domain kayıtlarıyla
+çalışır. Production composition, query worker içinde yaratılan application service
+ve repository için bir factory sağlar. Repository her sorguda yalnızca o worker
+thread'ine ait, kısa ömürlü bir read connection açar; NS-016 writer connection'ı
+ile paylaşım yapılmaz. WAL ve busy timeout davranışı ortak `SQLiteDatabase`
+factory'sinden gelir.
+
+Sayfa boyutu 50'dir. Application service repository'den yalnızca bir look-ahead
+satırı daha ister; böylece tüm tabloyu veya `SELECT *` ile count sonucu yüklemeden
+`has_next` hesaplanır. Query limit'i her zaman NS-015 üst sınırının altındadır ve
+offset kararlı repository sırasına uygulanır. Retention mevcut sayfayı boşaltırsa
+view önceki geçerli sayfaya bounded sorgularla geri döner.
+
+Coordinator uygulama çalışması boyunca tek daemon worker kullanır ve pending
+istek kuyruğunu bir öğeyle sınırlar. Yeni filtre mevcut cancellation token'ını
+işaretler, bekleyen eski isteği değiştirir ve yeni generation üretir. SQLite
+adapter `set_progress_handler` üzerinden portable cancellation callback'ini
+gözler. İptal gecikse bile yalnızca en yeni generation sonucu Qt queued signal
+ile görünür state'i değiştirebilir. Signal payload'larında SQLite connection,
+row veya exception bulunmaz.
+
+Kapanışta önce yeni history query kabulü kapatılır, current/pending istekler iptal
+edilir ve query worker bounded join ile durdurulur; ardından mevcut Qt engine
+bridge detach ve monitoring/persistence shutdown sırası devam eder. Hata sinyali
+yalnızca request ID taşır ve UI sabit, sanitize edilmiş mesaj gösterir. Timestamp
+değerleri repository sınırına UTC-aware gider; kalıcı mikrosaniye hassasiyeti
+korunur ve presentation bunları sistemin yerel timezone'unda formatlar.
+
 ## 10. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

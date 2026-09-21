@@ -16,3 +16,6 @@ __all__ = (
     "MainWindow",
     "PageId",
 )
+from netsentinel.presentation.views.history import HistoryView
+
+__all__ = ("HistoryView",)

@@ -24,3 +24,6 @@ __all__ = (
     "DashboardMetrics",
     "DashboardViewModel",
 )
+from netsentinel.presentation.models.history import HistoryTableModel
+
+__all__ = ("HistoryTableModel",)

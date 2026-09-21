@@ -43,6 +43,8 @@
 
 ## M3 — Persistence
 
+**Durum:** ✅ Tamamlandı (NS-014–NS-018, 2026-09-21)
+
 **Amaç:** Connection history ve ilerideki modüllerin kullanacağı güvenilir SQLite altyapısını oluşturmak.
 
 **Kapsam:**

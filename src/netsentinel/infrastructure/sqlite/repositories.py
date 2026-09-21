@@ -12,6 +12,7 @@ from netsentinel.application.ports import (
     ConnectionHistoryQuery,
     HistoryDataCorrupt,
     HistoryRecordNotFound,
+    HistoryQueryCancelled,
     HistoryRepositoryError,
     HistoryRetentionRepositoryError,
     HistoryStorageDiagnostics,
@@ -233,7 +234,10 @@ class SQLiteConnectionHistoryRepository:
             ) from error
 
     def query(
-        self, query: ConnectionHistoryQuery
+        self,
+        query: ConnectionHistoryQuery,
+        *,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> tuple[ConnectionHistoryRecord, ...]:
         if not isinstance(query, ConnectionHistoryQuery):
             raise TypeError("query must be a ConnectionHistoryQuery")
@@ -267,8 +271,29 @@ class SQLiteConnectionHistoryRepository:
                 f"SELECT {_HISTORY_COLUMNS} FROM connection_history{where} "
                 "ORDER BY first_seen_utc_us DESC, id DESC LIMIT ? OFFSET ?"
             )
+            if is_cancelled is not None and is_cancelled():
+                raise HistoryQueryCancelled("Connection history query was cancelled.")
             with self._database.connection() as connection:
-                rows = connection.execute(statement, parameters).fetchall()
+                if is_cancelled is not None:
+                    connection.set_progress_handler(
+                        lambda: 1 if is_cancelled() else 0,
+                        1_000,
+                    )
+                try:
+                    rows = connection.execute(statement, parameters).fetchall()
+                except sqlite3.OperationalError as error:
+                    if is_cancelled is not None and is_cancelled():
+                        raise HistoryQueryCancelled(
+                            "Connection history query was cancelled."
+                        ) from error
+                    raise
+                finally:
+                    if is_cancelled is not None:
+                        connection.set_progress_handler(None, 0)
+                if is_cancelled is not None and is_cancelled():
+                    raise HistoryQueryCancelled(
+                        "Connection history query was cancelled."
+                    )
                 return tuple(_row_to_record(row) for row in rows)
         except HistoryRepositoryError:
             raise

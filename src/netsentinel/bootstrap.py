@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from os import PathLike
+from collections.abc import Callable
 
 from netsentinel.application.engine import MonitoringEngine
 from netsentinel.application.events import EventDispatcher
@@ -10,6 +11,7 @@ from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
 from netsentinel.application.services.history import ConnectionHistoryPersistence
+from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
 from netsentinel.application.services.processes import ProcessMetadataEnricher
 from netsentinel.infrastructure.psutil_connections import (
@@ -20,6 +22,7 @@ from netsentinel.infrastructure.psutil_processes import (
 )
 from netsentinel.infrastructure.sqlite import (
     SQLiteDatabase,
+    SQLiteConnectionHistoryRepository,
     SQLiteHistoryRetentionRepository,
     SQLiteHistoryWriter,
 )
@@ -90,8 +93,25 @@ def create_history_retention_service(
     return HistoryRetentionService(repository, config=config)
 
 
+def create_history_query_service_factory(
+    *,
+    database_path: str | PathLike[str] | None = None,
+) -> Callable[[], ConnectionHistoryQueryService]:
+    """Return a factory whose repository is constructed in the query worker."""
+
+    database = SQLiteDatabase(database_path)
+
+    def create_service() -> ConnectionHistoryQueryService:
+        return ConnectionHistoryQueryService(
+            SQLiteConnectionHistoryRepository(database)
+        )
+
+    return create_service
+
+
 __all__ = (
     "create_desktop_engine",
     "create_history_retention_service",
+    "create_history_query_service_factory",
     "create_monitoring_engine",
 )
