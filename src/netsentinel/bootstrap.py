@@ -1,4 +1,4 @@
-"""Composition root for the GUI-independent connection monitoring engine."""
+"""Composition root for NetSentinel application and infrastructure adapters."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from netsentinel.application.engine import MonitoringEngine
 from netsentinel.application.events import EventDispatcher
+from netsentinel.application.ports import NetworkContextProvider
 from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
@@ -20,6 +21,7 @@ from netsentinel.infrastructure.psutil_connections import (
 from netsentinel.infrastructure.psutil_processes import (
     PsutilProcessMetadataResolver,
 )
+from netsentinel.infrastructure.windows_network import WindowsNetworkContextProvider
 from netsentinel.infrastructure.sqlite import (
     SQLiteDatabase,
     SQLiteConnectionHistoryRepository,
@@ -109,9 +111,16 @@ def create_history_query_service_factory(
     return create_service
 
 
+def create_network_context_provider() -> NetworkContextProvider:
+    """Create the synchronous NS-019 read-only Windows context adapter."""
+
+    return WindowsNetworkContextProvider()
+
+
 __all__ = (
     "create_desktop_engine",
     "create_history_retention_service",
     "create_history_query_service_factory",
     "create_monitoring_engine",
+    "create_network_context_provider",
 )

@@ -19,6 +19,7 @@ from netsentinel.domain.connections import (
     ProcessInfo,
     TransportProtocol,
 )
+from netsentinel.domain.devices import NetworkContext
 
 
 MAX_HISTORY_QUERY_LIMIT = 500
@@ -48,6 +49,25 @@ class ProcessMetadataResolver(Protocol):
 
     def resolve(self, pid: int) -> ProcessInfo:
         """Return process metadata without leaking provider-specific types."""
+
+
+class NetworkContextCollectionError(RuntimeError):
+    """Base error for a sanitized local network-context read failure."""
+
+
+class NetworkContextPermissionDenied(NetworkContextCollectionError):
+    """Windows denied access to local adapter configuration."""
+
+
+class NetworkContextUnavailable(NetworkContextCollectionError):
+    """Local adapter configuration is temporarily unavailable."""
+
+
+class NetworkContextProvider(Protocol):
+    """Port for a current, normalized snapshot of active IPv4 contexts."""
+
+    def get_contexts(self) -> tuple[NetworkContext, ...]:
+        """Read current contexts without starting polling or active discovery."""
 
 
 class HistoryRepositoryError(RuntimeError):
@@ -277,5 +297,9 @@ __all__ = (
     "HistoryRetentionRepositoryError",
     "HistoryStorageDiagnostics",
     "MAX_HISTORY_QUERY_LIMIT",
+    "NetworkContextCollectionError",
+    "NetworkContextPermissionDenied",
+    "NetworkContextProvider",
+    "NetworkContextUnavailable",
     "ProcessMetadataResolver",
 )

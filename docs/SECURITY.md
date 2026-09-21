@@ -16,6 +16,11 @@ Uygulama bir güvenlik sınırı veya kesin saldırı tespit sistemi değildir. 
 - History ve UI ekranlarını kullanma
 - Windows API'lerinin standart kullanıcıya sunduğu interface, gateway ve DNS bilgisini okuma
 
+NS-019 network context adapter'ı bu son işlemi Windows IP Helper API üzerinden
+salt-okunur yapar. Yerelleştirilmiş komut çıktısı çalıştırılmaz veya parse edilmez;
+socket açılmaz, DNS lookup yapılmaz, paket gönderilmez ve yetki yükseltme istenmez.
+Erişim reddi ile geçici platform hatası typed capability kaybı olarak ayrılır.
+
 Bazı sistem process'lerinin adı, executable yolu veya sahibi standart kullanıcıya kapalı olabilir. Bu durum hata değil, `unavailable/restricted` metadata olarak modellenir.
 
 ### Yönetici yetkisi veya capture driver gerektirebilen işlemler
@@ -68,6 +73,10 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Telemetry veya bulut aktarımı varsayılan değildir; ilk kapsamda yoktur.
 - Ham paket payload'ı ve DNS cevap payload'ının gereksiz bölümleri saklanmaz.
 - Process command line varsayılan olarak toplanmaz; executable path ancak ürün için gerekliyse ve açıkça belgelenerek eklenir.
+- Network context yalnızca interface kimliği/görünen adı ve türü, IPv4 adres/subnet,
+  isteğe bağlı gateway/DNS adresleri, UTC gözlem zamanı ve türetilmiş fingerprint
+  taşır. MAC, packet payload, hostname veya kullanıcı verisi NS-019'da toplanmaz
+  ve bu bağlam bu task kapsamında kalıcılaştırılmaz.
 - Loglarda sırlar, payload, tam hata dump'ı veya gereksiz kullanıcı yolu bulunmamalıdır.
 - Retention süresi yapılandırılabilir; temizlik transaction'lı ve testli olmalıdır.
 - Connection history için varsayılan politika 30 gün, tüm active/completed

@@ -17,6 +17,7 @@ from netsentinel.domain.connections import (
     TrackedConnection,
     TransportProtocol,
 )
+from netsentinel.domain.devices import NetworkContext, NetworkInterfaceKind
 
 __all__ = (
     "ConnectionClosed",
@@ -29,6 +30,8 @@ __all__ = (
     "ConnectionState",
     "ConnectionUpdated",
     "Endpoint",
+    "NetworkContext",
+    "NetworkInterfaceKind",
     "ProcessIdentity",
     "ProcessInfo",
     "ProcessInfoStatus",

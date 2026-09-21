@@ -38,5 +38,5 @@ addopts = [
 ]
 testpaths = ["tests"]
 markers = [
-    "windows_live: opt-in Windows tests using real psutil data and loopback sockets",
+    "windows_live: opt-in read-only Windows adapter tests and local loopback sockets",
 ]

@@ -209,6 +209,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-019 — Windows network context adapter'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-21)
 - **Amaç:** Interface, subnet, gateway ve DNS bilgisini ağ bağlamına dönüştürmek.
 - **Yapılacaklar:** `NetworkContextProvider` portu ve Windows adapter'ı ekle; IPv4 öncelikli ilk kapsamı, çoklu interface, VPN/loopback ve ağ değişimini modelle; kararlı context fingerprint üret.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/domain/devices.py`, `src/netsentinel/application/ports.py`, `src/netsentinel/infrastructure/windows_network.py`, `tests/unit/infrastructure/test_windows_network.py`.

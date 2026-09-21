@@ -668,7 +668,46 @@ yalnızca request ID taşır ve UI sabit, sanitize edilmiş mesaj gösterir. Tim
 değerleri repository sınırına UTC-aware gider; kalıcı mikrosaniye hassasiyeti
 korunur ve presentation bunları sistemin yerel timezone'unda formatlar.
 
-## 10. Detection yaklaşımı
+## 10. NS-019 Windows network context sınırı
+
+```text
+Windows IP Helper API / GetAdaptersAddresses (read-only)
+  -> WindowsNetworkAdapterSnapshot (infrastructure DTO)
+  -> WindowsNetworkContextProvider (NetworkContextProvider portu)
+  -> immutable NetworkContext (domain)
+```
+
+`NetworkContext`, ilk M4 kapsamı gereği yalnızca aktif IPv4 bağlamını taşır:
+kararlı interface kimliği/index'i, güvenilmeyen display adı, portable interface
+türü, canonical host adresi/subnet, nullable gateway, sıralanmış ve tekilleştirilmiş
+DNS sunucuları ile UTC-aware observation zamanı. Bir Windows adapter'ında birden
+fazla IPv4 adres varsa adres/subnet çifti başına bir context üretilir. IPv6 bu
+taskta kasıtlı olarak kapsam dışıdır.
+
+Fingerprint, versioned SHA-256 ile interface kimliği, canonical subnet ve nullable
+gateway üzerinden türetilir. Güncel DHCP host adresi, interface display adı, DNS
+seti ve observation zamanı fingerprint'e katılmaz; böylece aynı interface/ağ için
+adres yenilemesi, ad değişimi veya DNS sıralaması context baseline'ını bölmez.
+Subnet, gateway veya interface kimliği değişimi yeni ağ bağlamı üretir. Fingerprint
+bir secret veya adli bütünlük imzası değildir.
+
+Adapter her `get_contexts()` çağrısında Windows IP Helper API'yi yeniden okur;
+cache, poller, worker, queue veya import-time I/O oluşturmaz. Yalnızca operasyonel
+olarak `UP` interface'ler normalize edilir. Loopback context görünür kalır fakat
+`is_default_capture_candidate=False` olur. PPP/tunnel ve bilinen VPN adları VPN;
+bilinen Hyper-V/VMware/VirtualBox adları virtual olarak işaretlenir, ancak bu
+sınıflandırma interface'i sessizce dışlamaz. Disconnected adapter'lar ve malformed
+adresler atlanır; tek bozuk kayıt diğer context'leri düşürmez. Whole-read permission
+ve platform hataları application katmanındaki sanitize edilmiş typed hatalara
+dönüşür. Gateway ve DNS'in bulunmaması geçerli degraded metadata'dır.
+
+Production source yerelleştirilmiş `ipconfig`, PowerShell veya netsh metni parse
+etmez. Sadece `GetAdaptersAddresses` kullanır; socket, reverse DNS, paket capture,
+aktif discovery, ARP gönderimi ya da yönetici yükseltmesi yoktur. NS-019 provider'ı
+henüz `MonitoringEngine` veya presentation yaşam döngüsüne bağlanmaz. Capture
+worker NS-020'nin; ARP/device registry ve UI ise sonraki M4 tasklarının kapsamıdır.
+
+## 11. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
 
@@ -680,7 +719,7 @@ Her çıktı en az rule ID, zaman, ilgili entity ID, severity, confidence ve yap
 
 Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gateway MAC adresleri birbirine karıştırılmaz. Ağ değişiminden sonra öğrenme/ısınma penceresi uygulanır.
 
-## 11. Hata, saat ve kimlik stratejisi
+## 12. Hata, saat ve kimlik stratejisi
 
 - Persist edilen tüm zamanlar UTC'dir; interval ölçümü için monotonic clock kullanılır.
 - DB entity'leri için UUID; tekrarlanabilir detector çıktıları için kararlı fingerprint kullanılır.
@@ -688,7 +727,7 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 - Bir adapter hatası ilgili capability'yi degraded yapar; mümkünse diğer monitoring modülleri devam eder.
 - Kullanıcıya gösterilen hata mesajı eyleme dönük, teknik log ise ayrıntılı olur.
 
-## 12. Test stratejisi
+## 13. Test stratejisi
 
 - **Unit:** Domain, diff, parser, baseline ve detector kuralları; fake clock ile deterministik zaman.
 - **Integration:** psutil çıktısı adaptasyonu, geçici SQLite DB ve migration/repository davranışı.
@@ -698,6 +737,14 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 - **Windows smoke:** Yetkili ve yetkisiz mod, capture driver var/yok kombinasyonları.
 
 Canlı ağ erişimi gerektiren testler varsayılan test suite'inde çalışmaz; açık marker ve kontrollü lab gerektirir.
+
+### NS-019 Windows network context smoke testi
+
+Varsayılan suite yalnızca injected adapter fixture'larıyla active/disconnected,
+çoklu interface, loopback, VPN/virtual, eksik gateway/DNS, malformed kayıt,
+deterministik sıralama, fingerprint ve typed hata davranışını test eder. Opt-in
+`windows_live` testi yalnızca yerel Windows IP Helper yapılandırmasını salt-okur;
+socket veya paket üretmez, dış hosta erişmez ve yönetici yetkisini önkoşul yapmaz.
 
 ### M1 Windows live smoke testi
 
@@ -715,7 +762,7 @@ Sabit bir uykuya dayanmak yerine event sinyalleri ve bounded timeout kullanır.
 System-wide connection tablosu Windows politikası tarafından tamamen reddedilirse
 test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşulu yapmaz.
 
-## 13. Bilinen teknik sınırlamalar
+## 14. Bilinen teknik sınırlamalar
 
 - psutil snapshot tabanlı polling, iki tur arasında açılıp kapanan çok kısa bağlantıları kaçırabilir.
 - Windows ve psutil, standart kullanıcıya bazı system-wide connection satırlarının
@@ -726,6 +773,9 @@ test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşul
 - UDP satırları gerçek bir “oturum” değil, işletim sistemi endpoint görünümüdür.
 - Paket ile PID/process arasında her durumda güvenilir bire bir ilişki kurulamaz.
 - Capture sonucu kullanılan driver, interface ve Windows güvenlik politikasına bağlıdır.
+- NS-019 ağ fingerprint'i interface/subnet/gateway metadata'sına dayanır; aynı
+  interface üzerinde bu üç değeri de paylaşan farklı fiziksel ağları tek başına
+  kesin ayırt etme garantisi vermez. IPv6 network context ilk M4 kapsamı dışındadır.
 - Switch'li ağda bilgisayara ulaşmayan unicast trafik gözlenemez.
 - VLAN tag'leri NIC offload/driver nedeniyle capture noktasında kaldırılmış olabilir.
 - Şifreli DNS (DoH/DoT) klasik DNS parser'ıyla içerik düzeyinde görünmez.
