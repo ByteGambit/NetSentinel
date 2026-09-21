@@ -10,6 +10,7 @@ from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
 from netsentinel.application.services.history import ConnectionHistoryPersistence
+from netsentinel.application.services.retention import HistoryRetentionService
 from netsentinel.application.services.processes import ProcessMetadataEnricher
 from netsentinel.infrastructure.psutil_connections import (
     PsutilConnectionCollector,
@@ -17,7 +18,12 @@ from netsentinel.infrastructure.psutil_connections import (
 from netsentinel.infrastructure.psutil_processes import (
     PsutilProcessMetadataResolver,
 )
-from netsentinel.infrastructure.sqlite import SQLiteDatabase, SQLiteHistoryWriter
+from netsentinel.infrastructure.sqlite import (
+    SQLiteDatabase,
+    SQLiteHistoryRetentionRepository,
+    SQLiteHistoryWriter,
+)
+from netsentinel.shared.config import HistoryRetentionConfig
 
 
 def create_monitoring_engine(
@@ -72,4 +78,20 @@ def create_desktop_engine(
     )
 
 
-__all__ = ("create_desktop_engine", "create_monitoring_engine")
+def create_history_retention_service(
+    *,
+    database_path: str | PathLike[str] | None = None,
+    config: HistoryRetentionConfig | None = None,
+) -> HistoryRetentionService:
+    """Create the synchronous NS-017 manual cleanup command without running it."""
+
+    database = SQLiteDatabase(database_path)
+    repository = SQLiteHistoryRetentionRepository(database)
+    return HistoryRetentionService(repository, config=config)
+
+
+__all__ = (
+    "create_desktop_engine",
+    "create_history_retention_service",
+    "create_monitoring_engine",
+)

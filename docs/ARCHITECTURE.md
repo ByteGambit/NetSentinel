@@ -160,6 +160,7 @@ Process-içi typed event dağıtımı. Olay sırasını ve hata izolasyonunu tan
 - `DeviceRegistryService`: IP-MAC gözlemlerinden cihaz durumu
 - `DnsTrackingService`: sorgu/cevap korelasyonu
 - `HistoryService`: kalıcılık için olayları kuyruklama
+- `HistoryRetentionService`: tamamlanmış history için senkron, bounded manuel cleanup
 - `AlertService`: deduplication, severity/confidence ve alert yaşam döngüsü
 - `StatisticsService`: sınırlı rolling counter ve UI read model'leri
 
@@ -582,6 +583,50 @@ ve `persistence_shutdown_timeout` görünür olur; devam eden SQLite çağrısı
 iptal edilmez, döndüğünde daemon worker kaynaklarını kapatır. `start`/`stop`
 idempotenttir; tamamen durmuş writer yeniden başladığında yeni bir worker-owned
 session açar. Presentation view'ları writer/repository referansı almaz.
+
+### NS-017 retention ve yerel veri yaşam döngüsü
+
+```text
+HistoryRetentionConfig (varsayılan 30 gün / 100.000 toplam satır / 500 chunk)
+        ↓
+HistoryRetentionService.run_cleanup() (senkron manuel command)
+        ↓ HistoryRetentionRepository portu
+SQLiteHistoryRetentionRepository
+        ↓ her çağrıda ayrı connection + kısa BEGIN IMMEDIATE transaction
+bounded completed-only DELETE → connection_history
+```
+
+Application servisi SQL, `sqlite3`, DB path veya filesystem bilmez; SQLite
+adapter'ı writer'ın connection'ını paylaşmaz ve her operasyon için çağıran
+thread'e ait ayrı migrated connection açıp kapatır. Retention writer'a periyodik
+iş olarak bağlanmaz ve yeni scheduler/worker oluşturmaz. WAL ve 5000 ms busy
+timeout davranışı NS-014 connection factory'sinden aynen alınır.
+
+Gün politikası lifecycle'ın `closed_at_utc_us` zamanını kullanır. Fake/injected
+UTC saatinden `now - retention_days` cutoff'u hesaplanır; yalnızca
+`closed_at_utc_us < cutoff` kayıtları eligible'dır, tam cutoff mikrosaniyesindeki
+kayıt korunur. `closed_at_utc_us IS NULL` aktif lifecycle demektir ve hem gün
+hem row query'sinde açıkça seçim dışındadır.
+
+Row politikası age cleanup tamamlandıktan sonra çalışır. `max_history_rows`
+aktif ve tamamlanmış tüm lifecycle satırlarını sayar; limit aşılırsa
+`first_seen_utc_us ASC, closed_at_utc_us ASC, id ASC` sırasındaki en eski
+tamamlanmış kayıtlar silinir. Aktif kayıtlar kapasiteyi kullanır fakat asla
+silinmez. Aktif kayıt sayısı tek başına limiti aşarsa tüm completed kayıtlar
+temizlenebilir ve kalan toplam zorunlu olarak limitin üstünde olabilir.
+
+Her adapter çağrısı en fazla `cleanup_chunk_size` ID'yi deterministik alt
+sorguyla seçip aynı kısa transaction içinde siler. `DELETE ... LIMIT` SQLite
+uzantısına güvenilmez; değerler parameter binding ile verilir. Stop predicate
+yalnızca chunk sınırlarında değerlendirilir. Kesintide tamamlanmış chunk'lar
+kalıcıdır, aktif transaction hata halinde rollback olur ve aynı command daha
+sonra idempotent biçimde devam edebilir.
+
+Portable diagnostics ana DB dosyasının ve mevcutsa `-wal` dosyasının ölçüm
+anındaki gerçek byte boyutlarını, ayrıca active/completed/toplam satır sayılarını
+verir; filesystem path taşımaz. WAL yoksa `wal_bytes=0` olur. Cleanup otomatik
+`VACUUM` çalıştırmaz; bu nedenle silme sonrasında dosya boyutunun hemen küçülmesi
+beklenmez.
 
 ## 10. Detection yaklaşımı
 

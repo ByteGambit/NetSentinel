@@ -85,7 +85,7 @@ def _utc_epoch_microseconds(value: datetime) -> int:
     )
 
 
-def _read_resource(resource_name: str) -> str:
+def _read_resource(resource_name: str, version: int, name: str) -> str:
     try:
         return (
             resources.files(_SCHEMA_PACKAGE)
@@ -93,7 +93,7 @@ def _read_resource(resource_name: str) -> str:
             .read_text(encoding="utf-8")
         )
     except (FileNotFoundError, OSError, TypeError) as error:
-        raise DatabaseMigrationError(1, "initial_connection_history") from error
+        raise DatabaseMigrationError(version, name) from error
 
 
 @lru_cache(maxsize=1)
@@ -104,7 +104,16 @@ def builtin_migrations() -> tuple[Migration, ...]:
         Migration(
             version=1,
             name="initial_connection_history",
-            sql=_read_resource("001_initial.sql"),
+            sql=_read_resource("001_initial.sql", 1, "initial_connection_history"),
+        ),
+        Migration(
+            version=2,
+            name="history_retention_indexes",
+            sql=_read_resource(
+                "002_history_retention_indexes.sql",
+                2,
+                "history_retention_indexes",
+            ),
         ),
     )
 

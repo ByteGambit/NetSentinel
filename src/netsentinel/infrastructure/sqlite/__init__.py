@@ -25,6 +25,7 @@ from netsentinel.infrastructure.sqlite.migrations import (
 )
 from netsentinel.infrastructure.sqlite.repositories import (
     SQLiteConnectionHistoryRepository,
+    SQLiteHistoryRetentionRepository,
     datetime_to_epoch_microseconds,
     epoch_microseconds_to_datetime,
 )
@@ -52,6 +53,7 @@ __all__ = (
     "SQLiteConnectionHistoryRepository",
     "SQLiteConnectionHistoryWriteSession",
     "SQLiteDatabase",
+    "SQLiteHistoryRetentionRepository",
     "SQLiteHistoryWriteSessionFactory",
     "SQLiteHistoryWriter",
     "builtin_migrations",

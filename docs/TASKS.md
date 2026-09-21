@@ -185,6 +185,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-017 — Retention ve yerel veri yaşam döngüsü
 
+- **Durum:** ✅ Tamamlandı (2026-09-21)
 - **Amaç:** History'nin kontrolsüz büyümesini engellemek ve kullanıcıya anlaşılır saklama politikası sunmak.
 - **Yapılacaklar:** Yapılandırılabilir gün/row politikası, chunked cleanup, DB boyutu diagnostics ve manuel güvenli temizleme command'ı ekle; aktif veriyi silme sınırını tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/retention.py`, `src/netsentinel/infrastructure/sqlite/repositories.py`, `src/netsentinel/shared/config.py`, `tests/integration/sqlite/test_retention.py`, `docs/SECURITY.md`.

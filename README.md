@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001–NS-013 ve M2 PyQt6 GUI milestone'u tamamlandı. TCP/UDP connection pipeline'ı; process enrichment, lifecycle tracking, typed event dağıtımı ve kontrollü engine yaşam döngüsüyle çalışıyor. PyQt6 masaüstü kabuğundaki canlı Connections ekranı; raw-role tabanlı arama/filtreleme, semantik sıralama ve seçili bağlantı detaylarını sunuyor. Dashboard aynı presentation modelinden aktif/TCP/UDP/listening/remote-host sayılarını, bounded 60 saniyelik opened/closed olay sayaçlarını ve typed engine/bridge health durumunu gösteriyor. Bounded `QtEngineBridge`, portable engine eventlerini Qt ana thread'indeki incremental presentation modellerine güvenli ve batch'li biçimde taşıyor. Kritik GUI kontrolleri screen reader/otomasyon adları taşır; sidebar, filtreler, pause ve connection tablosu arasında klavye ile gezinilebilir.
+> Durum: NS-001–NS-017 tamamlandı. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History GUI, NS-018 kapsamındadır.
 
 ## Tasarım ilkeleri
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 import sqlite3
 from uuid import UUID, uuid4
 
@@ -12,6 +13,8 @@ from netsentinel.application.ports import (
     HistoryDataCorrupt,
     HistoryRecordNotFound,
     HistoryRepositoryError,
+    HistoryRetentionRepositoryError,
+    HistoryStorageDiagnostics,
 )
 from netsentinel.domain.connections import (
     ConnectionClosed,
@@ -431,6 +434,173 @@ class SQLiteConnectionHistoryRepository:
         return _row_to_record(row)
 
 
+class SQLiteHistoryRetentionRepository:
+    """SQLite adapter for bounded, completed-only history cleanup.
+
+    Every delete call owns a separate migrated connection and one short
+    transaction. A caller can stop safely between calls without undoing chunks
+    which have already committed.
+    """
+
+    def __init__(self, database: SQLiteDatabase) -> None:
+        if not isinstance(database, SQLiteDatabase):
+            raise TypeError("database must be a SQLiteDatabase")
+        self._database = database
+
+    def delete_completed_before(self, cutoff: datetime, limit: int) -> int:
+        """Delete a deterministic chunk whose close time is strictly older."""
+
+        cutoff_utc_us = datetime_to_epoch_microseconds(cutoff)
+        _require_positive_limit(limit, "limit")
+        try:
+            with self._database.connection() as connection:
+                with transaction(connection):
+                    cursor = connection.execute(
+                        """
+                        DELETE FROM connection_history
+                        WHERE closed_at_utc_us IS NOT NULL
+                          AND closed_at_utc_us < ?
+                          AND id IN (
+                              SELECT id
+                              FROM connection_history
+                              WHERE closed_at_utc_us IS NOT NULL
+                                AND closed_at_utc_us < ?
+                              ORDER BY first_seen_utc_us ASC,
+                                       closed_at_utc_us ASC,
+                                       id ASC
+                              LIMIT ?
+                          )
+                        """,
+                        (cutoff_utc_us, cutoff_utc_us, limit),
+                    )
+                    return _deleted_row_count(cursor)
+        except HistoryRetentionRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise HistoryRetentionRepositoryError(
+                "Connection history cleanup could not be completed."
+            ) from error
+
+    def delete_oldest_completed_over_total_limit(
+        self,
+        max_rows: int,
+        limit: int,
+    ) -> int:
+        """Trim oldest completed rows until the all-row ceiling can be met.
+
+        Active rows count toward ``max_rows`` but can never be selected. If
+        active rows alone exceed the ceiling, every completed row is eligible
+        and the remaining total may necessarily stay above the configured
+        value.
+        """
+
+        _require_positive_limit(max_rows, "max_rows")
+        _require_positive_limit(limit, "limit")
+        try:
+            with self._database.connection() as connection:
+                with transaction(connection):
+                    row = connection.execute(
+                        "SELECT COUNT(*) FROM connection_history"
+                    ).fetchone()
+                    if row is None:
+                        raise HistoryRetentionRepositoryError(
+                            "Connection history row count could not be read."
+                        )
+                    excess = max(0, int(row[0]) - max_rows)
+                    if excess == 0:
+                        return 0
+                    delete_limit = min(excess, limit)
+                    cursor = connection.execute(
+                        """
+                        DELETE FROM connection_history
+                        WHERE closed_at_utc_us IS NOT NULL
+                          AND id IN (
+                              SELECT id
+                              FROM connection_history
+                              WHERE closed_at_utc_us IS NOT NULL
+                              ORDER BY first_seen_utc_us ASC,
+                                       closed_at_utc_us ASC,
+                                       id ASC
+                              LIMIT ?
+                          )
+                        """,
+                        (delete_limit,),
+                    )
+                    return _deleted_row_count(cursor)
+        except HistoryRetentionRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise HistoryRetentionRepositoryError(
+                "Connection history cleanup could not be completed."
+            ) from error
+
+    def storage_diagnostics(self) -> HistoryStorageDiagnostics:
+        """Measure history row counts and current main/WAL file sizes."""
+
+        try:
+            with self._database.connection() as connection:
+                row = connection.execute(
+                    """
+                    SELECT COUNT(*) AS total_rows,
+                           COUNT(*) FILTER (WHERE closed_at_utc_us IS NULL)
+                               AS active_rows,
+                           COUNT(*) FILTER (WHERE closed_at_utc_us IS NOT NULL)
+                               AS completed_rows
+                    FROM connection_history
+                    """
+                ).fetchone()
+                if row is None:
+                    raise HistoryRetentionRepositoryError(
+                        "Connection history diagnostics could not be read."
+                    )
+                database_bytes = self._database.path.stat().st_size
+                wal_bytes = _optional_file_size(
+                    self._database.path.with_name(self._database.path.name + "-wal")
+                )
+                return HistoryStorageDiagnostics(
+                    database_bytes=database_bytes,
+                    wal_bytes=wal_bytes,
+                    total_rows=int(row["total_rows"]),
+                    active_rows=int(row["active_rows"]),
+                    completed_rows=int(row["completed_rows"]),
+                )
+        except HistoryRetentionRepositoryError:
+            raise
+        except (
+            SQLiteAdapterError,
+            sqlite3.Error,
+            OSError,
+            TypeError,
+            ValueError,
+        ) as error:
+            raise HistoryRetentionRepositoryError(
+                "Connection history diagnostics could not be read."
+            ) from error
+
+
+def _require_positive_limit(value: int, field_name: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{field_name} must be an integer")
+    if value <= 0:
+        raise ValueError(f"{field_name} must be greater than zero")
+
+
+def _deleted_row_count(cursor: sqlite3.Cursor) -> int:
+    count = cursor.rowcount
+    if count < 0:
+        raise HistoryRetentionRepositoryError(
+            "Connection history cleanup count was unavailable."
+        )
+    return count
+
+
+def _optional_file_size(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except FileNotFoundError:
+        return 0
+
+
 def _snapshot_values(snapshot: ConnectionSnapshot) -> tuple[object, ...]:
     remote = snapshot.remote_endpoint
     identity = snapshot.process.identity
@@ -546,6 +716,7 @@ def _row_to_record(row: sqlite3.Row) -> ConnectionHistoryRecord:
 
 __all__ = (
     "SQLiteConnectionHistoryRepository",
+    "SQLiteHistoryRetentionRepository",
     "datetime_to_epoch_microseconds",
     "epoch_microseconds_to_datetime",
 )

@@ -70,6 +70,20 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Process command line varsayılan olarak toplanmaz; executable path ancak ürün için gerekliyse ve açıkça belgelenerek eklenir.
 - Loglarda sırlar, payload, tam hata dump'ı veya gereksiz kullanıcı yolu bulunmamalıdır.
 - Retention süresi yapılandırılabilir; temizlik transaction'lı ve testli olmalıdır.
+- Connection history için varsayılan politika 30 gün, tüm active/completed
+  lifecycle kayıtları birlikte sayıldığında en fazla 100.000 satır ve transaction
+  başına en fazla 500 silmedir. Önce 30 günlük age politikası, ardından row
+  politikası uygulanır; ayarlar pozitif integer olmalıdır.
+- Yalnızca tamamlanmış (`closed_at_utc_us IS NOT NULL`) lifecycle kayıtları
+  retention'a uygundur. Aktif (`closed_at_utc_us IS NULL`) kayıtlar ne age ne row
+  politikasıyla silinir; aktif satırlar row kapasitesini kullansa da güvenlik
+  sınırı olarak korunur. Tam age cutoff mikrosaniyesindeki kayıt da korunur.
+- Manuel cleanup aynı güvenli kuralları kullanır, bounded chunk'lar arasında
+  durdurulabilir ve önceki commit'leri korur. Retention otomatik `VACUUM`
+  çalıştırmaz; SQLite/WAL dosyaları silme sonrasında hemen küçülmeyebilir.
+- Storage diagnostics yalnızca ana DB ve varsa WAL dosyasının byte boyutlarını
+  ve lifecycle satır sayılarını taşır; DB path, SQL, payload veya raw exception
+  içermez. WAL dosyası yoksa boyutu sıfır raporlanır.
 - UI, hassas alanların kopyalanması veya dışa aktarılması ileride eklenirse kullanıcıyı kapsam konusunda bilgilendirmelidir.
 - SQLite dosyası `%LOCALAPPDATA%/NetSentinel/netsentinel.sqlite3` altında kullanıcı
   profiline uygun izinlerle yerel tutulur; repository/install/current-working

@@ -112,6 +112,8 @@ def test_fresh_database_reaches_latest_schema_with_required_pragmas_and_objects(
         assert indexes >= {
             "idx_connection_history_first_seen_id",
             "idx_connection_history_process_name",
+            "idx_connection_history_completed_closed",
+            "idx_connection_history_completed_oldest",
         }
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
@@ -186,7 +188,7 @@ def test_migration_rerun_is_idempotent(database_path: Path) -> None:
     runner = MigrationRunner(builtin_migrations(), clock=lambda: APPLIED_AT)
     connection = _connect_raw(database_path)
     try:
-        assert runner.migrate(connection) == 1
+        assert runner.migrate(connection) == 2
         before = connection.execute(
             "SELECT version, name, applied_at_utc_us FROM schema_migrations"
         ).fetchall()
@@ -194,7 +196,7 @@ def test_migration_rerun_is_idempotent(database_path: Path) -> None:
             "SELECT type, name, sql FROM sqlite_master ORDER BY type, name"
         ).fetchall()
 
-        assert runner.migrate(connection) == 1
+        assert runner.migrate(connection) == 2
 
         after = connection.execute(
             "SELECT version, name, applied_at_utc_us FROM schema_migrations"
@@ -216,43 +218,66 @@ def test_reopened_database_reports_the_persisted_schema_version(
 
     reopened = _connect_raw(database_path)
     try:
-        assert default_migration_runner().current_version(reopened) == 1
+        assert default_migration_runner().current_version(reopened) == 2
     finally:
         reopened.close()
+
+
+def test_existing_version_one_database_upgrades_to_retention_indexes(
+    database_path: Path,
+) -> None:
+    version_one_runner = MigrationRunner(
+        builtin_migrations()[:1],
+        clock=lambda: APPLIED_AT,
+    )
+    connection = _connect_raw(database_path)
+    try:
+        assert version_one_runner.migrate(connection) == 1
+        assert default_migration_runner().migrate(connection) == 2
+        indexes = {
+            row[1]
+            for row in connection.execute("PRAGMA index_list(connection_history)")
+        }
+        assert indexes >= {
+            "idx_connection_history_completed_closed",
+            "idx_connection_history_completed_oldest",
+        }
+    finally:
+        connection.close()
 
 
 def test_incremental_migrations_are_applied_in_deterministic_version_order(
     database_path: Path,
 ) -> None:
-    version_two = Migration(
-        2,
+    version_three = Migration(
+        3,
         "ordered_probe",
         """
         CREATE TABLE migration_order_probe (position INTEGER NOT NULL);
-        INSERT INTO migration_order_probe (position) VALUES (2);
+        INSERT INTO migration_order_probe (position) VALUES (3);
         """,
     )
     initial_runner = MigrationRunner(builtin_migrations(), clock=lambda: APPLIED_AT)
     connection = _connect_raw(database_path)
     try:
-        assert initial_runner.migrate(connection) == 1
+        assert initial_runner.migrate(connection) == 2
         runner = MigrationRunner(
-            (version_two, *builtin_migrations()),
+            (version_three, *builtin_migrations()),
             clock=lambda: APPLIED_AT,
         )
 
-        assert [item.version for item in runner.migrations] == [1, 2]
-        assert runner.migrate(connection) == 2
-        assert runner.current_version(connection) == 2
+        assert [item.version for item in runner.migrations] == [1, 2, 3]
+        assert runner.migrate(connection) == 3
+        assert runner.current_version(connection) == 3
         assert connection.execute(
             "SELECT position FROM migration_order_probe"
-        ).fetchone()[0] == 2
+        ).fetchone()[0] == 3
         assert [
             row[0]
             for row in connection.execute(
                 "SELECT version FROM schema_migrations ORDER BY version"
             )
-        ] == [1, 2]
+        ] == [1, 2, 3]
     finally:
         connection.close()
 
@@ -261,7 +286,7 @@ def test_failed_migration_rolls_back_ddl_and_does_not_advance_version(
     database_path: Path,
 ) -> None:
     failing = Migration(
-        2,
+        3,
         "deliberate_failure",
         """
         CREATE TABLE must_be_rolled_back (id INTEGER PRIMARY KEY);
@@ -275,9 +300,9 @@ def test_failed_migration_rolls_back_ddl_and_does_not_advance_version(
         with pytest.raises(DatabaseMigrationError) as captured:
             _extended_runner(failing).migrate(connection)
 
-        assert captured.value.version == 2
+        assert captured.value.version == 3
         assert "malformed_migration_statement" not in str(captured.value)
-        assert default_migration_runner().current_version(connection) == 1
+        assert default_migration_runner().current_version(connection) == 2
         assert connection.execute(
             "SELECT 1 FROM sqlite_master WHERE name = 'must_be_rolled_back'"
         ).fetchone() is None
@@ -294,7 +319,7 @@ def test_future_schema_is_rejected_without_mutation_and_connection_is_closed(
     connection.execute(
         """
         INSERT INTO schema_migrations (version, name, applied_at_utc_us)
-        VALUES (2, 'future_schema', 1)
+        VALUES (3, 'future_schema', 1)
         """
     )
     before = connection.execute(
@@ -313,8 +338,8 @@ def test_future_schema_is_rejected_without_mutation_and_connection_is_closed(
     with pytest.raises(DatabaseSchemaTooNew) as captured:
         SQLiteDatabase(database_path, migration_runner=runner).connect()
 
-    assert captured.value.found_version == 2
-    assert captured.value.supported_version == 1
+    assert captured.value.found_version == 3
+    assert captured.value.supported_version == 2
     assert runner.captured_connection is not None
     with pytest.raises(sqlite3.ProgrammingError):
         runner.captured_connection.execute("SELECT 1")
@@ -326,7 +351,7 @@ def test_future_schema_is_rejected_without_mutation_and_connection_is_closed(
         ).fetchall() == before
         assert verification.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 2
+        ).fetchone()[0] == 3
     finally:
         verification.close()
 

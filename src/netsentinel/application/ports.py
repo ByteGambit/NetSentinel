@@ -61,6 +61,49 @@ class HistoryDataCorrupt(HistoryRepositoryError):
     """Persisted history data cannot be mapped to the portable model."""
 
 
+class HistoryRetentionRepositoryError(RuntimeError):
+    """A sanitized history-retention storage operation failed."""
+
+
+@dataclass(frozen=True, slots=True)
+class HistoryStorageDiagnostics:
+    """Portable local history storage measurements with no filesystem path.
+
+    ``database_bytes`` and ``wal_bytes`` are actual file sizes observed while
+    the diagnostic connection is open.  An absent WAL is reported as zero.
+    SQLite may retain free pages after deletes, so these values need not shrink
+    after cleanup.
+    """
+
+    database_bytes: int
+    wal_bytes: int
+    total_rows: int
+    active_rows: int
+    completed_rows: int
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "database_bytes",
+            "wal_bytes",
+            "total_rows",
+            "active_rows",
+            "completed_rows",
+        ):
+            value = getattr(self, field_name)
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"{field_name} must be an integer")
+            if value < 0:
+                raise ValueError(f"{field_name} must be zero or greater")
+        if self.active_rows + self.completed_rows != self.total_rows:
+            raise ValueError("active and completed row counts must equal total_rows")
+
+    @property
+    def total_local_storage_bytes(self) -> int:
+        """Return the measured main database plus WAL file sizes."""
+
+        return self.database_bytes + self.wal_bytes
+
+
 @dataclass(frozen=True, slots=True)
 class ConnectionHistoryQuery:
     """Bounded, portable filters for connection-history reads.
@@ -153,6 +196,23 @@ class ConnectionHistoryRepository(Protocol):
         """Return one bounded, deterministically ordered history page."""
 
 
+class HistoryRetentionRepository(Protocol):
+    """Narrow storage port for safe, bounded connection-history cleanup."""
+
+    def delete_completed_before(self, cutoff: datetime, limit: int) -> int:
+        """Delete at most ``limit`` completed rows strictly before cutoff."""
+
+    def delete_oldest_completed_over_total_limit(
+        self,
+        max_rows: int,
+        limit: int,
+    ) -> int:
+        """Trim at most ``limit`` completed rows while total rows exceed limit."""
+
+    def storage_diagnostics(self) -> HistoryStorageDiagnostics:
+        """Return counts and local SQLite file sizes without exposing a path."""
+
+
 class ConnectionHistoryWriteSession(Protocol):
     """One writer-owned repository session with portable batch semantics.
 
@@ -204,6 +264,9 @@ __all__ = (
     "HistoryDataCorrupt",
     "HistoryRecordNotFound",
     "HistoryRepositoryError",
+    "HistoryRetentionRepository",
+    "HistoryRetentionRepositoryError",
+    "HistoryStorageDiagnostics",
     "MAX_HISTORY_QUERY_LIMIT",
     "ProcessMetadataResolver",
 )
