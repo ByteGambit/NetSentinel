@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001–NS-019 ve M3 Persistence tamamlandı; M4 LAN Device Monitor başlatıldı. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History ekranı kalıcı kayıtları filtreli, sayfalı ve GUI thread'ini bloklamayan ayrı bir query worker üzerinden gösterir. NS-019, aktif Windows IPv4 interface/subnet/gateway/DNS bağlamını read-only IP Helper API üzerinden normalize eder; henüz packet capture, ARP keşfi, cihaz envanteri veya Devices UI entegrasyonu yapmaz.
+> Durum: NS-001–NS-020 ve M3 Persistence tamamlandı; M4 LAN Device Monitor sürüyor. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History ekranı kalıcı kayıtları filtreli, sayfalı ve GUI thread'ini bloklamayan ayrı bir query worker üzerinden gösterir. NS-019, aktif Windows IPv4 interface/subnet/gateway/DNS bağlamını read-only IP Helper API üzerinden normalize eder. NS-020, açıkça seçilen güncel context ve zorunlu capture filtresiyle çalışan, otomatik başlamayan güvenli Scapy sınırını sağlar; ARP parse, cihaz envanteri ve Devices UI entegrasyonu sonraki tasklardadır.
 
 ## Tasarım ilkeleri
 
@@ -52,4 +52,20 @@ python -m venv .venv
 
 Sidebar'daki **History** sayfası yerel SQLite'ta saklanan connection lifecycle kayıtlarını 50 satırlık bounded sayfalar halinde gösterir. Process adı, PID, protocol, local/remote IP ve isteğe bağlı yerel tarih-saat aralığı filtreleri kullanılabilir; filtre değişikliği ilk sayfaya döner. **Refresh** mevcut filtre ve sayfayı yeniler. Bir satır seçildiğinde portable metadata, yerel saatler, snapshot süresi ve kapanma nedeni gösterilir; “No longer observed” metni gerçek TCP FIN/RST gözlemi iddiası değildir.
 
-Windows network context sağlayıcısı çağrı başına güncel aktif IPv4 bağlamlarını okur. Loopback görünür kalır ancak varsayılan capture adayı değildir; VPN ve sanal interface türleri portable metadata ile ayrılır. Gateway ve DNS bulunamayabilir. Bu senkron sağlayıcı arka plan thread'i açmaz, ağ paketi göndermez ve canlı ağa bağlanmaz; capture ve ARP işlemleri NS-020 ve sonrasının kapsamındadır.
+Windows network context sağlayıcısı çağrı başına güncel aktif IPv4 bağlamlarını okur. Loopback görünür kalır ancak varsayılan capture adayı değildir; VPN ve sanal interface türleri portable metadata ile ayrılır. Gateway ve DNS bulunamayabilir. Bu senkron sağlayıcı arka plan thread'i açmaz, ağ paketi göndermez ve canlı ağa bağlanmaz; güvenli capture sınırı NS-020'de eklenmiştir, ARP işlemleri sonraki taskların kapsamındadır.
+
+Packet capture composition sırasında yalnızca dormant bir adapter oluşturur. Capture,
+bir NS-019 `NetworkContext` değeri ve boş olmayan BPF filtresi verilmeden başlamaz;
+start öncesinde interface/fingerprint tekrar doğrulanır. Callback ham Scapy paketini
+saklamadan interface, fingerprint, UTC zaman, uzunluk ve küçük protokol özetinden
+oluşan immutable metadata'ya indirger. Bounded queue dolduğunda yeni observation
+beklemeden düşürülür ve sayaç/typed diagnostic güncellenir. Loopback LAN capture
+için reddedilir; VPN ve virtual adapter yalnızca açık seçimle kullanılabilir.
+
+Windows packet capture, Scapy'ye ek olarak Npcap ve seçilen interface için uygun
+yetki gerektirebilir. Eksik bağımlılık, permission denied, interface kaybı, network
+değişimi ve transient driver hataları birbirinden ayrılan sanitized capability
+durumlarıdır; core connection monitor bu yüzden capture'a bağımlı değildir. Canlı
+capture testi varsayılan suite'te yoktur. Yalnızca izinli bir lab ağında açıkça
+`NETSENTINEL_LAB_CAPTURE=1` ayarlanarak
+`python -m pytest -m lab_live` ile pasif ve packetsiz smoke doğrulaması yapılır.

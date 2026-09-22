@@ -20,6 +20,11 @@ from netsentinel.domain.connections import (
     TransportProtocol,
 )
 from netsentinel.domain.devices import NetworkContext
+from netsentinel.domain.observations import PacketObservation
+from netsentinel.shared.diagnostics import (
+    CaptureCapabilitySnapshot,
+    CaptureHealthSnapshot,
+)
 
 
 MAX_HISTORY_QUERY_LIMIT = 500
@@ -68,6 +73,71 @@ class NetworkContextProvider(Protocol):
 
     def get_contexts(self) -> tuple[NetworkContext, ...]:
         """Read current contexts without starting polling or active discovery."""
+
+
+class PacketCaptureError(RuntimeError):
+    """Base error for sanitized passive packet-capture failures."""
+
+
+class PacketCapturePermissionDenied(PacketCaptureError):
+    """The OS or capture driver denied access to the selected interface."""
+
+
+class PacketCaptureDependencyUnavailable(PacketCaptureError):
+    """Scapy or the platform capture driver is unavailable."""
+
+
+class PacketCaptureInterfaceUnavailable(PacketCaptureError):
+    """The explicitly selected interface no longer exists or is unusable."""
+
+
+class PacketCaptureNetworkChanged(PacketCaptureError):
+    """The selected NS-019 network context is no longer current."""
+
+
+class PacketCaptureTransientError(PacketCaptureError):
+    """Capture failed because of a temporary platform or driver condition."""
+
+
+@dataclass(frozen=True, slots=True)
+class PacketCaptureRequest:
+    """Explicit, bounded request for passive capture on one current context."""
+
+    context: NetworkContext
+    capture_filter: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.context, NetworkContext):
+            raise TypeError("context must be a NetworkContext")
+        if not isinstance(self.capture_filter, str):
+            raise TypeError("capture_filter must be a string")
+        capture_filter = self.capture_filter.strip()
+        if not capture_filter:
+            raise ValueError("capture_filter must not be empty")
+        if len(capture_filter) > 256:
+            raise ValueError("capture_filter must not exceed 256 characters")
+        if any(character in capture_filter for character in ("\0", "\r", "\n")):
+            raise ValueError("capture_filter contains a forbidden control character")
+        object.__setattr__(self, "capture_filter", capture_filter)
+
+
+class PacketCapture(Protocol):
+    """Application-facing passive capture lifecycle and bounded output port."""
+
+    def probe(self, context: NetworkContext) -> CaptureCapabilitySnapshot:
+        """Check dependency/interface capability without starting capture."""
+
+    def start(self, request: PacketCaptureRequest) -> bool:
+        """Start one worker for an explicitly selected context and filter."""
+
+    def stop(self, timeout: float | None = None) -> bool:
+        """Stop accepting observations and wait for a bounded duration."""
+
+    def drain(self, limit: int) -> tuple[PacketObservation, ...]:
+        """Return up to ``limit`` queued portable observations in FIFO order."""
+
+    def health_snapshot(self) -> CaptureHealthSnapshot:
+        """Return an immutable, sanitized lifecycle/capability snapshot."""
 
 
 class HistoryRepositoryError(RuntimeError):
@@ -301,5 +371,13 @@ __all__ = (
     "NetworkContextPermissionDenied",
     "NetworkContextProvider",
     "NetworkContextUnavailable",
+    "PacketCapture",
+    "PacketCaptureDependencyUnavailable",
+    "PacketCaptureError",
+    "PacketCaptureInterfaceUnavailable",
+    "PacketCaptureNetworkChanged",
+    "PacketCapturePermissionDenied",
+    "PacketCaptureRequest",
+    "PacketCaptureTransientError",
     "ProcessMetadataResolver",
 )

@@ -18,6 +18,12 @@ from netsentinel.domain.connections import (
     TransportProtocol,
 )
 from netsentinel.domain.devices import NetworkContext, NetworkInterfaceKind
+from netsentinel.domain.observations import (
+    LinkLayerProtocol,
+    NetworkLayerProtocol,
+    ObservationSource,
+    PacketObservation,
+)
 
 __all__ = (
     "ConnectionClosed",
@@ -30,8 +36,12 @@ __all__ = (
     "ConnectionState",
     "ConnectionUpdated",
     "Endpoint",
+    "LinkLayerProtocol",
     "NetworkContext",
     "NetworkInterfaceKind",
+    "NetworkLayerProtocol",
+    "ObservationSource",
+    "PacketObservation",
     "ProcessIdentity",
     "ProcessInfo",
     "ProcessInfoStatus",

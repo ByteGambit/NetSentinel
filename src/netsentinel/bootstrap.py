@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from netsentinel.application.engine import MonitoringEngine
 from netsentinel.application.events import EventDispatcher
-from netsentinel.application.ports import NetworkContextProvider
+from netsentinel.application.ports import NetworkContextProvider, PacketCapture
 from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
@@ -22,6 +22,7 @@ from netsentinel.infrastructure.psutil_processes import (
     PsutilProcessMetadataResolver,
 )
 from netsentinel.infrastructure.windows_network import WindowsNetworkContextProvider
+from netsentinel.infrastructure.scapy_capture import ScapyCaptureWorker
 from netsentinel.infrastructure.sqlite import (
     SQLiteDatabase,
     SQLiteConnectionHistoryRepository,
@@ -117,10 +118,38 @@ def create_network_context_provider() -> NetworkContextProvider:
     return WindowsNetworkContextProvider()
 
 
+def create_packet_capture(
+    *,
+    context_provider: NetworkContextProvider | None = None,
+    queue_capacity: int = 1_024,
+    startup_timeout: float = 1.0,
+    shutdown_timeout: float = 2.0,
+) -> PacketCapture:
+    """Create the dormant NS-020 passive capture boundary.
+
+    Construction performs no network read, Scapy import, socket open, or worker
+    start.  A concrete NS-019 context and filter are still required by
+    ``PacketCapture.start``.
+    """
+
+    provider = (
+        context_provider
+        if context_provider is not None
+        else create_network_context_provider()
+    )
+    return ScapyCaptureWorker(
+        provider,
+        queue_capacity=queue_capacity,
+        startup_timeout=startup_timeout,
+        shutdown_timeout=shutdown_timeout,
+    )
+
+
 __all__ = (
     "create_desktop_engine",
     "create_history_retention_service",
     "create_history_query_service_factory",
     "create_monitoring_engine",
     "create_network_context_provider",
+    "create_packet_capture",
 )

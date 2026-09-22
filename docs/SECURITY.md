@@ -65,6 +65,32 @@ Azaltımlar:
 - Hatalı paket uygulamanın tamamını düşürmeden ölçümlenir ve atlanır.
 - Scapy/Npcap ve diğer bağımlılıklar sabitlenmiş, desteklenen sürümlerde tutulur.
 
+NS-020 capture sınırı composition sırasında Scapy import etmez, interface okumaz,
+socket açmaz veya worker başlatmaz. Capture ancak güncel NS-019 `NetworkContext`
+değeri, açık interface kimliği ve boş olmayan en fazla 256 karakterlik filtre ile
+başlatılabilir. Start öncesi provider yeniden okunur; kaybolan interface, değişen
+network fingerprint ve loopback LAN capture isteği socket açılmadan reddedilir.
+VPN ve virtual interface'ler otomatik seçilmez ancak kullanıcı/üst katman açıkça
+seçtiğinde sessizce dışlanmaz.
+
+Production Scapy backend seçili interface'te `promisc=False`, `store=False` ve
+bounded output queue ile çalışır. Callback DB, UI, DNS lookup veya detector çağırmaz;
+ham Scapy nesnesini ve payload'ı saklamadan yalnızca interface/fingerprint, UTC
+capture zamanı, captured/original length ve küçük link/network protokol özetini
+portable observation'a dönüştürür. Queue dolduğunda producer beklemez; yeni kayıt
+düşürülür ve bounded sayaç ile typed overflow diagnostic'i güncellenir. Stop yeni
+observation kabulünü önce kapatır, Scapy stop/join işlemini timeout ile sınırlar ve
+başarılı kapanışta capture socket'ini kapatır. Timeout worker'ı görünür `stopping`
+durumunda bırakır; ikinci worker başlatılmaz.
+
+Scapy paketi veya Npcap bulunmaması, permission denied, interface unavailable,
+network changed ve transient capture failure raw exception metni taşımayan ayrı
+capability nedenleridir. Eksik capture yeteneği connection monitoring'i durdurmaz.
+Varsayılan pytest suite'i Scapy importu, Npcap, canlı network veya yönetici yetkisi
+gerektirmeyen fake backend kullanır. `lab_live` smoke testi ayrıca
+`NETSENTINEL_LAB_CAPTURE=1` onayı ister, yalnızca pasif start/stop yapar; packet
+inject etmez, subnet taramaz ve observation gelmesini zorunlu tutmaz.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

@@ -707,7 +707,59 @@ aktif discovery, ARP gönderimi ya da yönetici yükseltmesi yoktur. NS-019 prov
 henüz `MonitoringEngine` veya presentation yaşam döngüsüne bağlanmaz. Capture
 worker NS-020'nin; ARP/device registry ve UI ise sonraki M4 tasklarının kapsamıdır.
 
-## 11. Detection yaklaşımı
+## 11. NS-020 packet capture sınırı
+
+```text
+NetworkContextProvider.get_contexts() (her start/probe öncesi güncel okuma)
+  -> explicit PacketCaptureRequest(NetworkContext + bounded BPF filter)
+  -> ScapyCaptureWorker
+       -> ScapyCaptureBackend (lazy import, selected interface, promisc=False)
+       -> one AsyncSniffer worker / store=False
+       -> infrastructure-only raw packet callback
+       -> immutable PacketObservation metadata
+       -> bounded FIFO output queue (varsayılan 1024)
+  -> future protocol parser/analysis consumer (NS-021 ve sonrası)
+```
+
+`application.ports.PacketCapture`, Scapy, Npcap, socket veya raw packet tipi
+bilmeden capability probe, explicit start/stop, bounded drain ve portable health
+snapshot sözleşmesini tanımlar. `PacketCaptureRequest` bir NS-019
+`NetworkContext` nesnesi ve boş olmayan, kontrol karakteri içermeyen, en fazla
+256 karakterlik filtre ister. Adapter interface veya subnet keşfetmez; provider'ı
+her probe/start çağrısında yeniden okur. Aynı interface/fingerprint bulunamazsa
+interface disappeared ve network changed ayrı sonuçtur. DHCP host adresinin aynı
+fingerprint içinde değişmesi geçerlidir ve observation güncel context metadata'sı
+ile üretilir. Loopback LAN capture için reddedilir; VPN ve virtual context'ler
+yalnızca açık seçimle kullanılabilir.
+
+Construction dormant'tır: Scapy importu, network read, socket ve worker yoktur.
+Production backend Scapy'yi lazy yükler, Windows'ta Npcap/libpcap capability'sini
+kontrol eder ve capture socket'ini explicit start yolunda senkron açar; böylece
+driver, permission ve interface hataları worker thread içinde kaybolmadan typed,
+sanitize edilmiş capability durumuna dönüşür. Backend Scapy 2.7 `AsyncSniffer`
+yaşam döngüsünü `start`, non-blocking stop isteği, bounded join ve owned socket
+close ile sarar. `start`/`stop` idempotenttir; stopping/running durumda ikinci
+worker yaratılamaz. Stop önce callback kabulünü generation ile kapatır; eski veya
+stop sonrası callback observation üretemez. Timeout sağlık durumunda görünürdür ve
+worker gerçekten bitmeden restart yapılmaz.
+
+Callback ham paketi hiçbir üst katmana taşımaz. Yalnızca interface kimliği/index'i,
+network fingerprint, UTC-aware zaman, captured/original length, sınırlı link-layer
+ve network-layer enum özeti üretir. Raw payload/body saklanmaz veya loglanmaz.
+Malformed paket sayılır ve atlanır; sonraki paketler işlenmeye devam eder. Queue
+dolduğunda en yeni observation `put_nowait` semantiğiyle düşürülür; capture thread'i
+DB/UI/analysis beklemez. Duplicate observation'lar kasıtlı olarak korunur çünkü
+ilerideki oran metriklerinde packet multiplicity anlamlıdır. FIFO sırası arrival
+sırasıdır; worker restart'ında eski context'e ait drain edilmemiş observation'lar
+sayaca eklenerek atılır ve context'ler karışmaz.
+
+Capability nedenleri `permission_denied`, `dependency_unavailable`,
+`interface_unavailable`, `network_changed` ve `transient_failure` olarak ayrılır.
+Raw exception mesajı health/port/presentation sınırına geçmez. NS-020 henüz
+`MonitoringEngine`, Qt bridge, DB, parser, device registry veya detector'a
+bağlanmaz; bu task yalnızca güvenli capture sınırını kurar.
+
+## 12. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
 
@@ -719,7 +771,7 @@ Her çıktı en az rule ID, zaman, ilgili entity ID, severity, confidence ve yap
 
 Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gateway MAC adresleri birbirine karıştırılmaz. Ağ değişiminden sonra öğrenme/ısınma penceresi uygulanır.
 
-## 12. Hata, saat ve kimlik stratejisi
+## 13. Hata, saat ve kimlik stratejisi
 
 - Persist edilen tüm zamanlar UTC'dir; interval ölçümü için monotonic clock kullanılır.
 - DB entity'leri için UUID; tekrarlanabilir detector çıktıları için kararlı fingerprint kullanılır.
@@ -727,7 +779,7 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 - Bir adapter hatası ilgili capability'yi degraded yapar; mümkünse diğer monitoring modülleri devam eder.
 - Kullanıcıya gösterilen hata mesajı eyleme dönük, teknik log ise ayrıntılı olur.
 
-## 13. Test stratejisi
+## 14. Test stratejisi
 
 - **Unit:** Domain, diff, parser, baseline ve detector kuralları; fake clock ile deterministik zaman.
 - **Integration:** psutil çıktısı adaptasyonu, geçici SQLite DB ve migration/repository davranışı.
@@ -746,6 +798,16 @@ deterministik sıralama, fingerprint ve typed hata davranışını test eder. Op
 `windows_live` testi yalnızca yerel Windows IP Helper yapılandırmasını salt-okur;
 socket veya paket üretmez, dış hosta erişmez ve yönetici yetkisini önkoşul yapmaz.
 
+### NS-020 packet capture test sınırı
+
+Varsayılan suite yalnızca fake context provider, fake backend, fake sniffer ve
+sentetik metadata packet nesneleriyle lifecycle, duplicate/FIFO, overflow,
+malformed isolation, stale context, capability sınıfları ve bounded shutdown'ı
+doğrular. Scapy import edilmez; gerçek network, Npcap ve yönetici yetkisi gerekmez.
+Opt-in `lab_live` testi yalnızca Windows ve açık `NETSENTINEL_LAB_CAPTURE=1`
+onayıyla güncel default-candidate context üzerinde pasif filtered start/stop yapar.
+Packet göndermez, ARP/ping/port taraması yapmaz ve trafik gözlenmesini beklemez.
+
 ### M1 Windows live smoke testi
 
 `windows_live` marker'ı gerçek `psutil` adapter sınırını yalnızca açıkça istendiğinde
@@ -762,7 +824,7 @@ Sabit bir uykuya dayanmak yerine event sinyalleri ve bounded timeout kullanır.
 System-wide connection tablosu Windows politikası tarafından tamamen reddedilirse
 test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşulu yapmaz.
 
-## 14. Bilinen teknik sınırlamalar
+## 15. Bilinen teknik sınırlamalar
 
 - psutil snapshot tabanlı polling, iki tur arasında açılıp kapanan çok kısa bağlantıları kaçırabilir.
 - Windows ve psutil, standart kullanıcıya bazı system-wide connection satırlarının
@@ -773,6 +835,8 @@ test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşul
 - UDP satırları gerçek bir “oturum” değil, işletim sistemi endpoint görünümüdür.
 - Paket ile PID/process arasında her durumda güvenilir bire bir ilişki kurulamaz.
 - Capture sonucu kullanılan driver, interface ve Windows güvenlik politikasına bağlıdır.
+- Capture capability probe socket açmadığı için gerçek permission/driver açma hatası
+  explicit `start` sırasında kesinleşebilir; bu hata yine typed degraded duruma çevrilir.
 - NS-019 ağ fingerprint'i interface/subnet/gateway metadata'sına dayanır; aynı
   interface üzerinde bu üç değeri de paylaşan farklı fiziksel ağları tek başına
   kesin ayırt etme garantisi vermez. IPv6 network context ilk M4 kapsamı dışındadır.

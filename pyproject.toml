@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
     "PyQt6>=6.8,<7",
     "psutil>=6.1,<8",
+    "scapy>=2.7,<3",
 ]
 
 [project.optional-dependencies]
@@ -34,9 +35,10 @@ addopts = [
     "--strict-config",
     "--strict-markers",
     "-m",
-    "not windows_live",
+    "not windows_live and not lab_live",
 ]
 testpaths = ["tests"]
 markers = [
     "windows_live: opt-in read-only Windows adapter tests and local loopback sockets",
+    "lab_live: opt-in passive packet capture tests for an explicitly authorized lab network",
 ]

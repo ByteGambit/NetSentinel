@@ -219,6 +219,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-020 — Packet capture portu ve güvenli Scapy worker
 
+- **Durum:** ✅ Tamamlandı (2026-09-21)
 - **Amaç:** Scapy'yi application katmanından ayıran, seçili interface ve filtreyle sınırlı capture sınırı oluşturmak.
 - **Yapılacaklar:** Capture portu, capability probe, start/stop lifecycle, bounded output queue ve minimal metadata envelope ekle; driver/yetki/interface hatalarını sınıflandır.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/ports.py`, `src/netsentinel/infrastructure/scapy_capture.py`, `src/netsentinel/domain/observations.py`, `tests/unit/infrastructure/test_scapy_capture.py`.
