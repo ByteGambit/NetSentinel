@@ -19,7 +19,7 @@ from netsentinel.domain.connections import (
     ProcessInfo,
     TransportProtocol,
 )
-from netsentinel.domain.devices import NetworkContext
+from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.domain.observations import PacketObservation
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
@@ -73,6 +73,29 @@ class NetworkContextProvider(Protocol):
 
     def get_contexts(self) -> tuple[NetworkContext, ...]:
         """Read current contexts without starting polling or active discovery."""
+
+
+class DeviceRepositoryError(RuntimeError):
+    """Sanitized failure to store or read observed device state."""
+
+
+class DeviceDataCorrupt(DeviceRepositoryError):
+    """Persisted device or binding data violates the portable model."""
+
+
+class DeviceRepository(Protocol):
+    """Atomic observed-device persistence, scoped by network fingerprint."""
+
+    def record_binding(
+        self, device: DeviceIdentity, binding: IdentityBinding
+    ) -> tuple[DeviceIdentity, IdentityBinding]:
+        """Upsert one sender observation without moving first/last seen backward."""
+
+    def list_devices(self, network_fingerprint: str) -> tuple[DeviceIdentity, ...]:
+        """Return scoped devices in canonical MAC order."""
+
+    def list_bindings(self, device_id: UUID) -> tuple[IdentityBinding, ...]:
+        """Return all observed IP bindings for one device in canonical IP order."""
 
 
 class PacketCaptureError(RuntimeError):
@@ -351,6 +374,9 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 
 
 __all__ = (
+    "DeviceDataCorrupt",
+    "DeviceRepository",
+    "DeviceRepositoryError",
     "ConnectionHistoryQuery",
     "ConnectionHistoryRepository",
     "ConnectionHistoryWriteSession",

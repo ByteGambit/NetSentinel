@@ -786,7 +786,32 @@ paketi malformed sayar; capture worker mevcut diagnostic/sayaç yoluyla devam ed
 Parser state, device identity, registry, detector, persistence veya UI mantığı
 içermez. Yeni worker veya ikinci queue oluşturulmaz.
 
-## 13. Detection yaklaşımı
+## 13. NS-022 cihaz ve binding kayıtları
+
+`DeviceRegistryService`, yalnızca NS-019 `NetworkContext` ile eşleşen NS-021
+`PacketObservation.arp` sender alanlarını tüketir. ARP request/reply target alanı
+cihaz kimliği sayılmaz; `0.0.0.0` probe sender'ı, zero/broadcast/multicast MAC
+ve cihaz olmayan IPv4 sender adresleri kayıt oluşturmaz. Locally administered
+unicast MAC geçerli gözlemdir. Uyumsuz interface/index/fingerprint typed hata
+olarak reddedilir. Servis yeni worker, queue veya capture lifecycle oluşturmaz.
+
+`DeviceIdentity` kimliği network fingerprint + canonical MAC'ten kararlı UUID
+olarak türetilir; IP kimliğin parçası değildir. `IdentityBinding` aynı scope/MAC
+ve sender IP için ayrı kararlı kimlik taşır. Farklı IP eski binding'i silmez;
+aynı IP'nin farklı MAC ile gözlenmesi iki ayrı gözlem kaydı oluşturur ve bu
+aşamada güvenlik hükmü üretmez. İlk kabul edilen gözlemin `first_seen` değeri
+sabit kalır; `last_seen` yalnızca ileri UTC zamanla güncellenir. Eski paketler
+state'i geriye götürmez. Public listeler MAC ve sayısal IPv4 sırasındadır.
+
+`DeviceRepository` portunu `SQLiteDeviceRepository` uygular. Migration 003,
+`devices` ve `device_bindings` tablolarını, scope/binding unique anahtarlarını
+ve foreign key'i ekler. Her observation tek kısa transaction içinde iki upsert
+yapar. Repository çağrı başına kendi migrated connection'ını açıp kapatır;
+thread, UI veya capture callback'i içinde DB çağrısı başlatılmaz. Şimdilik
+analiz consumer'ı bu servisi açıkça çağırır; engine/GUI entegrasyonu NS-024
+kapsamındadır. Yeni cihaz dedektörü NS-023 kapsamındadır.
+
+## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
 
@@ -798,7 +823,7 @@ Her çıktı en az rule ID, zaman, ilgili entity ID, severity, confidence ve yap
 
 Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gateway MAC adresleri birbirine karıştırılmaz. Ağ değişiminden sonra öğrenme/ısınma penceresi uygulanır.
 
-## 14. Hata, saat ve kimlik stratejisi
+## 15. Hata, saat ve kimlik stratejisi
 
 - Persist edilen tüm zamanlar UTC'dir; interval ölçümü için monotonic clock kullanılır.
 - DB entity'leri için UUID; tekrarlanabilir detector çıktıları için kararlı fingerprint kullanılır.
@@ -806,7 +831,7 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 - Bir adapter hatası ilgili capability'yi degraded yapar; mümkünse diğer monitoring modülleri devam eder.
 - Kullanıcıya gösterilen hata mesajı eyleme dönük, teknik log ise ayrıntılı olur.
 
-## 15. Test stratejisi
+## 16. Test stratejisi
 
 - **Unit:** Domain, diff, parser, baseline ve detector kuralları; fake clock ile deterministik zaman.
 - **Integration:** psutil çıktısı adaptasyonu, geçici SQLite DB ve migration/repository davranışı.
@@ -861,7 +886,7 @@ Sabit bir uykuya dayanmak yerine event sinyalleri ve bounded timeout kullanır.
 System-wide connection tablosu Windows politikası tarafından tamamen reddedilirse
 test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşulu yapmaz.
 
-## 16. Bilinen teknik sınırlamalar
+## 17. Bilinen teknik sınırlamalar
 
 - psutil snapshot tabanlı polling, iki tur arasında açılıp kapanan çok kısa bağlantıları kaçırabilir.
 - Windows ve psutil, standart kullanıcıya bazı system-wide connection satırlarının

@@ -1,8 +1,4 @@
-"""Framework-independent network-context models for LAN device monitoring.
-
-NS-019 deliberately models only the local Windows network context. Device,
-ARP, discovery, and persistence concepts belong to later M4 tasks.
-"""
+"""Framework-independent network-context and observed device models."""
 
 from __future__ import annotations
 
@@ -11,6 +7,9 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha256
 from ipaddress import IPv4Address, IPv4Network, ip_address, ip_network
+from uuid import UUID, uuid5
+
+from netsentinel.domain.observations import MacAddress
 
 
 class NetworkInterfaceKind(str, Enum):
@@ -177,7 +176,79 @@ class NetworkContext:
         return not self.is_loopback
 
 
+_DEVICE_NAMESPACE = UUID("81e629eb-470b-47a7-a275-2760424ff33d")
+_BINDING_NAMESPACE = UUID("ce2de6e7-7468-4d74-b6ef-012386ed46a8")
+
+
+def _require_fingerprint(value: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError("network_fingerprint must be a string")
+    canonical = value.lower()
+    if len(canonical) != 64 or any(c not in "0123456789abcdef" for c in canonical):
+        raise ValueError("network_fingerprint must be a SHA-256 hex digest")
+    return canonical
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceIdentity:
+    """One observed unicast MAC in one network fingerprint scope.
+
+    The stable ID is derived from the scope and canonical MAC, never an IP.
+    This is observed state, not a trusted user profile or security verdict.
+    """
+
+    network_fingerprint: str
+    mac: MacAddress
+    first_seen: datetime
+    last_seen: datetime
+    device_id: UUID = field(init=False)
+
+    def __post_init__(self) -> None:
+        fingerprint = _require_fingerprint(self.network_fingerprint)
+        if not isinstance(self.mac, MacAddress):
+            raise TypeError("mac must be a MacAddress")
+        if self.mac.is_zero or self.mac.is_multicast or self.mac.is_broadcast:
+            raise ValueError("mac must be a nonzero unicast address")
+        first = _require_utc(self.first_seen, "first_seen")
+        last = _require_utc(self.last_seen, "last_seen")
+        if last < first:
+            raise ValueError("last_seen cannot precede first_seen")
+        object.__setattr__(self, "network_fingerprint", fingerprint)
+        object.__setattr__(self, "first_seen", first)
+        object.__setattr__(self, "last_seen", last)
+        object.__setattr__(self, "device_id", uuid5(_DEVICE_NAMESPACE, f"{fingerprint}:{self.mac}"))
+
+
+@dataclass(frozen=True, slots=True)
+class IdentityBinding:
+    """Observed sender IP/MAC pair and its first/last observation times."""
+
+    network_fingerprint: str
+    mac: MacAddress
+    ip_address: str
+    first_seen: datetime
+    last_seen: datetime
+    binding_id: UUID = field(init=False)
+    device_id: UUID = field(init=False)
+
+    def __post_init__(self) -> None:
+        identity = DeviceIdentity(
+            self.network_fingerprint, self.mac, self.first_seen, self.last_seen
+        )
+        ip = _canonical_ipv4(self.ip_address, "ip_address")
+        object.__setattr__(self, "network_fingerprint", identity.network_fingerprint)
+        object.__setattr__(self, "ip_address", ip)
+        object.__setattr__(self, "first_seen", identity.first_seen)
+        object.__setattr__(self, "last_seen", identity.last_seen)
+        object.__setattr__(self, "device_id", identity.device_id)
+        object.__setattr__(
+            self, "binding_id", uuid5(_BINDING_NAMESPACE, f"{identity.device_id}:{ip}")
+        )
+
+
 __all__ = (
+    "DeviceIdentity",
+    "IdentityBinding",
     "NetworkContext",
     "NetworkInterfaceKind",
 )

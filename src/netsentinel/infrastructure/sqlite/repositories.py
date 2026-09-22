@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from ipaddress import IPv4Address
 from pathlib import Path
 import sqlite3
 from uuid import UUID, uuid4
 
 from netsentinel.application.ports import (
     ConnectionHistoryQuery,
+    DeviceDataCorrupt,
+    DeviceRepositoryError,
     HistoryDataCorrupt,
     HistoryRecordNotFound,
     HistoryQueryCancelled,
@@ -17,6 +20,8 @@ from netsentinel.application.ports import (
     HistoryRetentionRepositoryError,
     HistoryStorageDiagnostics,
 )
+from netsentinel.domain.devices import DeviceIdentity, IdentityBinding
+from netsentinel.domain.observations import MacAddress
 from netsentinel.domain.connections import (
     ConnectionClosed,
     ConnectionClosureReason,
@@ -739,7 +744,129 @@ def _row_to_record(row: sqlite3.Row) -> ConnectionHistoryRecord:
         ) from error
 
 
+class SQLiteDeviceRepository:
+    """Atomic device/binding upsert on short-lived, migrated connections."""
+
+    def __init__(self, database: SQLiteDatabase) -> None:
+        if not isinstance(database, SQLiteDatabase):
+            raise TypeError("database must be a SQLiteDatabase")
+        self._database = database
+
+    def record_binding(
+        self, device: DeviceIdentity, binding: IdentityBinding
+    ) -> tuple[DeviceIdentity, IdentityBinding]:
+        if not isinstance(device, DeviceIdentity) or not isinstance(binding, IdentityBinding):
+            raise TypeError("device and binding must be portable device models")
+        if binding.device_id != device.device_id:
+            raise ValueError("binding must belong to device")
+        at = datetime_to_epoch_microseconds(device.last_seen)
+        if device.first_seen != device.last_seen or binding.first_seen != binding.last_seen or binding.last_seen != device.last_seen:
+            raise ValueError("record_binding requires one observation timestamp")
+        try:
+            with self._database.connection() as connection:
+                with transaction(connection):
+                    connection.execute(
+                        """
+                        INSERT INTO devices
+                            (id, network_fingerprint, mac, first_seen_utc_us, last_seen_utc_us)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT (network_fingerprint, mac) DO UPDATE SET
+                            last_seen_utc_us = MAX(devices.last_seen_utc_us, excluded.last_seen_utc_us)
+                        """,
+                        (str(device.device_id), device.network_fingerprint, str(device.mac), at, at),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO device_bindings
+                            (id, device_id, ip_address, first_seen_utc_us, last_seen_utc_us)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT (device_id, ip_address) DO UPDATE SET
+                            last_seen_utc_us = MAX(device_bindings.last_seen_utc_us, excluded.last_seen_utc_us)
+                        """,
+                        (str(binding.binding_id), str(device.device_id), binding.ip_address, at, at),
+                    )
+                    device_row = connection.execute(
+                        "SELECT * FROM devices WHERE id = ?", (str(device.device_id),)
+                    ).fetchone()
+                    binding_row = connection.execute(
+                        """SELECT b.*, d.network_fingerprint, d.mac
+                           FROM device_bindings AS b JOIN devices AS d ON d.id = b.device_id
+                           WHERE b.id = ?""", (str(binding.binding_id),)
+                    ).fetchone()
+                    if device_row is None or binding_row is None:
+                        raise DeviceDataCorrupt("Persisted device state is incomplete.")
+                    return _row_to_device(device_row), _row_to_binding(binding_row)
+        except DeviceRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise DeviceRepositoryError("Device observation could not be stored.") from error
+
+    def list_devices(self, network_fingerprint: str) -> tuple[DeviceIdentity, ...]:
+        if not isinstance(network_fingerprint, str) or len(network_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in network_fingerprint):
+            raise ValueError("network_fingerprint must be canonical SHA-256 hex")
+        try:
+            with self._database.connection() as connection:
+                rows = connection.execute(
+                    "SELECT * FROM devices WHERE network_fingerprint = ? ORDER BY mac ASC",
+                    (network_fingerprint,),
+                ).fetchall()
+                return tuple(_row_to_device(row) for row in rows)
+        except DeviceRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise DeviceRepositoryError("Devices could not be read.") from error
+
+    def list_bindings(self, device_id: UUID) -> tuple[IdentityBinding, ...]:
+        if not isinstance(device_id, UUID):
+            raise TypeError("device_id must be a UUID")
+        try:
+            with self._database.connection() as connection:
+                rows = connection.execute(
+                    """SELECT b.*, d.network_fingerprint, d.mac
+                       FROM device_bindings AS b JOIN devices AS d ON d.id = b.device_id
+                       WHERE b.device_id = ? ORDER BY b.ip_address COLLATE BINARY ASC""",
+                    (str(device_id),),
+                ).fetchall()
+                return tuple(sorted((_row_to_binding(row) for row in rows), key=lambda b: (int(IPv4Address(b.ip_address)), str(b.binding_id))))
+        except DeviceRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise DeviceRepositoryError("Device bindings could not be read.") from error
+
+
+def _row_to_device(row: sqlite3.Row) -> DeviceIdentity:
+    try:
+        device = DeviceIdentity(
+            network_fingerprint=row["network_fingerprint"],
+            mac=MacAddress(row["mac"]),
+            first_seen=epoch_microseconds_to_datetime(row["first_seen_utc_us"]),
+            last_seen=epoch_microseconds_to_datetime(row["last_seen_utc_us"]),
+        )
+        if str(device.device_id) != row["id"]:
+            raise ValueError("device ID does not match identity")
+        return device
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError) as error:
+        raise DeviceDataCorrupt("Persisted device data is invalid.") from error
+
+
+def _row_to_binding(row: sqlite3.Row) -> IdentityBinding:
+    try:
+        binding = IdentityBinding(
+            network_fingerprint=row["network_fingerprint"],
+            mac=MacAddress(row["mac"]),
+            ip_address=row["ip_address"],
+            first_seen=epoch_microseconds_to_datetime(row["first_seen_utc_us"]),
+            last_seen=epoch_microseconds_to_datetime(row["last_seen_utc_us"]),
+        )
+        if str(binding.binding_id) != row["id"] or str(binding.device_id) != row["device_id"]:
+            raise ValueError("binding ID does not match identity")
+        return binding
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError) as error:
+        raise DeviceDataCorrupt("Persisted binding data is invalid.") from error
+
+
 __all__ = (
+    "SQLiteDeviceRepository",
     "SQLiteConnectionHistoryRepository",
     "SQLiteHistoryRetentionRepository",
     "datetime_to_epoch_microseconds",

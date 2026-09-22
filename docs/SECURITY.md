@@ -137,6 +137,9 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   sorumluluğundadır; ürün bunu varmış gibi varsaymaz.
 - Connection history yalnızca lifecycle metadata'sı saklar; ham paket veya payload
   kolonu içermez.
+- NS-022 cihaz tabloları yalnızca network fingerprint, canonical sender MAC/IP ve
+  ilk/son UTC görülme zamanlarını saklar. ARP target, raw frame, payload ve Scapy
+  nesnesi kalıcılaştırılmaz. Cihaz/binding state'i saldırı veya güven kararı değildir.
 - Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
   yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
   thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı

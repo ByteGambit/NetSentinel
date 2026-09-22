@@ -115,6 +115,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
                 "history_retention_indexes",
             ),
         ),
+        Migration(
+            version=3,
+            name="device_bindings",
+            sql=_read_resource("003_devices.sql", 3, "device_bindings"),
+        ),
     )
 
 

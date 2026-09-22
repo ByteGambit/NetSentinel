@@ -239,6 +239,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-022 — Device registry ve IP-MAC binding geçmişi
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** ARP observations içinden ağ bağlamına özgü cihaz ve zaman aralıklı kimlik eşleşmesi oluşturmak.
 - **Yapılacaklar:** `DeviceIdentity`, `IdentityBinding`, registry service, device/binding migration ve repository ekle; first/last seen ile vendor dışı temel kimliği tut.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/domain/devices.py`, `src/netsentinel/application/services/devices.py`, `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `src/netsentinel/infrastructure/sqlite/repositories.py`, `tests/unit/application/test_device_registry.py`.
