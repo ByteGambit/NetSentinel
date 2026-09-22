@@ -249,6 +249,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-023 — Yeni cihaz detector'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Belirli ağ bağlamında ilk kez görülen cihazı güvenilir ve deduplicate edilmiş olay olarak üretmek.
 - **Yapılacaklar:** `NewDeviceDetector`, warm-up davranışı ve restart sonrası known-device yüklemesi ekle; ilk kurulum import'u ile gerçekten yeni cihazı ayır.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/detectors/new_device.py`, `src/netsentinel/application/services/devices.py`, `src/netsentinel/domain/alerts.py`, `tests/unit/application/detectors/test_new_device.py`.

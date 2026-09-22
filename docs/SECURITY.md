@@ -140,6 +140,10 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - NS-022 cihaz tabloları yalnızca network fingerprint, canonical sender MAC/IP ve
   ilk/son UTC görülme zamanlarını saklar. ARP target, raw frame, payload ve Scapy
   nesnesi kalıcılaştırılmaz. Cihaz/binding state'i saldırı veya güven kararı değildir.
+- NS-023 yeni cihaz olayı yalnızca warm-up sonrasında ilk kez gözlenen network
+  fingerprint + MAC kimliği için bilgi amaçlıdır. İlk envanter import'u alert
+  üretmez; restart'ta bilinen cihazlar repository'den yüklenir. Pasif ARP
+  gözlemi cihazın güvenilirliğini veya saldırı olup olmadığını doğrulamaz.
 - Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
   yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
   thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı

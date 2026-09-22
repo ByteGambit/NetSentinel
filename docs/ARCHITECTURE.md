@@ -809,7 +809,34 @@ ve foreign key'i ekler. Her observation tek kısa transaction içinde iki upsert
 yapar. Repository çağrı başına kendi migrated connection'ını açıp kapatır;
 thread, UI veya capture callback'i içinde DB çağrısı başlatılmaz. Şimdilik
 analiz consumer'ı bu servisi açıkça çağırır; engine/GUI entegrasyonu NS-024
-kapsamındadır. Yeni cihaz dedektörü NS-023 kapsamındadır.
+kapsamındadır. NS-023 dedektörü aynı servis üzerinden çalışır.
+
+### NS-023 yeni cihaz olayı
+
+`NewDeviceDetector`, mevcut `DeviceRegistryService` üzerinden portable ARP
+observation tüketir. İlk kez açılan, kayıtlı cihazı olmayan her network
+fingerprint için ilk **geçerli sender** ile monotonic saatli warm-up başlar
+(varsayılan 60 saniye; `NewDeviceConfig` ile değişir). Bu sürede görülen
+cihazlar mevcut repository'ye kaydedilir ve başlangıç envanteri sayılır; olay
+üretmez. Süre dolduktan sonra ilk kez görülen canonical MAC için o fingerprint
+içinde tek `NewDeviceDetected` üretilir. Sıfır saniye seçimi öğrenme penceresini
+bilinçli olarak kapatır. Süreye packet timestamp'i değil, işleme anındaki
+monotonic saat yön verir; eski/out-of-order observation state'i geri götürmez.
+
+Detector bir context'e ilk erişiminde kayıtlı cihaz kimliklerini yükler.
+Restart sonrası bunlar tekrar olay yaratmaz; kayıtlı cihazı olan context'te
+ilk kurulum warm-up'ı yeniden başlamaz. Başlangıç import'u sırasında uygulama
+yeniden başlarsa o ana dek kaydedilmiş cihazlar bilinir; henüz görülmemiş bir
+sender yeni cihaz olarak değerlendirilebilir. Bu olay yalnızca doğrulanmamış
+pasif gözlem (`severity=info`, `confidence=passive_observation`) anlamına gelir;
+ARP spoofing/MITM veya kötü niyet hükmü değildir. Event fingerprint'i
+rule/device ID'den türetilir; IP binding ve timestamp dedup kimliği değildir.
+Olayın alert lifecycle/persistence'ı NS-028 kapsamındadır.
+
+Invalid sender ve bağlam uyuşmazlığı registry'nin NS-022 kurallarıyla ele alınır.
+Detector yeni worker, queue, capture başlangıcı, migration veya GUI bağlantısı
+eklemez; mevcut tek consumer akışında açıkça çağrılır. Repository hatası typed
+olarak yukarı çıkar ve kimlik detector'da biliniyor işaretlenmez.
 
 ## 14. Detection yaklaşımı
 
