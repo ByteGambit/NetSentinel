@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import Enum
+from ipaddress import IPv4Address, ip_address
+import re
 
 
 MAX_CAPTURED_PACKET_BYTES = 16 * 1024 * 1024
@@ -36,6 +38,102 @@ class NetworkLayerProtocol(str, Enum):
     IPV4 = "ipv4"
     IPV6 = "ipv6"
     OTHER = "other"
+
+
+class ArpOpcode(int, Enum):
+    """ARP operations intentionally supported by the first passive parser."""
+
+    REQUEST = 1
+    REPLY = 2
+
+
+@dataclass(frozen=True, slots=True)
+class MacAddress:
+    """Canonical, immutable 48-bit MAC address value.
+
+    Colon- and hyphen-separated input is accepted, then normalized to lower-case
+    colon notation.  The value object does not decide whether an address is a
+    device identity; zero, broadcast, multicast, and locally administered
+    addresses remain valid observations for later policy layers to interpret.
+    """
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, str):
+            raise TypeError("value must be a string")
+        value = self.value.strip()
+        if not value:
+            raise ValueError("value must not be empty")
+        if ":" in value and "-" in value:
+            raise ValueError("value must use one MAC address separator")
+        canonical = value.replace("-", ":").lower()
+        if re.fullmatch(r"[0-9a-f]{2}(?::[0-9a-f]{2}){5}", canonical) is None:
+            raise ValueError("value must be a six-octet MAC address")
+        object.__setattr__(self, "value", canonical)
+
+    def __str__(self) -> str:
+        return self.value
+
+    @property
+    def is_zero(self) -> bool:
+        return self.value == "00:00:00:00:00:00"
+
+    @property
+    def is_broadcast(self) -> bool:
+        return self.value == "ff:ff:ff:ff:ff:ff"
+
+    @property
+    def is_multicast(self) -> bool:
+        return bool(int(self.value[0:2], 16) & 0x01)
+
+    @property
+    def is_locally_administered(self) -> bool:
+        return bool(int(self.value[0:2], 16) & 0x02)
+
+
+def _canonical_ipv4(value: str, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{field_name} must be a string")
+    value = value.strip()
+    if not value or len(value) > 15:
+        raise ValueError(f"{field_name} must be a valid IPv4 address")
+    try:
+        parsed = ip_address(value)
+    except ValueError as error:
+        raise ValueError(f"{field_name} must be a valid IPv4 address") from error
+    if not isinstance(parsed, IPv4Address):
+        raise ValueError(f"{field_name} must be an IPv4 address")
+    return str(parsed)
+
+
+@dataclass(frozen=True, slots=True)
+class ArpObservation:
+    """Validated ARP header values with no frame, payload, or library object."""
+
+    opcode: ArpOpcode
+    sender_mac: MacAddress
+    sender_ip: str
+    target_mac: MacAddress
+    target_ip: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.opcode, ArpOpcode):
+            raise TypeError("opcode must be an ArpOpcode")
+        if not isinstance(self.sender_mac, MacAddress):
+            raise TypeError("sender_mac must be a MacAddress")
+        if not isinstance(self.target_mac, MacAddress):
+            raise TypeError("target_mac must be a MacAddress")
+        object.__setattr__(
+            self,
+            "sender_ip",
+            _canonical_ipv4(self.sender_ip, "sender_ip"),
+        )
+        object.__setattr__(
+            self,
+            "target_ip",
+            _canonical_ipv4(self.target_ip, "target_ip"),
+        )
 
 
 def _require_utc(value: datetime, field_name: str) -> datetime:
@@ -66,6 +164,7 @@ class PacketObservation:
     link_layer: LinkLayerProtocol
     network_layer: NetworkLayerProtocol
     source: ObservationSource = ObservationSource.PACKET_CAPTURE
+    arp: ArpObservation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.interface_id, str):
@@ -109,6 +208,11 @@ class PacketObservation:
             raise TypeError("network_layer must be a NetworkLayerProtocol")
         if not isinstance(self.source, ObservationSource):
             raise TypeError("source must be an ObservationSource")
+        if self.arp is not None:
+            if not isinstance(self.arp, ArpObservation):
+                raise TypeError("arp must be an ArpObservation or None")
+            if self.network_layer is not NetworkLayerProtocol.ARP:
+                raise ValueError("arp details require the ARP network layer")
 
         object.__setattr__(self, "interface_id", interface_id)
         object.__setattr__(self, "network_fingerprint", fingerprint)
@@ -120,7 +224,10 @@ class PacketObservation:
 
 
 __all__ = (
+    "ArpObservation",
+    "ArpOpcode",
     "LinkLayerProtocol",
+    "MacAddress",
     "MAX_CAPTURED_PACKET_BYTES",
     "NetworkLayerProtocol",
     "ObservationSource",

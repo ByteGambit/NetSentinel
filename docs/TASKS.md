@@ -229,6 +229,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-021 — Güvenli ARP parser
 
+- **Durum:** ✅ Tamamlandı (2026-09-22)
 - **Amaç:** Scapy paketlerinden yalnızca gerekli ARP alanlarını doğrulanmış domain observation'a çevirmek.
 - **Yapılacaklar:** Ethernet/ARP alan kontrolü, MAC/IP normalizasyonu, opcode desteği ve malformed paket reddi ekle; parser'ı state/detector mantığından ayrı tut.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/parsers/arp.py`, `src/netsentinel/domain/observations.py`, `tests/unit/infrastructure/parsers/test_arp.py`, `tests/fixtures/packets/`.

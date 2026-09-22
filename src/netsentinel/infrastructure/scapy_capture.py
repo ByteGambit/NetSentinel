@@ -32,11 +32,13 @@ from netsentinel.application.ports import (
 )
 from netsentinel.domain.devices import NetworkContext
 from netsentinel.domain.observations import (
+    ArpObservation,
     LinkLayerProtocol,
     MAX_CAPTURED_PACKET_BYTES,
     NetworkLayerProtocol,
     PacketObservation,
 )
+from netsentinel.infrastructure.parsers.arp import parse_arp_packet
 from netsentinel.shared.diagnostics import (
     CapabilityStatus,
     CaptureCapabilityReason,
@@ -53,6 +55,7 @@ from netsentinel.shared.diagnostics import (
 
 Clock = Callable[[], datetime]
 PacketCallback = Callable[[object], None]
+ArpParser = Callable[[object, PacketObservation], ArpObservation | None]
 
 
 class SnifferHandle(Protocol):
@@ -212,6 +215,7 @@ class ScapyCaptureWorker:
         startup_timeout: float = 1.0,
         shutdown_timeout: float = 2.0,
         clock: Clock | None = None,
+        arp_parser: ArpParser | None = None,
     ) -> None:
         if not hasattr(context_provider, "get_contexts"):
             raise TypeError("context_provider must implement NetworkContextProvider")
@@ -237,6 +241,9 @@ class ScapyCaptureWorker:
         self._startup_timeout = float(startup_timeout)
         self._shutdown_timeout = float(shutdown_timeout)
         self._clock = clock if clock is not None else (lambda: datetime.now(UTC))
+        self._arp_parser = arp_parser if arp_parser is not None else parse_arp_packet
+        if not callable(self._arp_parser):
+            raise TypeError("arp_parser must be callable")
 
         self._lock = RLock()
         self._handle: SnifferHandle | None = None
@@ -507,7 +514,12 @@ class ScapyCaptureWorker:
                 ),
             )
         try:
-            observation = _packet_observation(packet, context, self._utc_now())
+            observation = _packet_observation(
+                packet,
+                context,
+                self._utc_now(),
+                arp_parser=self._arp_parser,
+            )
         except Exception:
             with self._lock:
                 if generation != self._generation:
@@ -758,6 +770,8 @@ def _packet_observation(
     packet: object,
     context: NetworkContext,
     observed_at: datetime,
+    *,
+    arp_parser: ArpParser = parse_arp_packet,
 ) -> PacketObservation:
     captured_length = len(packet)  # type: ignore[arg-type]
     if isinstance(captured_length, bool) or not isinstance(captured_length, int):
@@ -773,7 +787,7 @@ def _packet_observation(
     else:
         original_length = max(captured_length, raw_wire_length)
 
-    return PacketObservation(
+    observation = PacketObservation(
         interface_id=context.interface_id,
         interface_index=context.interface_index,
         network_fingerprint=context.fingerprint,
@@ -783,6 +797,10 @@ def _packet_observation(
         link_layer=_link_layer(packet),
         network_layer=_network_layer(packet),
     )
+    arp = arp_parser(packet, observation)
+    if arp is None:
+        return observation
+    return replace(observation, arp=arp)
 
 
 def _has_layer(packet: object, layer_name: str) -> bool:

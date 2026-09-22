@@ -759,7 +759,34 @@ Raw exception mesajı health/port/presentation sınırına geçmez. NS-020 henü
 `MonitoringEngine`, Qt bridge, DB, parser, device registry veya detector'a
 bağlanmaz; bu task yalnızca güvenli capture sınırını kurar.
 
-## 12. Detection yaklaşımı
+## 12. NS-021 güvenli ARP parser sınırı
+
+```text
+Scapy raw packet (yalnızca infrastructure callback scope'u)
+  + NS-019 güncel NetworkContext
+  -> NS-020 PacketObservation ortak metadata'sı
+  -> defensive ARP parser
+  -> PacketObservation.arp = immutable ArpObservation
+  -> mevcut tek bounded capture queue
+```
+
+Parser yalnızca Ethernet üzerinde IPv4 ARP request/reply (`op=1/2`) kabul eder.
+EtherType, hardware/protocol type, mevcutsa hardware/protocol adres uzunlukları,
+sender/target MAC ve IPv4 alanları doğrulanır. MAC değerleri küçük harfli iki
+nokta formatına, IP değerleri canonical IPv4 metnine çevrilir. Zero, broadcast,
+multicast ve locally-administered MAC değerleri observation olarak korunur;
+bunların cihaz kimliği veya güvenlik anlamı parser tarafından yorumlanmaz.
+
+ARP detayları NS-020 ortak envelope'u içinde interface kimliği/index'i, network
+fingerprint, UTC observation zamanı ve observation source ile birlikte taşınır.
+Ham Scapy nesnesi, frame bytes veya payload domain/application sınırına geçmez.
+Non-ARP paket parser açısından unsupported olup mevcut genel metadata akışını
+sürdürür. Eksik, fazla uzun, geçersiz veya desteklenmeyen ARP alanı yalnızca o
+paketi malformed sayar; capture worker mevcut diagnostic/sayaç yoluyla devam eder.
+Parser state, device identity, registry, detector, persistence veya UI mantığı
+içermez. Yeni worker veya ikinci queue oluşturulmaz.
+
+## 13. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
 
@@ -771,7 +798,7 @@ Her çıktı en az rule ID, zaman, ilgili entity ID, severity, confidence ve yap
 
 Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gateway MAC adresleri birbirine karıştırılmaz. Ağ değişiminden sonra öğrenme/ısınma penceresi uygulanır.
 
-## 13. Hata, saat ve kimlik stratejisi
+## 14. Hata, saat ve kimlik stratejisi
 
 - Persist edilen tüm zamanlar UTC'dir; interval ölçümü için monotonic clock kullanılır.
 - DB entity'leri için UUID; tekrarlanabilir detector çıktıları için kararlı fingerprint kullanılır.
@@ -779,7 +806,7 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 - Bir adapter hatası ilgili capability'yi degraded yapar; mümkünse diğer monitoring modülleri devam eder.
 - Kullanıcıya gösterilen hata mesajı eyleme dönük, teknik log ise ayrıntılı olur.
 
-## 14. Test stratejisi
+## 15. Test stratejisi
 
 - **Unit:** Domain, diff, parser, baseline ve detector kuralları; fake clock ile deterministik zaman.
 - **Integration:** psutil çıktısı adaptasyonu, geçici SQLite DB ve migration/repository davranışı.
@@ -800,13 +827,23 @@ socket veya paket üretmez, dış hosta erişmez ve yönetici yetkisini önkoşu
 
 ### NS-020 packet capture test sınırı
 
-Varsayılan suite yalnızca fake context provider, fake backend, fake sniffer ve
-sentetik metadata packet nesneleriyle lifecycle, duplicate/FIFO, overflow,
-malformed isolation, stale context, capability sınıfları ve bounded shutdown'ı
-doğrular. Scapy import edilmez; gerçek network, Npcap ve yönetici yetkisi gerekmez.
+NS-020 capture lifecycle testleri yalnızca fake context provider, fake backend,
+fake sniffer ve sentetik metadata packet nesneleriyle lifecycle, duplicate/FIFO,
+overflow, malformed isolation, stale context, capability sınıfları ve bounded
+shutdown'ı doğrular; bu testler Scapy import etmez. Tam varsayılan suite içindeki
+NS-021 parser testleri yalnızca in-memory sentetik Scapy packet'ları oluşturur;
+gerçek network, capture socket'i, Npcap veya yönetici yetkisi gerekmez.
 Opt-in `lab_live` testi yalnızca Windows ve açık `NETSENTINEL_LAB_CAPTURE=1`
 onayıyla güncel default-candidate context üzerinde pasif filtered start/stop yapar.
 Packet göndermez, ARP/ping/port taraması yapmaz ve trafik gözlenmesini beklemez.
+
+### NS-021 ARP parser test sınırı
+
+Varsayılan suite sentetik Scapy request/reply packet'ları ve küçük fuzz-benzeri
+field fixture'ları kullanır. MAC/IP canonicalization, eksik/fazla uzun/geçersiz
+alanlar, unsupported opcode/protocol, payload sınırı ve parser hatasından sonraki
+paketin işlenmesi doğrulanır. Testler capture socket'i açmaz; Npcap, canlı LAN,
+yönetici yetkisi, packet injection veya ayrı bir worker gerektirmez.
 
 ### M1 Windows live smoke testi
 
@@ -824,7 +861,7 @@ Sabit bir uykuya dayanmak yerine event sinyalleri ve bounded timeout kullanır.
 System-wide connection tablosu Windows politikası tarafından tamamen reddedilirse
 test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşulu yapmaz.
 
-## 15. Bilinen teknik sınırlamalar
+## 16. Bilinen teknik sınırlamalar
 
 - psutil snapshot tabanlı polling, iki tur arasında açılıp kapanan çok kısa bağlantıları kaçırabilir.
 - Windows ve psutil, standart kullanıcıya bazı system-wide connection satırlarının

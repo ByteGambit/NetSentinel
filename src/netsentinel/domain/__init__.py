@@ -19,13 +19,18 @@ from netsentinel.domain.connections import (
 )
 from netsentinel.domain.devices import NetworkContext, NetworkInterfaceKind
 from netsentinel.domain.observations import (
+    ArpObservation,
+    ArpOpcode,
     LinkLayerProtocol,
+    MacAddress,
     NetworkLayerProtocol,
     ObservationSource,
     PacketObservation,
 )
 
 __all__ = (
+    "ArpObservation",
+    "ArpOpcode",
     "ConnectionClosed",
     "ConnectionClosureReason",
     "ConnectionHistoryRecord",
@@ -37,6 +42,7 @@ __all__ = (
     "ConnectionUpdated",
     "Endpoint",
     "LinkLayerProtocol",
+    "MacAddress",
     "NetworkContext",
     "NetworkInterfaceKind",
     "NetworkLayerProtocol",

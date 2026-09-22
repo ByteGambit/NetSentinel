@@ -6,6 +6,7 @@ import ast
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from time import monotonic
 
 import pytest
@@ -85,12 +86,35 @@ class FakePacket:
         self.wirelen = wirelen
         self._layers = frozenset(layers)
         self.payload = b"secret payload that must never cross the adapter"
+        self._ether = SimpleNamespace(
+            type=0x0806,
+            src="aa:bb:cc:dd:ee:ff",
+            dst="ff:ff:ff:ff:ff:ff",
+        )
+        self._arp = SimpleNamespace(
+            hwtype=1,
+            ptype=0x0800,
+            hwlen=6,
+            plen=4,
+            op=1,
+            hwsrc="aa:bb:cc:dd:ee:ff",
+            psrc="192.168.50.20",
+            hwdst="00:00:00:00:00:00",
+            pdst="192.168.50.1",
+        )
 
     def __len__(self) -> int:
         return self._length
 
     def haslayer(self, name: str) -> bool:
         return name in self._layers
+
+    def getlayer(self, name: str) -> object | None:
+        if name in {"Ether", "Ethernet"} and name in self._layers:
+            return self._ether
+        if name == "ARP" and name in self._layers:
+            return self._arp
+        return None
 
 
 class MalformedPacket:
@@ -290,6 +314,9 @@ def test_start_requires_explicit_context_and_filter_and_uses_fresh_context() -> 
     assert item.original_length == 64
     assert item.link_layer is LinkLayerProtocol.ETHERNET
     assert item.network_layer is NetworkLayerProtocol.ARP
+    assert item.arp is not None
+    assert item.arp.sender_ip == "192.168.50.20"
+    assert str(item.arp.sender_mac) == "aa:bb:cc:dd:ee:ff"
     assert item.source is ObservationSource.PACKET_CAPTURE
     assert not hasattr(item, "payload")
     assert worker.stop() is True
@@ -367,6 +394,50 @@ def test_malformed_packet_is_isolated_and_later_packet_is_kept() -> None:
     assert observations[0].network_layer is NetworkLayerProtocol.OTHER
     assert health.counters.malformed_packets == 1
     assert health.counters.enqueued_observations == 1
+    assert worker.stop()
+
+
+def test_arp_parser_failure_is_isolated_and_later_packet_is_kept() -> None:
+    calls = 0
+
+    def failing_once(packet: object, metadata: object) -> object | None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("private parser detail")
+        return None
+
+    worker, _, backend = worker_for(arp_parser=failing_once)
+    assert worker.start(request())
+    handle = backend.handles[0]
+
+    handle.emit(FakePacket(70))
+    handle.emit(FakePacket(71))
+
+    observations = worker.drain(4)
+    assert [item.captured_length for item in observations] == [71]
+    assert worker.health.counters.malformed_packets == 1
+    assert worker.health.last_error is not None
+    assert worker.health.last_error.code is DiagnosticCode.CAPTURE_MALFORMED_PACKET
+    assert worker.health.state is CaptureState.RUNNING
+    assert worker.stop()
+
+
+def test_malformed_arp_is_dropped_without_stopping_default_parser_pipeline() -> None:
+    worker, _, backend = worker_for()
+    assert worker.start(request())
+    handle = backend.handles[0]
+    malformed = FakePacket(72)
+    malformed._arp.hwsrc = "invalid-mac"
+
+    handle.emit(malformed)
+    handle.emit(FakePacket(73))
+
+    observations = worker.drain(4)
+    assert [item.captured_length for item in observations] == [73]
+    assert observations[0].arp is not None
+    assert worker.health.counters.malformed_packets == 1
+    assert worker.health.state is CaptureState.RUNNING
     assert worker.stop()
 
 

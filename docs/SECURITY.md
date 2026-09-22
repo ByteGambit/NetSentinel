@@ -86,10 +86,21 @@ durumunda bırakır; ikinci worker başlatılmaz.
 Scapy paketi veya Npcap bulunmaması, permission denied, interface unavailable,
 network changed ve transient capture failure raw exception metni taşımayan ayrı
 capability nedenleridir. Eksik capture yeteneği connection monitoring'i durdurmaz.
-Varsayılan pytest suite'i Scapy importu, Npcap, canlı network veya yönetici yetkisi
-gerektirmeyen fake backend kullanır. `lab_live` smoke testi ayrıca
+NS-020 capture lifecycle testleri Scapy importu, Npcap, canlı network veya
+yönetici yetkisi gerektirmeyen fake backend kullanır. NS-021'in varsayılan parser
+testleri Scapy ile yalnızca in-memory sentetik paket oluşturur; capture socket'i
+açmaz. `lab_live` smoke testi ayrıca
 `NETSENTINEL_LAB_CAPTURE=1` onayı ister, yalnızca pasif start/stop yapar; packet
 inject etmez, subnet taramaz ve observation gelmesini zorunlu tutmaz.
+
+NS-021 ARP parser'ı raw Scapy paketini yalnızca aynı infrastructure callback
+scope'unda inceler. Ethernet/ARP header alanları sabit tür ve uzunluk sınırlarıyla
+doğrulanır; yalnızca IPv4 request/reply metadata'sı canonical MAC/IP değerlerine
+indirgenir. Frame bytes, padding ve payload kopyalanmaz, loglanmaz veya domain'e
+taşınmaz. Malformed/unsupported bir ARP paketi diğer paketleri ya da capture
+worker'ını durdurmaz; mevcut bounded malformed sayacı ve sanitize diagnostic ile
+izole edilir. Parser paket göndermez, ARP keşfi/poisoning yapmaz ve gözlemden
+saldırı kararı üretmez.
 
 ## 5. Veri gizliliği ve saklama
 
