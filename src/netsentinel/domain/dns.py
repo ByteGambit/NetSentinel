@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from ipaddress import ip_address
 import re
+from uuid import UUID
 
 
 MAX_DNS_QUESTIONS = 4
@@ -203,3 +204,17 @@ class DnsTransaction:
             raise ValueError("latency is only valid for completed transactions")
         if self.response_code is not None and not 0 <= self.response_code <= 15:
             raise ValueError("response_code is outside the DNS range")
+
+
+@dataclass(frozen=True, slots=True)
+class DnsHistoryRecord:
+    """Stable persistence identity for one portable correlation outcome."""
+
+    id: UUID
+    transaction: DnsTransaction
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.id, UUID):
+            raise TypeError("id must be a UUID")
+        if not isinstance(self.transaction, DnsTransaction):
+            raise TypeError("transaction must be a DnsTransaction")

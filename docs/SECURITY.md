@@ -144,6 +144,22 @@ gözlemidir; DNS hijacking veya saldırı hükmü değildir. Alert kanıtı en �
 baseline/history tablosu, raw paket, payload, hostname veya sorgu içeriği
 eklenmez. Poll mevcut engine worker'ında yürür ve ağ trafiği üretmez.
 
+NS-033 DNS history, yalnızca NS-031'in klasik DNS `DnsTransaction` sonucunu
+yerel SQLite'a kaydeder: ağ fingerprint'i, UDP/TCP, canonical client/server
+IP ve portları, 16-bit DNS transaction ID, en çok 4 canonical soru adı/türü,
+query/response UTC zamanları, mikrosaniye latency, response code, durum,
+truncated bayrağı, retry sayısı ve en çok 16 desteklenen canonical cevap
+adı/türü/değeri/TTL. Ayrı UUID record ID kullanılır. mDNS transaction
+korelasyonuna dahil olmadığından DNS history'ye yazılmaz. Raw packet/frame,
+DNS wire/payload, Scapy nesnesi veya diğer application verisi tutulmaz.
+Hostname'ler hassas gezinti metadata'sıdır. Sorgu adı uzunluğu NS-030 sınırına
+tabidir; query API en fazla 500 satır döndürür ve SQL parametreleri kullanır.
+Writer kuyruğu varsayılan 2048 kayıt kapasitelidir; taşma ve hata yalnızca
+typed sayaç/kod olarak görünür. DNS'e özel manuel retention varsayılan 30 gün,
+100.000 satır ve 500 satırlık transaction chunk'ları uygular; otomatik VACUUM
+yoktur. Kapanıp açılınca geçmiş okunur, canlı pending correlation restore
+edilmez. DNS history kaydı tek başına alert üretmez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

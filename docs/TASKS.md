@@ -357,6 +357,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-033 — DNS history repository ve retention
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Sınırlandırılmış DNS transaction metadata'sını yerel history için saklamak.
 - **Yapılacaklar:** Migration, repository, writer mapping, normalize edilmiş ad/cevap alanları ve DNS'e özel retention uygula; sorgu text uzunluğu sınırı koy.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `src/netsentinel/infrastructure/sqlite/repositories.py`, `src/netsentinel/application/services/history.py`, `tests/integration/sqlite/test_dns_repository.py`.

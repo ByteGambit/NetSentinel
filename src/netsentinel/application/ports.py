@@ -23,6 +23,9 @@ from netsentinel.domain.devices import (
     DeviceIdentity, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
 from netsentinel.domain.observations import PacketObservation
+from netsentinel.domain.dns import (
+    DnsHistoryRecord, DnsTransactionStatus, DnsTransport, canonical_dns_name,
+)
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
@@ -32,6 +35,72 @@ from netsentinel.shared.diagnostics import (
 
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
+MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class DnsHistoryRepositoryError(RuntimeError):
+    """Sanitized DNS history storage failure."""
+
+
+class DnsHistoryDataCorrupt(DnsHistoryRepositoryError):
+    """A persisted DNS row does not satisfy the portable model."""
+
+
+@dataclass(frozen=True, slots=True)
+class DnsHistoryQuery:
+    """Bounded exact filters; event time is query time, or response time if unmatched."""
+
+    limit: int
+    offset: int = 0
+    event_from: datetime | None = None
+    event_to: datetime | None = None
+    network_fingerprint: str | None = None
+    qname: str | None = None
+    server_ip: str | None = None
+    status: DnsTransactionStatus | None = None
+    transport: DnsTransport | None = None
+
+    def __post_init__(self) -> None:
+        if type(self.limit) is not int or not 1 <= self.limit <= MAX_DNS_HISTORY_QUERY_LIMIT:
+            raise ValueError("limit must be between 1 and 500")
+        if type(self.offset) is not int or self.offset < 0:
+            raise ValueError("offset must be nonnegative")
+        for field in ("event_from", "event_to"):
+            value = getattr(self, field)
+            if value is not None:
+                object.__setattr__(self, field, _require_utc(value, field))
+        if self.event_from and self.event_to and self.event_from > self.event_to:
+            raise ValueError("event_from cannot follow event_to")
+        if self.network_fingerprint is not None and (
+            len(self.network_fingerprint) != 64
+            or any(c not in "0123456789abcdef" for c in self.network_fingerprint)
+        ):
+            raise ValueError("network_fingerprint must be a SHA-256 hex digest")
+        if self.qname is not None:
+            object.__setattr__(self, "qname", canonical_dns_name(self.qname))
+        if self.server_ip is not None:
+            if not isinstance(self.server_ip, str) or len(self.server_ip) > 45:
+                raise ValueError("server_ip is invalid")
+            object.__setattr__(self, "server_ip", str(ip_address(self.server_ip)))
+        if self.status is not None and not isinstance(self.status, DnsTransactionStatus):
+            raise TypeError("status must be a DnsTransactionStatus")
+        if self.transport is not None and not isinstance(self.transport, DnsTransport):
+            raise TypeError("transport must be a DnsTransport")
+
+
+class DnsHistoryRepository(Protocol):
+    def record(self, record: DnsHistoryRecord) -> None: ...
+    def get(self, record_id: UUID) -> DnsHistoryRecord | None: ...
+    def query(self, query: DnsHistoryQuery) -> tuple[DnsHistoryRecord, ...]: ...
+
+
+class DnsHistoryWriteSession(Protocol):
+    def write_batch(self, records: tuple[DnsHistoryRecord, ...]) -> None: ...
+
+
+class DnsHistoryRetentionRepository(Protocol):
+    def delete_before(self, cutoff: datetime, limit: int) -> int: ...
+    def delete_oldest_over_limit(self, max_rows: int, limit: int) -> int: ...
 
 
 class AlertRepositoryError(RuntimeError):
@@ -445,6 +514,13 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 
 
 __all__ = (
+    "DnsHistoryDataCorrupt",
+    "DnsHistoryQuery",
+    "DnsHistoryRepository",
+    "DnsHistoryRepositoryError",
+    "DnsHistoryRetentionRepository",
+    "DnsHistoryWriteSession",
+    "MAX_DNS_HISTORY_QUERY_LIMIT",
     "AlertDataCorrupt",
     "AlertQuery",
     "AlertQueryCancelled",

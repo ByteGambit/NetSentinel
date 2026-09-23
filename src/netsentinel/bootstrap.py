@@ -15,6 +15,9 @@ from netsentinel.application.services.device_inventory import DeviceInventorySer
 from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.dns_config import DnsConfigMonitoringService
+from netsentinel.application.services.dns_history import (
+    DnsHistoryRetentionService, DnsHistoryWriter, DnsRetentionConfig,
+)
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
@@ -38,6 +41,9 @@ from netsentinel.infrastructure.sqlite.repositories import (
     SQLiteDeviceRepository, SQLiteGatewayBaselineRepository,
 )
 from netsentinel.infrastructure.sqlite.alert_repository import SQLiteAlertRepository
+from netsentinel.infrastructure.sqlite.dns_repository import (
+    SQLiteDnsHistoryRepository, SQLiteDnsHistorySessionFactory,
+)
 from netsentinel.shared.config import HistoryRetentionConfig
 
 
@@ -109,6 +115,33 @@ def create_history_retention_service(
     database = SQLiteDatabase(database_path)
     repository = SQLiteHistoryRetentionRepository(database)
     return HistoryRetentionService(repository, config=config)
+
+
+def create_dns_history_writer(
+    *, database_path: str | PathLike[str] | None = None,
+    **writer_options: object,
+) -> DnsHistoryWriter:
+    """Build a dormant NS-033 writer; an NS-031 consumer submits transactions."""
+
+    return DnsHistoryWriter(
+        SQLiteDnsHistorySessionFactory(SQLiteDatabase(database_path)),
+        **writer_options,
+    )
+
+
+def create_dns_history_repository(
+    *, database_path: str | PathLike[str] | None = None,
+) -> SQLiteDnsHistoryRepository:
+    return SQLiteDnsHistoryRepository(SQLiteDatabase(database_path))
+
+
+def create_dns_history_retention_service(
+    *, database_path: str | PathLike[str] | None = None,
+    config: DnsRetentionConfig | None = None,
+) -> DnsHistoryRetentionService:
+    return DnsHistoryRetentionService(
+        create_dns_history_repository(database_path=database_path), config=config,
+    )
 
 
 def create_history_query_service_factory(
@@ -206,6 +239,9 @@ def create_gateway_baseline_service(
 
 
 __all__ = (
+    "create_dns_history_repository",
+    "create_dns_history_retention_service",
+    "create_dns_history_writer",
     "create_alert_query_service_factory",
     "create_desktop_engine",
     "create_device_inventory_service_factory",

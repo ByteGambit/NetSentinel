@@ -130,6 +130,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="alerts",
             sql=_read_resource("005_alerts.sql", 5, "alerts"),
         ),
+        Migration(
+            version=6,
+            name="dns_history",
+            sql=_read_resource("006_dns_history.sql", 6, "dns_history"),
+        ),
     )
 
 

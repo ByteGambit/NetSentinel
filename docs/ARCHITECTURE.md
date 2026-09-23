@@ -1105,6 +1105,31 @@ raw packet veya payload kalıcılaştırılmaz. Alert yazımı başarısızsa ba
 değişimi commit edilmez ve sonraki poll yeniden denenebilir. NS-030/NS-031
 DNS packet/transaction hattı bu config detector'ına girdi değildir.
 
+### NS-033 DNS history repository ve retention
+
+`DnsTrackingService` tarafından üretilen immutable `DnsTransaction`, UUID kayıt
+kimliğiyle `DnsHistoryRecord` içine alınır. Application portu SQL bilmez.
+`DnsHistoryWriter.submit` sabit kapasiteli FIFO kuyruğa `put_nowait` uygular;
+tek writer worker kendi SQLite bağlantısını açıp bounded batch transaction'ları
+yazar. Batch başarısızsa kayıtlar tek tek denenir; retry sayısı sınırlıdır ve
+sağlık sayacında drop/failed/retry görünür. Capture consumer DB için beklemez.
+
+Migration 006 yalnızca klasik DNS transaction metadata'sını saklar. İlk soru adı
+ayrı indekslenir; tüm sorular (en çok 4) ve desteklenen cevaplar (en çok 16)
+bounded JSON alanlarında canonical biçimde kalır. Query sözleşmesi zorunlu
+`limit <= 500`, offset, UTC event zamanı, ağ fingerprint'i, qname, DNS sunucusu,
+durum ve transport filtrelerini destekler; sıralama `event_at_utc_us DESC,
+id DESC` ile deterministiktir. Event zamanı sorgu zamanı, eşleşmeyen yanıtta
+yanıt zamanıdır. Timestamp'ler UTC Unix mikrosaniyesidir; latency mikrosaniye
+integer olarak yazılır. Aynı UUID ve aynı içerik yeniden yazılırsa no-op;
+farklı UUID'ler aynı DNS transaction ID'yi paylaşsa da ayrı kayıttır.
+
+DNS'e özel manuel retention önce tam cutoff'tan eski kayıtları, sonra toplam
+satır limitini aşan en eski kayıtları 500 veya yapılandırılmış daha küçük
+chunk'larla temizler. Her chunk ayrı kısa transaction'dır; pending correlation
+state'i restart'ta restore edilmez. Repository read ayrı bağlantı açar.
+NS-034 DNS ekranı ve canlı akış bağlantısı ayrı tasktır.
+
 ### M1 Windows live smoke testi
 
 `windows_live` marker'ı gerçek `psutil` adapter sınırını yalnızca açıkça istendiğinde
