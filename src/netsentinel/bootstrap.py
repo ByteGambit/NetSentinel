@@ -14,6 +14,7 @@ from netsentinel.application.services.connections import (
 from netsentinel.application.services.device_inventory import DeviceInventoryService
 from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
+from netsentinel.application.services.dns_config import DnsConfigMonitoringService
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
@@ -81,6 +82,11 @@ def create_desktop_engine(
         shutdown_timeout=shutdown_timeout,
     )
     persistence = ConnectionHistoryPersistence(dispatcher, writer)
+    database = SQLiteDatabase(database_path)
+    dns_config = DnsConfigMonitoringService(
+        create_network_context_provider(),
+        AlertService(SQLiteAlertRepository(database)),
+    )
     return MonitoringEngine(
         collector=PsutilConnectionCollector(),
         enricher=ProcessMetadataEnricher(PsutilProcessMetadataResolver()),
@@ -89,6 +95,7 @@ def create_desktop_engine(
         polling_interval=polling_interval,
         shutdown_timeout=shutdown_timeout,
         persistence=persistence,
+        dns_config_poller=dns_config,
     )
 
 

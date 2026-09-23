@@ -1077,6 +1077,34 @@ bounded kalır. `completed`, `timed_out`, `evicted` ve `unmatched_response`
 immutable sonuçları çağıran consumer'a senkron döner. Servis worker, socket,
 SQLite veya GUI nesnesi oluşturmaz; DNS history entegrasyonu NS-033 kapsamıdır.
 
+### NS-032 Windows DNS sunucusu seti değişimi
+
+`WindowsNetworkContextProvider.get_contexts()` mevcut read-only
+`GetAdaptersAddresses` adapter'ından her engine turunda güncel, canonical
+IPv4 DNS setini sağlar. `DnsConfigMonitoringService` bu portu mevcut engine
+worker'ında poll eder; ayrı thread, timer, socket veya paket yakalama başlatmaz.
+Whole-read veya alert storage hatası sanitize `DNS_CONFIG_UNAVAILABLE`
+diagnostic'ine dönüşür, connection poll devam eder.
+
+`DnsServerBaselineService` network fingerprint başına memory-only state tutar.
+İlk set iki sıralı okumayla öğrenilir. Yeni setin iki ardışık, ileri UTC ve
+monotonic zamanlı okumada görünmesi `DnsServerChange` kanıtı üretir. Boş,
+başarısız veya çelişkili snapshot pending doğrulamayı keser; DNS sırası zaten
+`NetworkContext` sınırında canonical set'e dönüşür. Stale/out-of-order okuma
+state'i ilerletmez. En çok 256 context tutulur; en eski kullanım kapasite
+dolunca atılır, 24 saat kullanılmayan state temizlenir. Context fingerprint'i
+interface/subnet/gateway değişiminde ayrılır; eski context tekrar gelirse
+aynı baseline kullanılabilir. Tek boş okuma beklenen seti silmez.
+
+`DnsConfigChangeDetector` yalnızca doğrulanmış portable değişimi mevcut
+`AlertCandidate` ve bounded `AlertEvidence.details` alanlarına çevirir. Rule
+`dns_server_set_change`, severity `low`, confidence `moderate` olur; eski/yeni
+set, ilk görülme, interface türü ve tekrar kanıtı taşınır. `AlertService`
+mevcut SQLite dedup/lifecycle hattını kullanır; DNS baseline, query history,
+raw packet veya payload kalıcılaştırılmaz. Alert yazımı başarısızsa baseline
+değişimi commit edilmez ve sonraki poll yeniden denenebilir. NS-030/NS-031
+DNS packet/transaction hattı bu config detector'ına girdi değildir.
+
 ### M1 Windows live smoke testi
 
 `windows_live` marker'ı gerçek `psutil` adapter sınırını yalnızca açıkça istendiğinde

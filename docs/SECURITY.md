@@ -135,6 +135,15 @@ payload, kimlik bilgisi veya SQLite kaydı tutulmaz. Eşleşmeyen yanıtlar
 uydurma query oluşturmadan portable observation sonucu olur. Yanıt kodu ve
 truncated flag saldırı hükmü veya alert'e çevrilmez.
 
+NS-032, DNS trafiği veya packet capture kullanmadan yalnızca yerel Windows DNS
+yapılandırmasını salt-okunur izler. Fingerprint başına en çok 256, 24 saat idle
+expiry'li memory-only baseline tutulur; tek boş/geçici okuma beklenen seti
+değiştirmez. Doğrulanan set değişimi düşük önem ve orta güvenli yapılandırma
+gözlemidir; DNS hijacking veya saldırı hükmü değildir. Alert kanıtı en çok
+8 canonical IPv4 sunucunun eski/yeni setini ve kısa metadata'yı taşır. DNS
+baseline/history tablosu, raw paket, payload, hostname veya sorgu içeriği
+eklenmez. Poll mevcut engine worker'ında yürür ve ağ trafiği üretmez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

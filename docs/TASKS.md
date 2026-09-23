@@ -347,6 +347,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-032 — DNS sunucusu değişikliği detector'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Windows yapılandırmasındaki DNS server seti değişimini network context'e göre algılamak.
 - **Yapılacaklar:** DNS config polling/notification adapter'ı, baseline ve detector ekle; VPN/interface geçişi, sıralama farkı ve geçici boş sonuç davranışını tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/windows_network.py`, `src/netsentinel/application/detectors/dns_config.py`, `src/netsentinel/application/services/baselines.py`, `tests/unit/application/detectors/test_dns_config.py`.

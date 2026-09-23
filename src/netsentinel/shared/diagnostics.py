@@ -87,6 +87,7 @@ class DiagnosticCode(str, Enum):
     CAPTURE_MALFORMED_PACKET = "capture_malformed_packet"
     CAPTURE_QUEUE_OVERFLOW = "capture_queue_overflow"
     CAPTURE_SHUTDOWN_TIMEOUT = "capture_shutdown_timeout"
+    DNS_CONFIG_UNAVAILABLE = "dns_config_unavailable"
 
 
 class DiagnosticComponent(str, Enum):
@@ -100,6 +101,7 @@ class DiagnosticComponent(str, Enum):
     SUBSCRIBER = "subscriber"
     PERSISTENCE = "persistence"
     CAPTURE = "capture"
+    DNS_CONFIG = "dns_config"
 
 
 def _require_utc(value: datetime, field_name: str) -> datetime:

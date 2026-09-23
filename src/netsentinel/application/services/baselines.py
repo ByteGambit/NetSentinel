@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from dataclasses import dataclass
+from collections import OrderedDict
 from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address
 from collections.abc import Callable
+from time import monotonic
+from math import isfinite
 
 from netsentinel.application.ports import GatewayBaselineRepository, NetworkContextProvider
 from netsentinel.domain.devices import (
     GatewayBaseline, GatewayBaselineChange, GatewayBaselineStatus, NetworkContext,
 )
 from netsentinel.domain.observations import MacAddress, PacketObservation
+from netsentinel.domain.dns_config import DnsServerChange
 
 
 class GatewayContextChanged(ValueError):
@@ -172,4 +177,119 @@ class GatewayBaselineService:
         return value.astimezone(UTC)
 
 
-__all__ = ("GatewayBaselineService", "GatewayConfirmationUnavailable", "GatewayContextChanged")
+@dataclass(slots=True)
+class _DnsBaseline:
+    servers: tuple[str, ...]
+    last_observed_at: datetime
+    last_tick: float
+    confirmed: bool = False
+    pending: tuple[str, ...] | None = None
+    pending_since: datetime | None = None
+    pending_count: int = 0
+
+
+class DnsServerBaselineService:
+    """Bounded, memory-only baseline of Windows DNS server sets per network.
+
+    Empty or oversized reads cannot replace an established baseline. A new set
+    must appear in two ordered polls before replacing it. Clock rollback and
+    stale snapshots cannot advance confirmation. No DNS packet is involved.
+    """
+
+    def __init__(self, *, clock: Callable[[], float] = monotonic,
+                 max_contexts: int = 256, idle_expiry: float = 86_400.0) -> None:
+        if type(max_contexts) is not int or not 1 <= max_contexts <= 4_096:
+            raise ValueError("max_contexts must be between 1 and 4096")
+        if not isinstance(idle_expiry, (int, float)) or not isfinite(idle_expiry) or idle_expiry <= 0:
+            raise ValueError("idle_expiry must be positive")
+        self._clock = clock
+        self._max_contexts = max_contexts
+        self._idle_expiry = float(idle_expiry)
+        self._state: OrderedDict[str, _DnsBaseline] = OrderedDict()
+
+    @property
+    def tracked_contexts(self) -> int:
+        return len(self._state)
+
+    def interrupt(self) -> None:
+        """A failed whole read breaks confirmation continuity."""
+        for key, state in tuple(self._state.items()):
+            if not state.confirmed:
+                del self._state[key]
+                continue
+            state.pending = None
+            state.pending_since = None
+            state.pending_count = 0
+
+    def interrupt_absent(self, seen: set[str]) -> None:
+        """A disappeared interface breaks a pending change, not its baseline."""
+        for key, state in tuple(self._state.items()):
+            if key not in seen:
+                if not state.confirmed:
+                    del self._state[key]
+                else:
+                    state.pending = None
+                    state.pending_since = None
+                    state.pending_count = 0
+
+    def observe(self, context: NetworkContext) -> DnsServerChange | None:
+        if not isinstance(context, NetworkContext):
+            raise TypeError("context must be NetworkContext")
+        tick = float(self._clock())
+        if not isfinite(tick):
+            raise ValueError("monotonic clock must be finite")
+        for key, state in tuple(self._state.items()):
+            if tick >= state.last_tick and tick - state.last_tick > self._idle_expiry:
+                del self._state[key]
+        servers = context.dns_servers
+        old = self._state.get(context.fingerprint)
+        if not servers or len(servers) > 8:
+            if old is not None:
+                old.pending = None
+                old.pending_since = None
+                old.pending_count = 0
+            return None
+        if old is None:
+            if len(self._state) >= self._max_contexts:
+                self._state.popitem(last=False)
+            self._state[context.fingerprint] = _DnsBaseline(servers, context.observed_at, tick)
+            return None
+        if tick <= old.last_tick or context.observed_at <= old.last_observed_at:
+            return None
+        old.last_tick = tick
+        old.last_observed_at = context.observed_at
+        self._state.move_to_end(context.fingerprint)
+        if not old.confirmed:
+            if servers == old.servers:
+                old.confirmed = True
+            else:
+                old.servers = servers
+            return None
+        if servers == old.servers:
+            old.pending = None
+            old.pending_since = None
+            old.pending_count = 0
+            return None
+        if servers != old.pending:
+            old.pending = servers
+            old.pending_since = context.observed_at
+            old.pending_count = 1
+            return None
+        old.pending_count = min(2, old.pending_count + 1)
+        change = DnsServerChange(context.fingerprint, context.interface_kind,
+                                 old.servers, servers, old.pending_since,
+                                 context.observed_at, old.pending_count)
+        return change
+
+    def commit(self, change: DnsServerChange) -> None:
+        """Advance the expected set only after the alert sink accepted evidence."""
+        old = self._state.get(change.network_fingerprint)
+        if old is None or old.servers != change.previous_servers or old.pending != change.current_servers:
+            raise ValueError("DNS baseline no longer matches change")
+        old.servers = change.current_servers
+        old.pending = None
+        old.pending_since = None
+        old.pending_count = 0
+
+
+__all__ = ("GatewayBaselineService", "GatewayConfirmationUnavailable", "GatewayContextChanged", "DnsServerBaselineService")

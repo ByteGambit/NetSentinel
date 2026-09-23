@@ -61,6 +61,10 @@ class PersistencePipeline(Protocol):
     def health_snapshot(self) -> PersistenceHealthSnapshot: ...
 
 
+class DnsConfigPoller(Protocol):
+    def poll(self) -> object: ...
+
+
 class EngineLifecycleError(RuntimeError):
     """Raised when lifecycle control is attempted from the engine worker."""
 
@@ -87,6 +91,7 @@ class MonitoringEngine:
         monotonic_clock: MonotonicClock | None = None,
         thread_name: str = "netsentinel-connection-poller",
         persistence: PersistencePipeline | None = None,
+        dns_config_poller: DnsConfigPoller | None = None,
     ) -> None:
         if (
             isinstance(polling_interval, bool)
@@ -115,6 +120,7 @@ class MonitoringEngine:
         self._monotonic = monotonic_clock if monotonic_clock is not None else monotonic
         self._thread_name = thread_name
         self._persistence = persistence
+        self._dns_config_poller = dns_config_poller
 
         self._lock = RLock()
         self._cancel = Event()
@@ -252,6 +258,15 @@ class MonitoringEngine:
                 started = self._monotonic()
                 self._mark_poll_started()
                 try:
+                    if self._dns_config_poller is not None and not self._cancel.is_set():
+                        try:
+                            self._dns_config_poller.poll()
+                        except Exception:
+                            self._record_error(
+                                DiagnosticCode.DNS_CONFIG_UNAVAILABLE,
+                                DiagnosticComponent.DNS_CONFIG,
+                                severity=DiagnosticSeverity.WARNING,
+                            )
                     self._poll_once()
                 except Exception:
                     # A defect in engine bookkeeping must remain observable and

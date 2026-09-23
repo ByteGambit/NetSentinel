@@ -37,6 +37,32 @@ from netsentinel.shared.diagnostics import (
 )
 
 
+def test_dns_config_poll_failure_is_isolated_on_existing_engine_worker():
+    class FailingDnsPoller:
+        calls = 0
+
+        def poll(self):
+            self.calls += 1
+            raise RuntimeError("private Windows API detail")
+
+    poller = FailingDnsPoller()
+    collector = SequenceCollector(((),), reached=2)
+    engine = MonitoringEngine(
+        collector=collector,
+        enricher=PassthroughEnricher(),
+        tracker=ConnectionTrackingService(),
+        polling_interval=0.001,
+        dns_config_poller=poller,
+    )
+    assert engine.start()
+    assert collector.ready.wait(1)
+    assert engine.stop(timeout=1)
+    assert poller.calls >= 2
+    assert engine.health.counters.successful_rounds >= 2
+    assert engine.health.last_error.code is DiagnosticCode.DNS_CONFIG_UNAVAILABLE
+    assert engine.health.worker_alive is False
+
+
 T0 = datetime(2026, 9, 18, 9, 0, tzinfo=UTC)
 T1 = T0 + timedelta(seconds=1)
 T2 = T0 + timedelta(seconds=2)
