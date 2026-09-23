@@ -94,8 +94,8 @@ class DeviceRepository(Protocol):
     def list_devices(self, network_fingerprint: str) -> tuple[DeviceIdentity, ...]:
         """Return scoped devices in canonical MAC order."""
 
-    def list_bindings(self, device_id: UUID) -> tuple[IdentityBinding, ...]:
-        """Return all observed IP bindings for one device in canonical IP order."""
+    def list_bindings(self, device_id: UUID, limit: int | None = None) -> tuple[IdentityBinding, ...]:
+        """Return observed IP bindings; an optional limit bounds UI reads."""
 
 
 class PacketCaptureError(RuntimeError):

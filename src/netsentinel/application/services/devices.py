@@ -65,10 +65,12 @@ class DeviceRegistryService:
             raise TypeError("context must be a NetworkContext")
         return self._repository.list_devices(context.fingerprint)
 
-    def bindings(self, device: DeviceIdentity) -> tuple[IdentityBinding, ...]:
+    def bindings(self, device: DeviceIdentity, limit: int | None = None) -> tuple[IdentityBinding, ...]:
         if not isinstance(device, DeviceIdentity):
             raise TypeError("device must be a DeviceIdentity")
-        return self._repository.list_bindings(device.device_id)
+        if limit is None:
+            return self._repository.list_bindings(device.device_id)
+        return self._repository.list_bindings(device.device_id, limit)
 
 
 __all__ = ("DeviceObservationRejected", "DeviceRegistryService")

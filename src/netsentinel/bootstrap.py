@@ -11,6 +11,7 @@ from netsentinel.application.ports import NetworkContextProvider, PacketCapture
 from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
+from netsentinel.application.services.device_inventory import DeviceInventoryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
@@ -29,6 +30,7 @@ from netsentinel.infrastructure.sqlite import (
     SQLiteHistoryRetentionRepository,
     SQLiteHistoryWriter,
 )
+from netsentinel.infrastructure.sqlite.repositories import SQLiteDeviceRepository
 from netsentinel.shared.config import HistoryRetentionConfig
 
 
@@ -145,8 +147,25 @@ def create_packet_capture(
     )
 
 
+def create_device_inventory_service_factory(
+    *, database_path: str | PathLike[str] | None = None,
+) -> Callable[[], DeviceInventoryService]:
+    """Create worker-owned portable inventory dependencies without starting capture."""
+
+    def create_service() -> DeviceInventoryService:
+        contexts = create_network_context_provider()
+        return DeviceInventoryService(
+            contexts,
+            SQLiteDeviceRepository(SQLiteDatabase(database_path)),
+            create_packet_capture(context_provider=contexts),
+        )
+
+    return create_service
+
+
 __all__ = (
     "create_desktop_engine",
+    "create_device_inventory_service_factory",
     "create_history_retention_service",
     "create_history_query_service_factory",
     "create_monitoring_engine",

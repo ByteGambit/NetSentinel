@@ -816,18 +816,24 @@ class SQLiteDeviceRepository:
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
             raise DeviceRepositoryError("Devices could not be read.") from error
 
-    def list_bindings(self, device_id: UUID) -> tuple[IdentityBinding, ...]:
+    def list_bindings(self, device_id: UUID, limit: int | None = None) -> tuple[IdentityBinding, ...]:
         if not isinstance(device_id, UUID):
             raise TypeError("device_id must be a UUID")
+        if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100):
+            raise ValueError("limit must be between 1 and 100")
         try:
             with self._database.connection() as connection:
                 rows = connection.execute(
                     """SELECT b.*, d.network_fingerprint, d.mac
                        FROM device_bindings AS b JOIN devices AS d ON d.id = b.device_id
-                       WHERE b.device_id = ? ORDER BY b.ip_address COLLATE BINARY ASC""",
-                    (str(device_id),),
+                       WHERE b.device_id = ? ORDER BY b.last_seen_utc_us DESC, b.ip_address ASC
+                       LIMIT ?""",
+                    (str(device_id), limit if limit is not None else -1),
                 ).fetchall()
-                return tuple(sorted((_row_to_binding(row) for row in rows), key=lambda b: (int(IPv4Address(b.ip_address)), str(b.binding_id))))
+                bindings = tuple(_row_to_binding(row) for row in rows)
+                if limit is None:
+                    return tuple(sorted(bindings, key=lambda b: (int(IPv4Address(b.ip_address)), str(b.binding_id))))
+                return bindings
         except DeviceRepositoryError:
             raise
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:

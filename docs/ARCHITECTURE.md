@@ -807,9 +807,9 @@ state'i geriye götürmez. Public listeler MAC ve sayısal IPv4 sırasındadır.
 `devices` ve `device_bindings` tablolarını, scope/binding unique anahtarlarını
 ve foreign key'i ekler. Her observation tek kısa transaction içinde iki upsert
 yapar. Repository çağrı başına kendi migrated connection'ını açıp kapatır;
-thread, UI veya capture callback'i içinde DB çağrısı başlatılmaz. Şimdilik
-analiz consumer'ı bu servisi açıkça çağırır; engine/GUI entegrasyonu NS-024
-kapsamındadır. NS-023 dedektörü aynı servis üzerinden çalışır.
+monitoring engine poller, UI veya capture callback'i içinde DB çağrısı
+başlatılmaz. NS-024 inventory worker'ı bu servisi açıkça çağırır; NS-023
+dedektörü de aynı servis üzerinden çalışır.
 
 ### NS-023 yeni cihaz olayı
 
@@ -837,6 +837,26 @@ Invalid sender ve bağlam uyuşmazlığı registry'nin NS-022 kurallarıyla ele 
 Detector yeni worker, queue, capture başlangıcı, migration veya GUI bağlantısı
 eklemez; mevcut tek consumer akışında açıkça çağrılır. Repository hatası typed
 olarak yukarı çıkar ve kimlik detector'da biliniyor işaretlenmez.
+
+### NS-024 Devices veri akışı
+
+Composition root, `NetworkContextProvider`, `DeviceRepository` ve dormant
+`PacketCapture` portlarını bir `DeviceInventoryService` factory'sinde birleştirir.
+`DeviceInventoryCoordinator` tek worker thread'de bu servisi oluşturur. Worker
+başlangıçta ve periyodik olarak aktif context'leri, kayıtlı cihazları ve her
+cihazın en güncel en fazla 20 binding'ini okur. Pasif capture yalnızca kullanıcı
+seçili ağda **Start passive capture** komutunu verdiğinde `arp` filtresiyle
+başlar; worker mevcut bounded capture queue'sunu tüketir. `NewDeviceDetector`
+aynı consumer içinde çalışır ve 60 saniyelik warm-up'ın tek sahibidir.
+
+Worker yalnızca immutable `DeviceInventorySnapshot` ve portable info event'lerini
+Qt sinyaliyle GUI thread'ine taşır. `DevicesTableModel`, network fingerprint +
+canonical MAC'den türetilmiş cihaz ID'siyle satırları günceller; IP identity
+değildir. Context değişiminde görünür tablo sıfırlanır, kaybolan context'in
+cihazları güncel ağda gösterilmez. Seçim ve detay aynı stable ID ile eşlenir.
+SQLite, Scapy ve Windows API çağrıları widget/model içinde yoktur. Kapanışta
+koordinatörün komut kabulü durur, capture durdurulur ve worker bounded join ile
+beklenir; gecikmiş Qt sinyalleri yaşam döngüsü kapanışından sonra işlenmez.
 
 ## 14. Detection yaklaşımı
 

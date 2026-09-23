@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import QtEngineBridge
+from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
@@ -72,6 +73,7 @@ class MainWindow(QMainWindow):
         connections_model: ConnectionsTableModel | None = None,
         statistics: StatisticsService | None = None,
         history_queries: HistoryQueryCoordinator | None = None,
+        device_inventory: DeviceInventoryCoordinator | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -128,7 +130,7 @@ class MainWindow(QMainWindow):
                 parent=self.content,
             ),
             PageId.HISTORY: HistoryView(history_queries, parent=self.content),
-            PageId.DEVICES: DevicesView(self.content),
+            PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory),
             PageId.DNS: DnsView(self.content),
             PageId.ALERTS: AlertsView(self.content),
         }
@@ -299,6 +301,13 @@ class MainWindow(QMainWindow):
         QWidget.setTabOrder(history.refresh_button, history.table)
         QWidget.setTabOrder(history.table, history.previous_button)
         QWidget.setTabOrder(history.previous_button, history.next_button)
+        devices = self.page_widget(PageId.DEVICES)
+        assert isinstance(devices, DevicesView)
+        QWidget.setTabOrder(self.navigation, devices.network_selector)
+        QWidget.setTabOrder(devices.network_selector, devices.search_edit)
+        QWidget.setTabOrder(devices.search_edit, devices.refresh_button)
+        QWidget.setTabOrder(devices.refresh_button, devices.capture_button)
+        QWidget.setTabOrder(devices.capture_button, devices.table)
 
 
 __all__ = ("MainWindow", "PAGE_LABELS", "PAGE_ORDER", "PageId")

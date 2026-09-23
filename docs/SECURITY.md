@@ -93,6 +93,22 @@ açmaz. `lab_live` smoke testi ayrıca
 `NETSENTINEL_LAB_CAPTURE=1` onayı ister, yalnızca pasif start/stop yapar; packet
 inject etmez, subnet taramaz ve observation gelmesini zorunlu tutmaz.
 
+### NS-024 kontrollü M4 lab doğrulaması
+
+Bu prosedür yalnızca sahibi olduğunuz veya açıkça test izni aldığınız yerel
+ağda uygulanır. Önce seçilecek interface/subnet'i doğrulayın; aynı makinedeki
+VPN veya sanal adapter'ı yanlışlıkla seçmeyin. Windows'ta Npcap ve interface
+erişimi yoksa capability mesajını kaydedip testi geçin; sessiz yetki yükseltme
+yapmayın. Yetkili lab için PowerShell'de `NETSENTINEL_LAB_CAPTURE=1`,
+`NETSENTINEL_LAB_INTERFACE_NAME` ve `NETSENTINEL_LAB_SUBNET` değerlerini
+seçtiğiniz tek aktif bağlama göre açıkça ayarlayıp
+`python -m pytest -m lab_live tests/integration/sqlite/test_device_inventory.py`
+çalıştırın. Test yalnızca seçili interface'te `arp` filtresiyle yarım saniyelik
+pasif capture yapar, geçici SQLite veritabanı kullanır ve `finally` bloğunda
+capture'ı durdurur. Gözlem gelmesi zorunlu değildir. Paket enjeksiyonu, aktif
+tarama, spoofing veya ağdaki diğer cihazlara gönderim yapılmaz. Normal test
+suite'i bu marker'ı dışlar ve gerçek LAN, Npcap veya yönetici yetkisi istemez.
+
 NS-021 ARP parser'ı raw Scapy paketini yalnızca aynı infrastructure callback
 scope'unda inceler. Ethernet/ARP header alanları sabit tür ve uzunluk sınırlarıyla
 doğrulanır; yalnızca IPv4 request/reply metadata'sı canonical MAC/IP değerlerine

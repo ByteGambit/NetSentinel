@@ -259,6 +259,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-024 — Devices ekranı ve M4 lab doğrulaması
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Cihaz envanteri, IP-MAC geçmişi ve capture capability durumunu anlaşılır biçimde göstermek.
 - **Yapılacaklar:** Devices read model/table/detail, first/last seen, interface/context ve binding geçmişi ekle; capture yok/yetki yok hallerini belirt; kontrollü pasif lab test prosedürü yaz.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/models/devices.py`, `src/netsentinel/presentation/views/devices.py`, `tests/gui/test_devices_view.py`, `docs/SECURITY.md`.

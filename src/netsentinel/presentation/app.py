@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QApplication
 
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import EngineEventSource, QtEngineBridge
+from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator, DeviceServiceFactory
 from netsentinel.presentation.history_query import (
     HistoryQueryCoordinator,
     HistoryServiceFactory,
@@ -38,10 +39,12 @@ class ApplicationLifecycle:
         engine: EngineLifecycle,
         bridge: QtEngineBridge,
         history_queries: HistoryQueryCoordinator | None = None,
+        device_inventory: DeviceInventoryCoordinator | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
         self._history_queries = history_queries
+        self._device_inventory = device_inventory
         self._start_requested = False
         self._shutdown_requested = False
         self._shutdown_result: bool | None = None
@@ -58,6 +61,9 @@ class ApplicationLifecycle:
         self._start_requested = True
         if self._history_queries is not None:
             self._history_queries.start()
+        if self._device_inventory is not None:
+            self._device_inventory.start()
+            self._device_inventory.request("refresh")
         self._bridge.start()
         try:
             return self._engine.start()
@@ -65,6 +71,8 @@ class ApplicationLifecycle:
             self._bridge.stop()
             if self._history_queries is not None:
                 self._history_queries.stop()
+            if self._device_inventory is not None:
+                self._device_inventory.stop()
             raise
 
     def shutdown(self) -> bool:
@@ -78,8 +86,11 @@ class ApplicationLifecycle:
             if self._history_queries is None
             else self._history_queries.stop()
         )
+        devices_stopped = (
+            True if self._device_inventory is None else self._device_inventory.stop()
+        )
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped
+        self._shutdown_result = self._engine.stop() and history_stopped and devices_stopped
         return self._shutdown_result
 
 
@@ -92,6 +103,7 @@ class ApplicationShell:
     bridge: QtEngineBridge
     lifecycle: ApplicationLifecycle
     history_queries: HistoryQueryCoordinator | None = None
+    device_inventory: DeviceInventoryCoordinator | None = None
 
 
 def create_application(
@@ -99,6 +111,7 @@ def create_application(
     argv: Sequence[str] | None = None,
     *,
     history_service_factory: HistoryServiceFactory | None = None,
+    device_service_factory: DeviceServiceFactory | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -119,18 +132,25 @@ def create_application(
         if history_service_factory is not None
         else None
     )
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries)
+    device_inventory = (
+        DeviceInventoryCoordinator(device_service_factory)
+        if device_service_factory is not None else None
+    )
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
         history_queries=history_queries,
+        device_inventory=device_inventory,
     )
     bridge.setParent(window)
     if history_queries is not None:
         history_queries.setParent(window)
+    if device_inventory is not None:
+        device_inventory.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory)
 
 
 def run_application(
@@ -146,17 +166,21 @@ def run_application(
         from netsentinel.bootstrap import (
             create_desktop_engine,
             create_history_query_service_factory,
+            create_device_inventory_service_factory,
         )
 
         engine = create_desktop_engine()
         history_service_factory = create_history_query_service_factory()
+        device_service_factory = create_device_inventory_service_factory()
     else:
         history_service_factory = None
+        device_service_factory = None
 
     shell = create_application(
         engine,
         argv=sys.argv if argv is None else argv,
         history_service_factory=history_service_factory,
+        device_service_factory=device_service_factory,
     )
     shell.lifecycle.start()
     shell.window.show()

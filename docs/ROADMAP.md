@@ -61,6 +61,8 @@
 
 ## M4 — LAN Device Monitor
 
+**Durum:** ✅ Tamamlandı (NS-019–NS-024, 2026-09-23)
+
 **Amaç:** Yerel ağ bağlamını ve pasif ARP gözlemlerini kullanarak cihaz envanteri oluşturmak.
 
 **Kapsam:**
