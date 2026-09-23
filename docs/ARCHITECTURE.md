@@ -1035,6 +1035,21 @@ alanlar, unsupported opcode/protocol, payload sınırı ve parser hatasından so
 paketin işlenmesi doğrulanır. Testler capture socket'i açmaz; Npcap, canlı LAN,
 yönetici yetkisi, packet injection veya ayrı bir worker gerektirmez.
 
+### NS-030 DNS parser sınırı
+
+Mevcut NS-020 callback'i DNS'yi yalnızca infrastructure içinde okur ve aynı
+bounded `PacketObservation` kuyruğuna immutable `DnsObservation` ekler. NS-019
+network fingerprint'i ve UTC capture zamanı envelope'da kalır. Parser UDP/TCP
+53 ve ayrı mDNS 5353 trafiğini, en fazla 4 soru ve bölüm başına 16 kayıtla
+sınırlar; yalnızca A/AAAA/CNAME/PTR cevap metadata'sını taşır. Yakalanmış DNS
+wire görüntüsü compression pointer ve uzunluk doğrulaması için callback içinde
+incelenir, üst katmana veya veritabanına geçmez. Hatalı mesaj mevcut malformed
+sayaç/typed diagnostic ile düşürülür; sonraki paket işlenir. NS-031 korelasyonu,
+NS-033 kalıcılığı ve NS-034 ekranı bu parser'a dahil değildir. Varsayılan testler
+yalnızca in-memory sentetik Scapy paketleri ve fake capture backend kullanır.
+TCP için yalnızca capture'da tek parça ve uzunluğu tutarlı DNS mesajı parse edilir;
+TCP stream reassembly bu taskın kapsamında değildir.
+
 ### M1 Windows live smoke testi
 
 `windows_live` marker'ı gerçek `psutil` adapter sınırını yalnızca açıkça istendiğinde

@@ -118,6 +118,16 @@ worker'ını durdurmaz; mevcut bounded malformed sayacı ve sanitize diagnostic 
 izole edilir. Parser paket göndermez, ARP keşfi/poisoning yapmaz ve gözlemden
 saldırı kararı üretmez.
 
+NS-030 DNS parser'ı yalnızca açıkça seçilmiş capture filtresinde görülen klasik
+UDP/TCP port 53 ve ayrı sınıflandırılan mDNS port 5353 mesajlarını işler.
+Transaction ID, endpoint, sınırlı soru ve A/AAAA/CNAME/PTR cevap metadata'sı
+immutable observation'a geçer; cevaplar 16, sorular 4, DNS mesajı 65535 byte
+ile sınırlıdır. Raw wire/payload, bilinmeyen record içeriği ve Scapy nesnesi
+saklanmaz veya loglanmaz. Compression döngüsü, bozuk uzunluk ve malformed kayıt
+yalnızca ilgili paketi düşürür. DoH/DoT şifreli içeriği bu parser tarafından
+görülemez; görünmemesi güvenli DNS kullanıldığına veya kullanılmadığına dair
+bir hüküm değildir. NS-030 DNS alert'i veya kalıcılık üretmez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

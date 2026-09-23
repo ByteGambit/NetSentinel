@@ -327,6 +327,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-030 — DNS query/response parser
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Klasik UDP/TCP DNS paketlerinden güvenli ve sınırlı observation üretmek.
 - **Yapılacaklar:** Query/response, transaction ID, question ve desteklenen A/AAAA/CNAME/PTR cevaplarını parse et; isim/record sayısı ve uzunluk sınırı uygula; mDNS'i ayrı sınıflandır.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/parsers/dns.py`, `src/netsentinel/domain/dns.py`, `tests/unit/infrastructure/parsers/test_dns.py`, `tests/fixtures/packets/`.

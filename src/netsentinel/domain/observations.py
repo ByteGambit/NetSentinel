@@ -13,6 +13,8 @@ from enum import Enum
 from ipaddress import IPv4Address, ip_address
 import re
 
+from netsentinel.domain.dns import DnsObservation
+
 
 MAX_CAPTURED_PACKET_BYTES = 16 * 1024 * 1024
 
@@ -165,6 +167,7 @@ class PacketObservation:
     network_layer: NetworkLayerProtocol
     source: ObservationSource = ObservationSource.PACKET_CAPTURE
     arp: ArpObservation | None = None
+    dns: DnsObservation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.interface_id, str):
@@ -213,6 +216,13 @@ class PacketObservation:
                 raise TypeError("arp must be an ArpObservation or None")
             if self.network_layer is not NetworkLayerProtocol.ARP:
                 raise ValueError("arp details require the ARP network layer")
+        if self.dns is not None:
+            if not isinstance(self.dns, DnsObservation):
+                raise TypeError("dns must be a DnsObservation or None")
+            if self.network_layer not in (NetworkLayerProtocol.IPV4, NetworkLayerProtocol.IPV6):
+                raise ValueError("dns details require an IP network layer")
+            if self.arp is not None:
+                raise ValueError("a packet cannot contain both ARP and DNS details")
 
         object.__setattr__(self, "interface_id", interface_id)
         object.__setattr__(self, "network_fingerprint", fingerprint)

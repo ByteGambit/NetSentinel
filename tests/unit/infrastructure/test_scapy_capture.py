@@ -40,6 +40,7 @@ from netsentinel.shared.diagnostics import (
     CaptureState,
     DiagnosticCode,
 )
+from tests.fixtures.packets.dns import dns_query
 
 
 NOW = datetime(2026, 9, 21, 13, 0, tzinfo=UTC)
@@ -439,6 +440,30 @@ def test_malformed_arp_is_dropped_without_stopping_default_parser_pipeline() -> 
     assert worker.health.counters.malformed_packets == 1
     assert worker.health.state is CaptureState.RUNNING
     assert worker.stop()
+
+
+def test_dns_parser_uses_existing_bounded_capture_queue_and_isolates_bad_message() -> None:
+    from scapy.all import DNS, DNSQR, DNSRR, Ether, IP, UDP
+
+    worker, _, backend = worker_for(queue_capacity=2)
+    assert worker.start(PacketCaptureRequest(context(), "udp port 53"))
+    handle = backend.handles[0]
+    malformed = Ether() / IP() / UDP(sport=53000, dport=53) / DNS(
+        qd=DNSQR(qname="example.com"),
+        an=[DNSRR(rrname="example.com", type="A", rdata="192.0.2.1") for _ in range(17)],
+    )
+    handle.emit(malformed)
+    handle.emit(dns_query())
+
+    observations = worker.drain(2)
+    assert len(observations) == 1
+    assert observations[0].dns is not None
+    assert observations[0].dns.questions[0].name == "example.com."
+    assert observations[0].network_fingerprint == context().fingerprint
+    assert worker.health.counters.malformed_packets == 1
+    assert worker.health.state is CaptureState.RUNNING
+    assert worker.stop()
+    assert backend.handles[0].closed
 
 
 def test_start_and_stop_are_idempotent_and_post_stop_callback_is_ignored() -> None:

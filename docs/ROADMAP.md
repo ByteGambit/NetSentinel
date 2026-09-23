@@ -98,6 +98,8 @@
 
 ## M6 — DNS Monitoring
 
+**Durum:** NS-030 tamamlandı (2026-09-23); NS-031–NS-034 bekliyor.
+
 **Amaç:** Klasik DNS trafiği ve Windows DNS yapılandırması için görünürlük sağlamak.
 
 **Kapsam:**

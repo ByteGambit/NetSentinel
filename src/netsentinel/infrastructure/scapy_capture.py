@@ -38,7 +38,9 @@ from netsentinel.domain.observations import (
     NetworkLayerProtocol,
     PacketObservation,
 )
+from netsentinel.domain.dns import DnsObservation
 from netsentinel.infrastructure.parsers.arp import parse_arp_packet
+from netsentinel.infrastructure.parsers.dns import parse_dns_packet
 from netsentinel.shared.diagnostics import (
     CapabilityStatus,
     CaptureCapabilityReason,
@@ -56,6 +58,7 @@ from netsentinel.shared.diagnostics import (
 Clock = Callable[[], datetime]
 PacketCallback = Callable[[object], None]
 ArpParser = Callable[[object, PacketObservation], ArpObservation | None]
+DnsParser = Callable[[object, PacketObservation], DnsObservation | None]
 
 
 class SnifferHandle(Protocol):
@@ -216,6 +219,7 @@ class ScapyCaptureWorker:
         shutdown_timeout: float = 2.0,
         clock: Clock | None = None,
         arp_parser: ArpParser | None = None,
+        dns_parser: DnsParser | None = None,
     ) -> None:
         if not hasattr(context_provider, "get_contexts"):
             raise TypeError("context_provider must implement NetworkContextProvider")
@@ -244,6 +248,9 @@ class ScapyCaptureWorker:
         self._arp_parser = arp_parser if arp_parser is not None else parse_arp_packet
         if not callable(self._arp_parser):
             raise TypeError("arp_parser must be callable")
+        self._dns_parser = dns_parser if dns_parser is not None else parse_dns_packet
+        if not callable(self._dns_parser):
+            raise TypeError("dns_parser must be callable")
 
         self._lock = RLock()
         self._handle: SnifferHandle | None = None
@@ -519,6 +526,7 @@ class ScapyCaptureWorker:
                 context,
                 self._utc_now(),
                 arp_parser=self._arp_parser,
+                dns_parser=self._dns_parser,
             )
         except Exception:
             with self._lock:
@@ -772,6 +780,7 @@ def _packet_observation(
     observed_at: datetime,
     *,
     arp_parser: ArpParser = parse_arp_packet,
+    dns_parser: DnsParser = parse_dns_packet,
 ) -> PacketObservation:
     captured_length = len(packet)  # type: ignore[arg-type]
     if isinstance(captured_length, bool) or not isinstance(captured_length, int):
@@ -798,9 +807,10 @@ def _packet_observation(
         network_layer=_network_layer(packet),
     )
     arp = arp_parser(packet, observation)
-    if arp is None:
+    dns = dns_parser(packet, observation)
+    if arp is None and dns is None:
         return observation
-    return replace(observation, arp=arp)
+    return replace(observation, arp=arp, dns=dns)
 
 
 def _has_layer(packet: object, layer_name: str) -> bool:
