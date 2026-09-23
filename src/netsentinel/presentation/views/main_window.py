@@ -24,6 +24,7 @@ from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
+from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.connections import ConnectionsView
@@ -74,6 +75,7 @@ class MainWindow(QMainWindow):
         statistics: StatisticsService | None = None,
         history_queries: HistoryQueryCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
+        alert_queries: AlertQueryCoordinator | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -132,7 +134,7 @@ class MainWindow(QMainWindow):
             PageId.HISTORY: HistoryView(history_queries, parent=self.content),
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory),
             PageId.DNS: DnsView(self.content),
-            PageId.ALERTS: AlertsView(self.content),
+            PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries),
         }
 
         for page_id in PAGE_ORDER:
@@ -152,6 +154,15 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self._build_shell())
         self._configure_tab_order()
         self.navigate_to(PageId.DASHBOARD)
+        if device_inventory is not None:
+            device_inventory.snapshot_ready.connect(self._on_device_snapshot_for_alerts)
+
+    def _on_device_snapshot_for_alerts(self, snapshot: object) -> None:
+        alerts = self.page_widget(PageId.ALERTS)
+        assert isinstance(alerts, AlertsView)
+        alerts.set_network_contexts(snapshot.contexts)
+        if snapshot.new_devices or snapshot.arp_assessments:
+            alerts.refresh()
 
     def bind_engine_bridge(self, bridge: QtEngineBridge) -> bool:
         """Wire one bridge to the connection model and health view exactly once."""
@@ -308,6 +319,17 @@ class MainWindow(QMainWindow):
         QWidget.setTabOrder(devices.search_edit, devices.refresh_button)
         QWidget.setTabOrder(devices.refresh_button, devices.capture_button)
         QWidget.setTabOrder(devices.capture_button, devices.table)
+        alerts = self.page_widget(PageId.ALERTS)
+        assert isinstance(alerts, AlertsView)
+        QWidget.setTabOrder(self.navigation, alerts.status_filter)
+        QWidget.setTabOrder(alerts.status_filter, alerts.severity_filter)
+        QWidget.setTabOrder(alerts.severity_filter, alerts.confidence_filter)
+        QWidget.setTabOrder(alerts.confidence_filter, alerts.rule_filter)
+        QWidget.setTabOrder(alerts.rule_filter, alerts.refresh_button)
+        QWidget.setTabOrder(alerts.refresh_button, alerts.table)
+        QWidget.setTabOrder(alerts.table, alerts.previous_button)
+        QWidget.setTabOrder(alerts.previous_button, alerts.next_button)
+        QWidget.setTabOrder(alerts.next_button, alerts.acknowledge_button)
 
 
 __all__ = ("MainWindow", "PAGE_LABELS", "PAGE_ORDER", "PageId")

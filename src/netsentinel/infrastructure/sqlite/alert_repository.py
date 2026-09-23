@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from collections.abc import Callable
 import json
 import sqlite3
 from uuid import UUID
 
-from netsentinel.application.ports import AlertDataCorrupt, AlertQuery, AlertRepositoryError
+from netsentinel.application.ports import AlertDataCorrupt, AlertQuery, AlertQueryCancelled, AlertRepositoryError
 from netsentinel.domain.alerts import (
     Alert, AlertCandidate, AlertEvidence, AlertStatus, ArpScoreComponent,
     ArpScoreRule, MAX_ALERT_EVIDENCE, alert_id,
@@ -151,7 +152,7 @@ class SQLiteAlertRepository:
         except (SQLiteAdapterError, sqlite3.Error) as error:
             raise AlertRepositoryError("Alert read failed.") from error
 
-    def query(self, query: AlertQuery) -> tuple[Alert, ...]:
+    def query(self, query: AlertQuery, *, is_cancelled: Callable[[], bool] | None = None) -> tuple[Alert, ...]:
         if not isinstance(query, AlertQuery):
             raise TypeError("query must be AlertQuery")
         clauses: list[str] = []
@@ -164,11 +165,25 @@ class SQLiteAlertRepository:
                 values.append(value)
         where = " WHERE " + " AND ".join(clauses) if clauses else ""
         try:
+            if is_cancelled is not None and is_cancelled():
+                raise AlertQueryCancelled("Alert query was cancelled.")
             with self._database.connection() as connection:
-                rows = connection.execute(
-                    f"SELECT {_COLUMNS} FROM alerts{where} ORDER BY last_seen_utc_us DESC, id LIMIT ? OFFSET ?",
-                    (*values, query.limit, query.offset),
-                ).fetchall()
+                if is_cancelled is not None:
+                    connection.set_progress_handler(lambda: 1 if is_cancelled() else 0, 1_000)
+                try:
+                    rows = connection.execute(
+                        f"SELECT {_COLUMNS} FROM alerts{where} ORDER BY last_seen_utc_us DESC, id LIMIT ? OFFSET ?",
+                        (*values, query.limit, query.offset),
+                    ).fetchall()
+                except sqlite3.OperationalError as error:
+                    if is_cancelled is not None and is_cancelled():
+                        raise AlertQueryCancelled("Alert query was cancelled.") from error
+                    raise
+                finally:
+                    if is_cancelled is not None:
+                        connection.set_progress_handler(None, 0)
+                if is_cancelled is not None and is_cancelled():
+                    raise AlertQueryCancelled("Alert query was cancelled.")
                 return tuple(_map(row) for row in rows)
         except AlertRepositoryError:
             raise

@@ -187,6 +187,11 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   gateway kimliğinin doğrulanması veya saldırı kanıtı değildir. Yalnızca
   confidence/severity geçişi veya 120 saniye aralığı yeni bildirim üretir.
   Alert saklama süresi/temizliği bu task kapsamında tanımlanmaz.
+- NS-029 Alerts ekranı yalnızca bu kalıcı, bounded kanıt özetlerini gösterir.
+  Eski/yeni MAC ile ağ bağlamını açıklar; tek gözlemden kesin saldırı veya
+  trafik ele geçirilmesi sonucu çıkarmaz. Onay, kullanıcı inceleme durumudur;
+  gateway baseline doğrulaması değildir. Sorgu ve onay SQLite erişimini tek
+  arka plan worker'ında yapar; hata metni, SQL, DB yolu ve raw paket UI'ya geçmez.
 - Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
   yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
   thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı

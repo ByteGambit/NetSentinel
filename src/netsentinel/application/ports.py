@@ -42,6 +42,10 @@ class AlertDataCorrupt(AlertRepositoryError):
     """Persisted alert does not satisfy the portable model."""
 
 
+class AlertQueryCancelled(AlertRepositoryError):
+    """An obsolete alert read was cancelled before delivery."""
+
+
 @dataclass(frozen=True, slots=True)
 class AlertQuery:
     limit: int
@@ -73,7 +77,7 @@ class AlertRepository(Protocol):
     def record(self, candidate: AlertCandidate, now: datetime, rate_window: timedelta) -> tuple[Alert, bool]: ...
     def set_status(self, alert_id: UUID, status: AlertStatus, now: datetime) -> Alert | None: ...
     def get(self, alert_id: UUID) -> Alert | None: ...
-    def query(self, query: AlertQuery) -> tuple[Alert, ...]: ...
+    def query(self, query: AlertQuery, *, is_cancelled: Callable[[], bool] | None = None) -> tuple[Alert, ...]: ...
 
 
 class ConnectionCollectionError(RuntimeError):
@@ -443,6 +447,7 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 __all__ = (
     "AlertDataCorrupt",
     "AlertQuery",
+    "AlertQueryCancelled",
     "AlertRepository",
     "AlertRepositoryError",
     "MAX_ALERT_QUERY_LIMIT",

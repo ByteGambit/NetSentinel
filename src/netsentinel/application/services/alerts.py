@@ -41,8 +41,10 @@ class AlertService:
     def get(self, alert_id: UUID) -> Alert | None:
         return self._repository.get(alert_id)
 
-    def query(self, query: AlertQuery) -> tuple[Alert, ...]:
-        return self._repository.query(query)
+    def query(self, query: AlertQuery, *, is_cancelled: Callable[[], bool] | None = None) -> tuple[Alert, ...]:
+        if is_cancelled is None:
+            return self._repository.query(query)
+        return self._repository.query(query, is_cancelled=is_cancelled)
 
     def _now(self) -> datetime:
         value = self._clock()

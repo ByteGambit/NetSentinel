@@ -16,6 +16,7 @@ from netsentinel.presentation.history_query import (
     HistoryQueryCoordinator,
     HistoryServiceFactory,
 )
+from netsentinel.presentation.alert_query import AlertQueryCoordinator, AlertServiceFactory
 from netsentinel.presentation.views.main_window import MainWindow
 
 
@@ -40,11 +41,13 @@ class ApplicationLifecycle:
         bridge: QtEngineBridge,
         history_queries: HistoryQueryCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
+        alert_queries: AlertQueryCoordinator | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
         self._history_queries = history_queries
         self._device_inventory = device_inventory
+        self._alert_queries = alert_queries
         self._start_requested = False
         self._shutdown_requested = False
         self._shutdown_result: bool | None = None
@@ -61,6 +64,8 @@ class ApplicationLifecycle:
         self._start_requested = True
         if self._history_queries is not None:
             self._history_queries.start()
+        if self._alert_queries is not None:
+            self._alert_queries.start()
         if self._device_inventory is not None:
             self._device_inventory.start()
             self._device_inventory.request("refresh")
@@ -71,6 +76,8 @@ class ApplicationLifecycle:
             self._bridge.stop()
             if self._history_queries is not None:
                 self._history_queries.stop()
+            if self._alert_queries is not None:
+                self._alert_queries.stop()
             if self._device_inventory is not None:
                 self._device_inventory.stop()
             raise
@@ -86,11 +93,12 @@ class ApplicationLifecycle:
             if self._history_queries is None
             else self._history_queries.stop()
         )
+        alerts_stopped = True if self._alert_queries is None else self._alert_queries.stop()
         devices_stopped = (
             True if self._device_inventory is None else self._device_inventory.stop()
         )
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped and devices_stopped
+        self._shutdown_result = self._engine.stop() and history_stopped and alerts_stopped and devices_stopped
         return self._shutdown_result
 
 
@@ -104,6 +112,7 @@ class ApplicationShell:
     lifecycle: ApplicationLifecycle
     history_queries: HistoryQueryCoordinator | None = None
     device_inventory: DeviceInventoryCoordinator | None = None
+    alert_queries: AlertQueryCoordinator | None = None
 
 
 def create_application(
@@ -112,6 +121,7 @@ def create_application(
     *,
     history_service_factory: HistoryServiceFactory | None = None,
     device_service_factory: DeviceServiceFactory | None = None,
+    alert_service_factory: AlertServiceFactory | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -136,21 +146,25 @@ def create_application(
         DeviceInventoryCoordinator(device_service_factory)
         if device_service_factory is not None else None
     )
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory)
+    alert_queries = AlertQueryCoordinator(alert_service_factory) if alert_service_factory is not None else None
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, alert_queries)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
         history_queries=history_queries,
         device_inventory=device_inventory,
+        alert_queries=alert_queries,
     )
     bridge.setParent(window)
     if history_queries is not None:
         history_queries.setParent(window)
     if device_inventory is not None:
         device_inventory.setParent(window)
+    if alert_queries is not None:
+        alert_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, alert_queries)
 
 
 def run_application(
@@ -167,20 +181,24 @@ def run_application(
             create_desktop_engine,
             create_history_query_service_factory,
             create_device_inventory_service_factory,
+            create_alert_query_service_factory,
         )
 
         engine = create_desktop_engine()
         history_service_factory = create_history_query_service_factory()
         device_service_factory = create_device_inventory_service_factory()
+        alert_service_factory = create_alert_query_service_factory()
     else:
         history_service_factory = None
         device_service_factory = None
+        alert_service_factory = None
 
     shell = create_application(
         engine,
         argv=sys.argv if argv is None else argv,
         history_service_factory=history_service_factory,
         device_service_factory=device_service_factory,
+        alert_service_factory=alert_service_factory,
     )
     shell.lifecycle.start()
     shell.window.show()

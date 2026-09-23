@@ -14,6 +14,7 @@ from netsentinel.application.services.connections import (
 from netsentinel.application.services.device_inventory import DeviceInventoryService
 from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
+from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
@@ -119,6 +120,19 @@ def create_history_query_service_factory(
     return create_service
 
 
+def create_alert_query_service_factory(
+    *, database_path: str | PathLike[str] | None = None,
+) -> Callable[[], AlertQueryService]:
+    """Construct the alert port/service inside its owning query worker."""
+
+    database = SQLiteDatabase(database_path)
+
+    def create_service() -> AlertQueryService:
+        return AlertQueryService(AlertService(SQLiteAlertRepository(database)))
+
+    return create_service
+
+
 def create_network_context_provider() -> NetworkContextProvider:
     """Create the synchronous NS-019 read-only Windows context adapter."""
 
@@ -185,6 +199,7 @@ def create_gateway_baseline_service(
 
 
 __all__ = (
+    "create_alert_query_service_factory",
     "create_desktop_engine",
     "create_device_inventory_service_factory",
     "create_gateway_baseline_service",

@@ -955,6 +955,27 @@ Alert sorguları üst sınırı 100 olan sayfalar ve parametreli typed filtreler
 aittir; capture callback veya GUI thread'inde DB yazımı yoktur. NS-028 yeni
 writer/queue, alert retention veya Alerts GUI eklemez.
 
+### NS-029 Alerts ekranı
+
+`AlertsView -> AlertsTableModel -> AlertQueryCoordinator -> AlertQueryService
+-> AlertService -> AlertRepository port -> SQLiteAlertRepository` akışı yalnızca
+kalıcı portable alert kayıtlarını okur. Sorgu servisi 50 görünür satır için
+bir ek satır alarak `has_next` belirler; tabloyu veya `COUNT(*)` sonucunu
+tümüyle yüklemez. Durum, önem, güven ve rule filtreleri typed `AlertQuery`
+üzerinden parametreli SQL'e gider. Deterministik alert UUID, tablo satırının ve
+seçimin kararlı kimliğidir; refresh sonrasında aynı kayıt seçili kalır.
+
+Tek alert worker'ı bir pending sorgu ve en çok sekiz bekleyen kullanıcı komutu
+tutar. Yeni sorgu önceki sorgunun cancellation token'ını işaretler; SQLite
+progress handler iptali görür, generation kontrolü gecikmiş sonucu da dışlar.
+Worker servis/repository'yi kendi thread'inde oluşturur; her SQLite çağrısı
+bağlantısını orada açıp kapatır. Acknowledge komutu da aynı worker'da
+`AlertService` üzerinden yürür ve başarı sonrası sayfa yenilenir. Kapanışta
+yeni istekler reddedilir, pending işler temizlenir ve bounded join uygulanır.
+Envanter snapshot'ındaki yeni cihaz veya risk assessment çıktısı yalnızca
+yenileme tetikler; GUI detector veya puanlama yapmaz. Kanıt en son sekiz portable
+özet olarak, yerel saat ve düz metinle sunulur; raw paket taşınmaz.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

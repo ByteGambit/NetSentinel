@@ -313,6 +313,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-029 — Alerts ekranı ve MITM senaryo testleri
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Güvenlik alert'lerini önem, güven, durum ve kanıtlarıyla inceletmek ve M5'i uçtan uca doğrulamak.
 - **Yapılacaklar:** Alert table/filter/detail, acknowledge command ve rule açıklaması ekle; sentetik normal/spoof-benzeri ARP pcap/packet senaryoları oluştur.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/models/alerts.py`, `src/netsentinel/presentation/views/alerts.py`, `tests/gui/test_alerts_view.py`, `tests/integration/test_arp_alert_pipeline.py`, `tests/fixtures/packets/`.

@@ -80,7 +80,7 @@
 
 ## M5 — MITM Detection & Alerts
 
-**Durum:** NS-025–NS-028 tamamlandı; milestone devam ediyor.
+**Durum:** ✅ Tamamlandı (NS-025–NS-029, 2026-09-23)
 
 **Amaç:** Gateway ve ARP kimliği değişimlerinden açıklanabilir, deduplicate edilmiş güvenlik alert'leri üretmek.
 
