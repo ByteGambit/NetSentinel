@@ -23,6 +23,7 @@ from netsentinel.domain.devices import (
     DeviceIdentity, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
 from netsentinel.domain.observations import PacketObservation
+from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
     CaptureHealthSnapshot,
@@ -30,6 +31,49 @@ from netsentinel.shared.diagnostics import (
 
 
 MAX_HISTORY_QUERY_LIMIT = 500
+MAX_ALERT_QUERY_LIMIT = 100
+
+
+class AlertRepositoryError(RuntimeError):
+    """Sanitized alert storage failure."""
+
+
+class AlertDataCorrupt(AlertRepositoryError):
+    """Persisted alert does not satisfy the portable model."""
+
+
+@dataclass(frozen=True, slots=True)
+class AlertQuery:
+    limit: int
+    offset: int = 0
+    rule_id: str | None = None
+    network_fingerprint: str | None = None
+    severity: str | None = None
+    confidence: str | None = None
+    status: AlertStatus | None = None
+
+    def __post_init__(self) -> None:
+        if type(self.limit) is not int or not 1 <= self.limit <= MAX_ALERT_QUERY_LIMIT:
+            raise ValueError("limit must be between 1 and 100")
+        if type(self.offset) is not int or self.offset < 0:
+            raise ValueError("offset must be nonnegative")
+        if self.status is not None and not isinstance(self.status, AlertStatus):
+            raise TypeError("status must be AlertStatus")
+        if self.severity is not None and self.severity not in {"info", "low", "medium", "high"}:
+            raise ValueError("invalid severity")
+        if self.confidence is not None and self.confidence not in {"passive_observation", "low", "moderate", "high"}:
+            raise ValueError("invalid confidence")
+        if self.rule_id is not None and (not isinstance(self.rule_id, str) or not 1 <= len(self.rule_id) <= 64 or not self.rule_id.isascii()):
+            raise ValueError("invalid rule_id")
+        if self.network_fingerprint is not None and (not isinstance(self.network_fingerprint, str) or len(self.network_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in self.network_fingerprint)):
+            raise ValueError("invalid network_fingerprint")
+
+
+class AlertRepository(Protocol):
+    def record(self, candidate: AlertCandidate, now: datetime, rate_window: timedelta) -> tuple[Alert, bool]: ...
+    def set_status(self, alert_id: UUID, status: AlertStatus, now: datetime) -> Alert | None: ...
+    def get(self, alert_id: UUID) -> Alert | None: ...
+    def query(self, query: AlertQuery) -> tuple[Alert, ...]: ...
 
 
 class ConnectionCollectionError(RuntimeError):
@@ -397,6 +441,11 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 
 
 __all__ = (
+    "AlertDataCorrupt",
+    "AlertQuery",
+    "AlertRepository",
+    "AlertRepositoryError",
+    "MAX_ALERT_QUERY_LIMIT",
     "DeviceDataCorrupt",
     "DeviceRepository",
     "DeviceRepositoryError",

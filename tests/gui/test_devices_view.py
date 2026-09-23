@@ -343,6 +343,7 @@ def test_desktop_composition_starts_loads_and_stops_inventory(qtbot: QtBot):
     (DeviceInventoryProblem.CONTEXT_PERMISSION, "access was denied"),
     (DeviceInventoryProblem.CONTEXT_UNAVAILABLE, "temporarily unavailable"),
     (DeviceInventoryProblem.REPOSITORY_UNAVAILABLE, "inventory is unavailable"),
+    (DeviceInventoryProblem.ALERT_UNAVAILABLE, "alerts could not be saved"),
 ])
 def test_typed_failure_messages(problem, phrase):
     view = DevicesView()

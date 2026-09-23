@@ -13,6 +13,7 @@ from netsentinel.application.services.connections import (
 )
 from netsentinel.application.services.device_inventory import DeviceInventoryService
 from netsentinel.application.services.baselines import GatewayBaselineService
+from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
@@ -34,6 +35,7 @@ from netsentinel.infrastructure.sqlite import (
 from netsentinel.infrastructure.sqlite.repositories import (
     SQLiteDeviceRepository, SQLiteGatewayBaselineRepository,
 )
+from netsentinel.infrastructure.sqlite.alert_repository import SQLiteAlertRepository
 from netsentinel.shared.config import HistoryRetentionConfig
 
 
@@ -163,6 +165,7 @@ def create_device_inventory_service_factory(
             SQLiteDeviceRepository(database),
             create_packet_capture(context_provider=contexts),
             GatewayBaselineService(SQLiteGatewayBaselineRepository(database), contexts),
+            AlertService(SQLiteAlertRepository(database)),
         )
 
     return create_service

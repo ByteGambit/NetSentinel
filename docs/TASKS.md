@@ -293,6 +293,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-027 — ARP sinyal korelasyonu ve risk puanlama
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Tek paket yerine tekrar, hedef, zaman ve baseline bağlamını birleştirerek MITM şüphesini daha açıklanabilir kılmak.
 - **Yapılacaklar:** Bounded rolling ARP state, tekrar/çakışma/gateway ağırlıkları ve confidence hesaplama ekle; kesin saldırı dili kullanmayan sonuç sözleşmesi tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/detectors/arp_anomaly.py`, `src/netsentinel/application/services/statistics.py`, `tests/unit/application/detectors/test_arp_anomaly.py`.
@@ -302,6 +303,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-028 — Genel alert yaşam döngüsü ve persistence
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Tüm detector'lar için ortak deduplication, durum ve kalıcılık hattı kurmak.
 - **Yapılacaklar:** `Alert`, fingerprint, open/acknowledged/resolved durumları, tekrar sayacı, evidence şeması/repository ve `AlertService` ekle; rate limit tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/domain/alerts.py`, `src/netsentinel/application/services/alerts.py`, `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `src/netsentinel/infrastructure/sqlite/repositories.py`, `tests/unit/application/test_alert_service.py`.

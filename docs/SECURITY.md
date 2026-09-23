@@ -173,6 +173,20 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   confidence oluşturmaz. Olay evidence'ı yalnızca canonical IP/MAC,
   fingerprint, baseline durumu ve UTC zamanlarından oluşur; raw paket/payload
   veya exception text içermez. Olaylar bu aşamada kalıcılaştırılmaz.
+- NS-027 korelasyonu bu portable kimlik olaylarını 120 saniyelik, fingerprint'e
+  özgü ve bellek sınırı olan state içinde tekrar ve farklı hedef kanıtlarıyla
+  puanlar. Tekil olay `low` confidence kalır; yalnızca tekrar veya birleşik
+  kanıt `moderate` olur. Kaynak severity yükseltilmez. Sonuçlar geçicidir ve
+  yalnızca rule breakdown, canonical kimlik, sayaç ve UTC zaman metadata'sı
+  taşır; raw paket, payload, saldırgan atfı veya alert kalıcılığı içermez.
+- NS-028 alert kayıtları yalnızca canonical IP/MAC, network fingerprint,
+  detector rule/assessment sonucu, sınırlı score breakdown, UTC zamanlar,
+  durum ve tekrar sayısı saklar. Kanıt en son 8 özetle sınırlıdır; raw frame,
+  payload, kimlik bilgisi, Scapy nesnesi veya exception text veritabanına
+  geçmez. Aynı issue kalıcı fingerprint ile birleşir; onay kullanıcı eylemidir,
+  gateway kimliğinin doğrulanması veya saldırı kanıtı değildir. Yalnızca
+  confidence/severity geçişi veya 120 saniye aralığı yeni bildirim üretir.
+  Alert saklama süresi/temizliği bu task kapsamında tanımlanmaz.
 - Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
   yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
   thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı

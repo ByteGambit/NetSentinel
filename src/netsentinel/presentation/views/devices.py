@@ -174,6 +174,8 @@ class DevicesView(QWidget):
             message = "Saved device inventory is unavailable. Try refreshing."
         elif problem is DeviceInventoryProblem.OBSERVATION_UNAVAILABLE:
             message = "Some device observations could not be processed. Saved inventory remains visible."
+        elif problem is DeviceInventoryProblem.ALERT_UNAVAILABLE:
+            message = "Security alerts could not be saved. Device inventory remains visible."
         elif snapshot.selected_fingerprint is None:
             message = "No active local network context is available."
         else:

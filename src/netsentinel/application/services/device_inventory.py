@@ -7,6 +7,7 @@ from enum import Enum
 
 from netsentinel.application.detectors.new_device import NewDeviceDetector
 from netsentinel.application.detectors.arp_identity import GatewayMacChangeDetector, IpMacConflictDetector
+from netsentinel.application.detectors.arp_anomaly import ArpAnomalyCorrelator
 from netsentinel.application.ports import (
     DeviceRepository,
     NetworkContextPermissionDenied,
@@ -16,7 +17,8 @@ from netsentinel.application.ports import (
 )
 from netsentinel.application.services.devices import DeviceRegistryService
 from netsentinel.application.services.baselines import GatewayBaselineService
-from netsentinel.domain.alerts import ArpIdentityConflictDetected, NewDeviceDetected
+from netsentinel.application.services.alerts import AlertService
+from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
 
@@ -31,6 +33,7 @@ class DeviceInventoryProblem(str, Enum):
     CONTEXT_UNAVAILABLE = "context_unavailable"
     REPOSITORY_UNAVAILABLE = "repository_unavailable"
     OBSERVATION_UNAVAILABLE = "observation_unavailable"
+    ALERT_UNAVAILABLE = "alert_unavailable"
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +53,7 @@ class DeviceInventorySnapshot:
     problem: DeviceInventoryProblem = DeviceInventoryProblem.NONE
     new_devices: tuple[NewDeviceDetected, ...] = ()
     identity_events: tuple[ArpIdentityConflictDetected, ...] = ()
+    arp_assessments: tuple[ArpRiskAssessment, ...] = ()
 
 
 class DeviceInventoryService:
@@ -65,14 +69,17 @@ class DeviceInventoryService:
         repository: DeviceRepository,
         capture: PacketCapture,
         gateway_baseline: GatewayBaselineService | None = None,
+        alerts: AlertService | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
         self._detector = NewDeviceDetector(self._registry)
         self._ip_conflicts = IpMacConflictDetector(repository, contexts)
         self._gateway_changes = GatewayMacChangeDetector(gateway_baseline) if gateway_baseline is not None else None
+        self._arp_correlation = ArpAnomalyCorrelator()
         self._capture = capture
         self._gateway_baseline = gateway_baseline
+        self._alerts = alerts
         self._selected: str | None = None
 
     def refresh(
@@ -111,7 +118,9 @@ class DeviceInventoryService:
 
         events: list[NewDeviceDetected] = []
         identity_events: list[ArpIdentityConflictDetected] = []
+        assessments: list[ArpRiskAssessment] = []
         observation_failed = False
+        alert_failed = False
         if context is not None and health.state is CaptureState.RUNNING:
             try:
                 for observation in self._capture.drain(CAPTURE_DRAIN_LIMIT):
@@ -122,6 +131,7 @@ class DeviceInventoryService:
                         continue
                     if not belongs_to_context:
                         continue
+                    packet_events: list[ArpIdentityConflictDetected] = []
                     try:
                         conflict = self._ip_conflicts.observe(context, observation)
                     except Exception:
@@ -131,8 +141,14 @@ class DeviceInventoryService:
                         event = self._detector.observe(context, observation)
                         if event is not None:
                             events.append(event)
+                            if self._alerts is not None:
+                                try:
+                                    self._alerts.record(event)
+                                except Exception:
+                                    alert_failed = True
                         if conflict is not None:
                             identity_events.append(conflict)
+                            packet_events.append(conflict)
                     except Exception:
                         observation_failed = True
                     if self._gateway_baseline is not None:
@@ -141,8 +157,20 @@ class DeviceInventoryService:
                             self._gateway_baseline.observe(context, observation)
                             if gateway_event is not None:
                                 identity_events.append(gateway_event)
+                                packet_events.append(gateway_event)
                         except Exception:
                             observation_failed = True
+                    try:
+                        new_assessments = self._arp_correlation.observe(context, observation, packet_events)
+                        assessments.extend(new_assessments)
+                        if self._alerts is not None:
+                            for assessment in new_assessments:
+                                try:
+                                    self._alerts.record(assessment)
+                                except Exception:
+                                    alert_failed = True
+                    except Exception:
+                        observation_failed = True
             except Exception:
                 observation_failed = True
 
@@ -160,8 +188,9 @@ class DeviceInventoryService:
             )
         except Exception:
             return DeviceInventorySnapshot(contexts, selected, (), health, DeviceInventoryProblem.REPOSITORY_UNAVAILABLE)
-        problem = DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else DeviceInventoryProblem.NONE
-        return DeviceInventorySnapshot(contexts, selected, entries, health, problem, tuple(events), tuple(identity_events))
+        problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
+                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else DeviceInventoryProblem.NONE)
+        return DeviceInventorySnapshot(contexts, selected, entries, health, problem, tuple(events), tuple(identity_events), tuple(assessments))
 
     def close(self) -> bool:
         return self._capture.stop(timeout=1.0)

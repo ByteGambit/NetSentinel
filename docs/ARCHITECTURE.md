@@ -910,6 +910,51 @@ atfı değildir. Olaylar yalnızca `DeviceInventorySnapshot.identity_events`
 alanında geçicidir; NS-028 öncesinde alert yaşam döngüsü veya kalıcılığı yoktur.
 Yeni worker/queue/schema, packet payload veya GUI alert sunumu eklenmez.
 
+### NS-027 ARP sinyal korelasyonu
+
+`ArpAnomalyCorrelator`, aynı inventory consumer'ında NS-026 olaylarını ve
+sonraki doğrulanmış ARP sender metadata'sını değerlendirir. Event fingerprint
+ve network fingerprint sınırları korunur. İlk kimlik çelişkisi 2 puan alır;
+aynı sender'ın pencere içindeki üç farklı UTC gözlemi 1, verified gateway
+bağlamı 1, farklı hedeflerde gateway ve IP çelişkisi birleşimi 2 puan ekler.
+Tekil verified gateway gözlemi bile `low` confidence kalır. Tekrar veya
+birleşim `moderate` confidence üretir; severity kaynak NS-026 olayından alınır.
+`ArpRiskAssessment`, kaynak olayı, puanı, her kuralın katkısını, sayısı en fazla
+3 olan gözlem özetini ve UTC zamanlarını taşır; saldırı hükmü veya alert değildir.
+
+Pencere 120 saniyedir. Monotonlaştırılmış UTC clock ile expired sinyaller
+temizlenir; en fazla 512 sinyal ve sinyal başına son 3 zaman metadata'sı tutulur.
+Kapasite dolarsa en eski sinyal atılır ve sayaç artar. Out-of-order/duplicate
+UTC gözlemleri state'i geriye götürmez. Yeni bir çelişki veya confidence
+geçişinde sonuç üretilir; her tekrar için sonuç üretilmez. Sonuçlar yalnızca
+`DeviceInventorySnapshot.arp_assessments` içinde geçicidir. Yeni worker, queue,
+SQLite tablo, GUI görünümü veya raw packet saklama eklenmez.
+
+### NS-028 genel alert yaşam döngüsü
+
+Mevcut inventory consumer'ı NS-023 `NewDeviceDetected` ve NS-027
+`ArpRiskAssessment` çıktılarını `AlertService`'e verir. Assessment'ın severity,
+confidence ve rule breakdown değerleri değiştirilmeden bounded `AlertEvidence`
+olarak saklanır. NS-026 detector veya NS-027 korelatör yeniden çalıştırılmaz.
+Ortak `AlertCandidate` portu MAC taşımayan sonraki detector'lar için de kısa,
+yapılandırılmış kanıt alanlarını kabul eder; hassas/raw alan adları reddedilir.
+Alert persistence başarısızlığı `DeviceInventoryProblem.ALERT_UNAVAILABLE`
+olarak izole edilir; envanter ve detection devam eder.
+
+Migration 005 `alerts` tablosunu ekler. Deterministik UUID, detector'ın
+fingerprint'inden türetilir; `fingerprint` unique'dir. Kısa `BEGIN IMMEDIATE`
+transaction aynı issue için yarışan yazıları seri hale getirir. Daha yeni
+assessment son görülmeyi ve tekrar sayacını ilerletir; eski veya aynı UTC
+timestamp tekrar sayılmaz ve yeni state'i ezmez. En çok son 8 kanıt özeti
+saklanır. `open`, `acknowledged`, `resolved` kalıcıdır; yeniden gözlenen
+resolved issue aynı kayıt üzerinde open olur. Onay, gateway baseline doğrulaması
+veya detection confidence değişimi değildir. İlk olay ve confidence/severity
+değişimi bildirim üretir; diğer güncellemeler 120 saniyelik rate limit'e uyar.
+Alert sorguları üst sınırı 100 olan sayfalar ve parametreli typed filtrelerle
+çalışır. SQLite bağlantıları her çağrıda açılıp kapatılır ve inventory worker'a
+aittir; capture callback veya GUI thread'inde DB yazımı yoktur. NS-028 yeni
+writer/queue, alert retention veya Alerts GUI eklemez.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
