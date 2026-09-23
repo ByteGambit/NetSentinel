@@ -246,8 +246,84 @@ class IdentityBinding:
         )
 
 
+class GatewayBaselineStatus(str, Enum):
+    LEARNING = "learning"
+    LEARNED = "learned"
+    VERIFIED = "verified"
+
+
+@dataclass(frozen=True, slots=True)
+class GatewayBaseline:
+    """Expected gateway identity, distinct from observed device bindings."""
+
+    network_fingerprint: str
+    gateway_ip: str
+    mac: MacAddress
+    status: GatewayBaselineStatus
+    first_seen: datetime
+    last_seen: datetime
+    learning_started_at: datetime
+    observation_count: int
+    conflicted: bool = False
+    verified_at: datetime | None = None
+    pending_mac: MacAddress | None = None
+    pending_seen_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "network_fingerprint", _require_fingerprint(self.network_fingerprint))
+        object.__setattr__(self, "gateway_ip", _canonical_ipv4(self.gateway_ip, "gateway_ip"))
+        if not isinstance(self.mac, MacAddress) or self.mac.is_zero or self.mac.is_multicast:
+            raise ValueError("mac must be a nonzero unicast MacAddress")
+        if not isinstance(self.status, GatewayBaselineStatus):
+            raise TypeError("status must be a GatewayBaselineStatus")
+        for name in ("first_seen", "last_seen", "learning_started_at"):
+            object.__setattr__(self, name, _require_utc(getattr(self, name), name))
+        if self.last_seen < self.first_seen:
+            raise ValueError("last_seen cannot precede first_seen")
+        if isinstance(self.observation_count, bool) or not isinstance(self.observation_count, int) or self.observation_count < 1:
+            raise ValueError("observation_count must be positive")
+        if not isinstance(self.conflicted, bool):
+            raise TypeError("conflicted must be boolean")
+        if self.verified_at is not None:
+            object.__setattr__(self, "verified_at", _require_utc(self.verified_at, "verified_at"))
+        if (self.status is GatewayBaselineStatus.VERIFIED) != (self.verified_at is not None):
+            raise ValueError("verified_at must match verified status")
+        if (self.pending_mac is None) != (self.pending_seen_at is None):
+            raise ValueError("pending_mac and pending_seen_at must appear together")
+        if self.pending_mac is not None:
+            if not isinstance(self.pending_mac, MacAddress) or self.pending_mac.is_zero or self.pending_mac.is_multicast or self.pending_mac == self.mac:
+                raise ValueError("pending_mac must be a distinct nonzero unicast MacAddress")
+            object.__setattr__(self, "pending_seen_at", _require_utc(self.pending_seen_at, "pending_seen_at"))
+
+
+@dataclass(frozen=True, slots=True)
+class GatewayBaselineChange:
+    """One retained expected-identity transition, never a security verdict."""
+
+    network_fingerprint: str
+    gateway_ip: str
+    old_mac: MacAddress | None
+    new_mac: MacAddress
+    changed_at: datetime
+    reason: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "network_fingerprint", _require_fingerprint(self.network_fingerprint))
+        object.__setattr__(self, "gateway_ip", _canonical_ipv4(self.gateway_ip, "gateway_ip"))
+        if self.old_mac is not None and not isinstance(self.old_mac, MacAddress):
+            raise TypeError("old_mac must be a MacAddress or None")
+        if not isinstance(self.new_mac, MacAddress) or self.new_mac.is_zero or self.new_mac.is_multicast:
+            raise ValueError("new_mac must be a nonzero unicast MacAddress")
+        object.__setattr__(self, "changed_at", _require_utc(self.changed_at, "changed_at"))
+        if self.reason not in ("first_observation", "user_confirmation"):
+            raise ValueError("unsupported baseline change reason")
+
+
 __all__ = (
     "DeviceIdentity",
+    "GatewayBaseline",
+    "GatewayBaselineChange",
+    "GatewayBaselineStatus",
     "IdentityBinding",
     "NetworkContext",
     "NetworkInterfaceKind",

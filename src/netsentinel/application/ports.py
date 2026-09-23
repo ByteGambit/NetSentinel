@@ -19,7 +19,9 @@ from netsentinel.domain.connections import (
     ProcessInfo,
     TransportProtocol,
 )
-from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
+from netsentinel.domain.devices import (
+    DeviceIdentity, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
+)
 from netsentinel.domain.observations import PacketObservation
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
@@ -96,6 +98,24 @@ class DeviceRepository(Protocol):
 
     def list_bindings(self, device_id: UUID, limit: int | None = None) -> tuple[IdentityBinding, ...]:
         """Return observed IP bindings; an optional limit bounds UI reads."""
+
+
+class GatewayBaselineRepositoryError(RuntimeError):
+    """Sanitized gateway baseline storage failure."""
+
+
+class GatewayBaselineDataCorrupt(GatewayBaselineRepositoryError):
+    """Stored gateway baseline does not satisfy portable model constraints."""
+
+
+class GatewayBaselineRepository(Protocol):
+    def get(self, network_fingerprint: str) -> GatewayBaseline | None: ...
+
+    def save(
+        self, baseline: GatewayBaseline, change: GatewayBaselineChange | None = None
+    ) -> GatewayBaseline: ...
+
+    def changes(self, network_fingerprint: str) -> tuple[GatewayBaselineChange, ...]: ...
 
 
 class PacketCaptureError(RuntimeError):
@@ -377,6 +397,9 @@ __all__ = (
     "DeviceDataCorrupt",
     "DeviceRepository",
     "DeviceRepositoryError",
+    "GatewayBaselineRepository",
+    "GatewayBaselineRepositoryError",
+    "GatewayBaselineDataCorrupt",
     "ConnectionHistoryQuery",
     "ConnectionHistoryRepository",
     "ConnectionHistoryWriteSession",

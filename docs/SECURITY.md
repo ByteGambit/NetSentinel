@@ -160,6 +160,13 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   fingerprint + MAC kimliği için bilgi amaçlıdır. İlk envanter import'u alert
   üretmez; restart'ta bilinen cihazlar repository'den yüklenir. Pasif ARP
   gözlemi cihazın güvenilirliğini veya saldırı olup olmadığını doğrulamaz.
+- NS-025 gateway baseline'ı yalnızca güncel Windows context gateway IP'siyle
+  eşleşen portable ARP sender IP/MAC değerini kullanır. İlk gözlem veya tek
+  çelişki doğrulanmış kimliği değiştirmez. `learned` otomatik adaydır;
+  `verified` yalnızca açık kullanıcı komutudur. Farklı MAC pending aday olarak
+  saklanır ve tek başına saldırı kanıtı sayılmaz. SQLite yalnızca fingerprint,
+  gateway IP, canonical MAC, sınırlı durum/sayaç ve UTC zamanları tutar;
+  ARP target, raw frame, packet payload ve Scapy nesnesi tutulmaz.
 - Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
   yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
   thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı

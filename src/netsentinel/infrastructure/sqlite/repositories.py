@@ -13,6 +13,8 @@ from netsentinel.application.ports import (
     ConnectionHistoryQuery,
     DeviceDataCorrupt,
     DeviceRepositoryError,
+    GatewayBaselineDataCorrupt,
+    GatewayBaselineRepositoryError,
     HistoryDataCorrupt,
     HistoryRecordNotFound,
     HistoryQueryCancelled,
@@ -20,7 +22,10 @@ from netsentinel.application.ports import (
     HistoryRetentionRepositoryError,
     HistoryStorageDiagnostics,
 )
-from netsentinel.domain.devices import DeviceIdentity, IdentityBinding
+from netsentinel.domain.devices import (
+    DeviceIdentity, GatewayBaseline, GatewayBaselineChange, GatewayBaselineStatus,
+    IdentityBinding,
+)
 from netsentinel.domain.observations import MacAddress
 from netsentinel.domain.connections import (
     ConnectionClosed,
@@ -871,8 +876,169 @@ def _row_to_binding(row: sqlite3.Row) -> IdentityBinding:
         raise DeviceDataCorrupt("Persisted binding data is invalid.") from error
 
 
+class SQLiteGatewayBaselineRepository:
+    """NS-025 baseline and transition history on short, atomic connections."""
+
+    def __init__(self, database: SQLiteDatabase) -> None:
+        if not isinstance(database, SQLiteDatabase):
+            raise TypeError("database must be a SQLiteDatabase")
+        self._database = database
+
+    def get(self, network_fingerprint: str) -> GatewayBaseline | None:
+        _check_fingerprint(network_fingerprint)
+        try:
+            with self._database.connection() as connection:
+                row = connection.execute(
+                    "SELECT * FROM gateway_baselines WHERE network_fingerprint = ?",
+                    (network_fingerprint,),
+                ).fetchone()
+                return _row_to_gateway_baseline(row) if row is not None else None
+        except GatewayBaselineRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise GatewayBaselineRepositoryError("Gateway baseline could not be read.") from error
+
+    def save(
+        self, baseline: GatewayBaseline, change: GatewayBaselineChange | None = None
+    ) -> GatewayBaseline:
+        if not isinstance(baseline, GatewayBaseline):
+            raise TypeError("baseline must be a GatewayBaseline")
+        if change is not None and (
+            not isinstance(change, GatewayBaselineChange)
+            or change.network_fingerprint != baseline.network_fingerprint
+            or change.gateway_ip != baseline.gateway_ip
+            or change.new_mac != baseline.mac
+        ):
+            raise ValueError("change must match baseline identity")
+        try:
+            with self._database.connection() as connection:
+                with transaction(connection):
+                    existing = connection.execute(
+                        "SELECT * FROM gateway_baselines WHERE network_fingerprint = ?",
+                        (baseline.network_fingerprint,),
+                    ).fetchone()
+                    if existing is not None:
+                        current = _row_to_gateway_baseline(existing)
+                        if current.gateway_ip != baseline.gateway_ip:
+                            raise GatewayBaselineDataCorrupt("Persisted gateway identity is inconsistent.")
+                        if change is not None and change.reason == "first_observation":
+                            return current
+                        if current.status is GatewayBaselineStatus.VERIFIED and baseline.status is not GatewayBaselineStatus.VERIFIED:
+                            return current
+                        if change is not None and change.old_mac != current.mac:
+                            return current
+                        if baseline.last_seen < current.last_seen:
+                            return current
+                    connection.execute(
+                        """
+                        INSERT INTO gateway_baselines (
+                            network_fingerprint, gateway_ip, mac, status,
+                            first_seen_utc_us, last_seen_utc_us, learning_started_utc_us,
+                            observation_count, conflicted, verified_at_utc_us,
+                            pending_mac, pending_seen_utc_us
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(network_fingerprint) DO UPDATE SET
+                            mac = excluded.mac,
+                            status = excluded.status,
+                            last_seen_utc_us = MAX(gateway_baselines.last_seen_utc_us, excluded.last_seen_utc_us),
+                            observation_count = MAX(gateway_baselines.observation_count, excluded.observation_count),
+                            conflicted = excluded.conflicted,
+                            verified_at_utc_us = excluded.verified_at_utc_us,
+                            pending_mac = excluded.pending_mac,
+                            pending_seen_utc_us = excluded.pending_seen_utc_us
+                        """,
+                        (
+                            baseline.network_fingerprint, baseline.gateway_ip,
+                            str(baseline.mac), baseline.status.value,
+                            datetime_to_epoch_microseconds(baseline.first_seen),
+                            datetime_to_epoch_microseconds(baseline.last_seen),
+                            datetime_to_epoch_microseconds(baseline.learning_started_at),
+                            baseline.observation_count, int(baseline.conflicted),
+                            datetime_to_epoch_microseconds(baseline.verified_at)
+                            if baseline.verified_at is not None else None,
+                            str(baseline.pending_mac) if baseline.pending_mac is not None else None,
+                            datetime_to_epoch_microseconds(baseline.pending_seen_at)
+                            if baseline.pending_seen_at is not None else None,
+                        ),
+                    )
+                    if change is not None:
+                        connection.execute(
+                            """INSERT INTO gateway_baseline_changes
+                               (network_fingerprint, gateway_ip, old_mac, new_mac,
+                                changed_at_utc_us, reason) VALUES (?, ?, ?, ?, ?, ?)""",
+                            (
+                                change.network_fingerprint, change.gateway_ip,
+                                str(change.old_mac) if change.old_mac is not None else None,
+                                str(change.new_mac),
+                                datetime_to_epoch_microseconds(change.changed_at),
+                                change.reason,
+                            ),
+                        )
+                    row = connection.execute(
+                        "SELECT * FROM gateway_baselines WHERE network_fingerprint = ?",
+                        (baseline.network_fingerprint,),
+                    ).fetchone()
+                    return _row_to_gateway_baseline(row)
+        except GatewayBaselineRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise GatewayBaselineRepositoryError("Gateway baseline could not be stored.") from error
+
+    def changes(self, network_fingerprint: str) -> tuple[GatewayBaselineChange, ...]:
+        _check_fingerprint(network_fingerprint)
+        try:
+            with self._database.connection() as connection:
+                rows = connection.execute(
+                    """SELECT * FROM gateway_baseline_changes
+                       WHERE network_fingerprint = ? ORDER BY changed_at_utc_us, id""",
+                    (network_fingerprint,),
+                ).fetchall()
+                return tuple(_row_to_gateway_change(row) for row in rows)
+        except GatewayBaselineRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise GatewayBaselineRepositoryError("Gateway baseline history could not be read.") from error
+
+
+def _check_fingerprint(value: str) -> None:
+    if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+        raise ValueError("network_fingerprint must be canonical SHA-256 hex")
+
+
+def _row_to_gateway_baseline(row: sqlite3.Row) -> GatewayBaseline:
+    try:
+        return GatewayBaseline(
+            row["network_fingerprint"], row["gateway_ip"], MacAddress(row["mac"]),
+            GatewayBaselineStatus(row["status"]),
+            epoch_microseconds_to_datetime(row["first_seen_utc_us"]),
+            epoch_microseconds_to_datetime(row["last_seen_utc_us"]),
+            epoch_microseconds_to_datetime(row["learning_started_utc_us"]),
+            row["observation_count"], bool(row["conflicted"]),
+            epoch_microseconds_to_datetime(row["verified_at_utc_us"])
+            if row["verified_at_utc_us"] is not None else None,
+            MacAddress(row["pending_mac"]) if row["pending_mac"] is not None else None,
+            epoch_microseconds_to_datetime(row["pending_seen_utc_us"])
+            if row["pending_seen_utc_us"] is not None else None,
+        )
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError) as error:
+        raise GatewayBaselineDataCorrupt("Persisted gateway baseline is invalid.") from error
+
+
+def _row_to_gateway_change(row: sqlite3.Row) -> GatewayBaselineChange:
+    try:
+        return GatewayBaselineChange(
+            row["network_fingerprint"], row["gateway_ip"],
+            MacAddress(row["old_mac"]) if row["old_mac"] is not None else None,
+            MacAddress(row["new_mac"]),
+            epoch_microseconds_to_datetime(row["changed_at_utc_us"]), row["reason"],
+        )
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError) as error:
+        raise GatewayBaselineDataCorrupt("Persisted gateway baseline history is invalid.") from error
+
+
 __all__ = (
     "SQLiteDeviceRepository",
+    "SQLiteGatewayBaselineRepository",
     "SQLiteConnectionHistoryRepository",
     "SQLiteHistoryRetentionRepository",
     "datetime_to_epoch_microseconds",

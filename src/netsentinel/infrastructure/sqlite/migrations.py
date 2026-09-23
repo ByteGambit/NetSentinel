@@ -120,6 +120,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="device_bindings",
             sql=_read_resource("003_devices.sql", 3, "device_bindings"),
         ),
+        Migration(
+            version=4,
+            name="gateway_baselines",
+            sql=_read_resource("004_gateway_baselines.sql", 4, "gateway_baselines"),
+        ),
     )
 
 

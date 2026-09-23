@@ -273,6 +273,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-025 — Gateway identity baseline
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Her network context için beklenen gateway IP-MAC kimliğini güvenli biçimde öğrenmek ve saklamak.
 - **Yapılacaklar:** Baseline modeli/repository'si, öğrenme penceresi, Windows context ile ARP gözlemi korelasyonu ve kullanıcı doğrulama durumunu ekle.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/domain/devices.py`, `src/netsentinel/application/services/baselines.py`, `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `tests/unit/application/test_gateway_baseline.py`.

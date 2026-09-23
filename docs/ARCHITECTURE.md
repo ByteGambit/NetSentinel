@@ -858,6 +858,35 @@ SQLite, Scapy ve Windows API çağrıları widget/model içinde yoktur. Kapanı�
 koordinatörün komut kabulü durur, capture durdurulur ve worker bounded join ile
 beklenir; gecikmiş Qt sinyalleri yaşam döngüsü kapanışından sonra işlenmez.
 
+### NS-025 gateway identity baseline
+
+Mevcut Devices inventory consumer'ı aynı bounded capture queue'dan gelen portable
+`PacketObservation.arp` değerini `GatewayBaselineService`'e de verir. Servis
+seçili `NetworkContext`'in interface/index/fingerprint bilgisini güncel
+`NetworkContextProvider` sonucuyla karşılaştırır. Yalnızca context'in gateway
+IP'sini sender olarak bildiren, zero/multicast olmayan unicast MAC gözlemi
+baseline'a adaydır. Gateway IP yalnızca Windows context değerinden gelir;
+ARP target alanından veya bağımsız discovery'den türetilmez.
+
+`GatewayBaseline`, cihaz/binding geçmişinden ayrı bir beklenen kimlik
+kaydıdır. İlk aday `learning` durumunda ve fingerprint kapsamında açılır. UTC
+işleme saatiyle ölçülen varsayılan 60 saniyelik pencere ve en az iki uyumlu
+observation sonrasında, arada çelişki yoksa `learned` olur. Bu otomatik durum
+kullanıcı onayı değildir. Öğrenme sırasında farklı MAC görülürse otomatik
+ilerleme durur. Öğrenilmiş veya doğrulanmış MAC tek farklı gözlemle değişmez;
+farklı MAC `pending` aday olarak kalır. Yalnızca açık
+`GatewayBaselineService.confirm` çağrısı gözlenmiş mevcut veya pending MAC'i
+`verified` yapar. Bu task detector, alert, GUI komutu veya yeni worker eklemez.
+
+`GatewayBaselineRepository` portunu `SQLiteGatewayBaselineRepository` uygular.
+Migration 004, fingerprint başına tek baseline ve ilk gözlem/kullanıcı onayı
+geçişlerinin UTC zamanlı geçmişini tutar. Her save kısa bir transaction'dır;
+ilk görülme ve son görülme eski observation ile geriye gitmez. Restart'ta
+öğrenme başlangıcı, çelişki, pending aday ve doğrulama durumu yüklenir.
+Raw frame/payload veya Scapy nesnesi bu tablolara geçmez. Repository hatası
+mevcut inventory consumer'ında izole edilir ve observation health sorununa
+dönüşür; cihaz envanteri okunmaya devam eder.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

@@ -12,6 +12,7 @@ from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
 from netsentinel.application.services.device_inventory import DeviceInventoryService
+from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
@@ -30,7 +31,9 @@ from netsentinel.infrastructure.sqlite import (
     SQLiteHistoryRetentionRepository,
     SQLiteHistoryWriter,
 )
-from netsentinel.infrastructure.sqlite.repositories import SQLiteDeviceRepository
+from netsentinel.infrastructure.sqlite.repositories import (
+    SQLiteDeviceRepository, SQLiteGatewayBaselineRepository,
+)
 from netsentinel.shared.config import HistoryRetentionConfig
 
 
@@ -154,18 +157,34 @@ def create_device_inventory_service_factory(
 
     def create_service() -> DeviceInventoryService:
         contexts = create_network_context_provider()
+        database = SQLiteDatabase(database_path)
         return DeviceInventoryService(
             contexts,
-            SQLiteDeviceRepository(SQLiteDatabase(database_path)),
+            SQLiteDeviceRepository(database),
             create_packet_capture(context_provider=contexts),
+            GatewayBaselineService(SQLiteGatewayBaselineRepository(database), contexts),
         )
 
     return create_service
 
 
+def create_gateway_baseline_service(
+    *,
+    database_path: str | PathLike[str] | None = None,
+    context_provider: NetworkContextProvider | None = None,
+) -> GatewayBaselineService:
+    """Create a synchronous NS-025 baseline command/read service without I/O."""
+
+    contexts = context_provider or create_network_context_provider()
+    return GatewayBaselineService(
+        SQLiteGatewayBaselineRepository(SQLiteDatabase(database_path)), contexts
+    )
+
+
 __all__ = (
     "create_desktop_engine",
     "create_device_inventory_service_factory",
+    "create_gateway_baseline_service",
     "create_history_retention_service",
     "create_history_query_service_factory",
     "create_monitoring_engine",

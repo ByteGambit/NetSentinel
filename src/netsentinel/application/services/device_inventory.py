@@ -14,6 +14,7 @@ from netsentinel.application.ports import (
     PacketCaptureRequest,
 )
 from netsentinel.application.services.devices import DeviceRegistryService
+from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.domain.alerts import NewDeviceDetected
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
@@ -61,11 +62,13 @@ class DeviceInventoryService:
         contexts: NetworkContextProvider,
         repository: DeviceRepository,
         capture: PacketCapture,
+        gateway_baseline: GatewayBaselineService | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
         self._detector = NewDeviceDetector(self._registry)
         self._capture = capture
+        self._gateway_baseline = gateway_baseline
         self._selected: str | None = None
 
     def refresh(
@@ -112,6 +115,11 @@ class DeviceInventoryService:
                     event = self._detector.observe(context, observation)
                     if event is not None:
                         events.append(event)
+                    if self._gateway_baseline is not None:
+                        try:
+                            self._gateway_baseline.observe(context, observation)
+                        except Exception:
+                            observation_failed = True
             except Exception:
                 observation_failed = True
 
