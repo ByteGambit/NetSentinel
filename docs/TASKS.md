@@ -337,6 +337,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-031 — DNS transaction korelasyonu
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Query ve response observations'ı yön/endpoints/transaction ID ile eşleyip süre ve sonuç üretmek.
 - **Yapılacaklar:** `DnsTrackingService`, outstanding query bounded map, timeout, duplicate/retry ve unmatched response davranışı ekle; monotonic süre kullan.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/dns.py`, `src/netsentinel/domain/dns.py`, `tests/unit/application/test_dns_tracking.py`.

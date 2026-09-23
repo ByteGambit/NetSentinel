@@ -1050,6 +1050,33 @@ yalnızca in-memory sentetik Scapy paketleri ve fake capture backend kullanır.
 TCP için yalnızca capture'da tek parça ve uzunluğu tutarlı DNS mesajı parse edilir;
 TCP stream reassembly bu taskın kapsamında değildir.
 
+### NS-031 DNS transaction korelasyonu
+
+`DnsTrackingService`, yalnızca `PacketObservation.dns` içindeki NS-030 portable
+metadata'sını tüketir; Scapy veya DNS wire formatını tekrar işlemez. Klasik
+DNS için anahtar network fingerprint, UDP/TCP transport, query yönünden
+client/server IP ve portları, transaction ID ve canonical soru tuple'ıdır.
+NS-030 soru modelinde qclass bulunmadığından anahtara eklenmez. mDNS bu
+unicast işlem state'inden ayrı tutulur ve korelasyona alınmaz.
+
+Tek consumer servis pending sorguları ve yakın tamamlanma izlerini ayrı,
+konfigüre edilebilir sınırlar içinde tutar (varsayılan her biri 1024). İlk
+query gözlem zamanı korunur; aynı veya daha eski timestamp duplicate sayılır,
+daha yeni pending query retry sayacını artırır ve monotonic timeout'u yeniler.
+Yanıt ilk uygun pending query'yi tamamlar; tamamlanan yanıtın aynı/eski
+timestamp'li tekrarları kısa süreli iz ile bastırılır. Bu izden daha yeni
+query yeni işlem açabilir. Soru bilgisi olmayan query korelasyon dışıdır;
+soru bilgisi olmayan response unmatched olarak korunur.
+
+Timeout ve latency işleme anındaki monotonic saatle hesaplanır; UTC packet
+timestamp'i yalnızca sonuç metadata'sıdır. Yanıt timestamp'i query'den eskiyse
+yanıt unmatched kalır ve pending state değişmez. Expiry için deadline heap'i,
+kapasite için en eski pending ekleme sırası kullanılır; önce expired kayıtlar
+temizlenir. Retry kaynaklı eski heap girdileri periyodik yeniden kurularak
+bounded kalır. `completed`, `timed_out`, `evicted` ve `unmatched_response`
+immutable sonuçları çağıran consumer'a senkron döner. Servis worker, socket,
+SQLite veya GUI nesnesi oluşturmaz; DNS history entegrasyonu NS-033 kapsamıdır.
+
 ### M1 Windows live smoke testi
 
 `windows_live` marker'ı gerçek `psutil` adapter sınırını yalnızca açıkça istendiğinde

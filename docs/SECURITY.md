@@ -128,6 +128,13 @@ yalnızca ilgili paketi düşürür. DoH/DoT şifreli içeriği bu parser taraf�
 görülemez; görünmemesi güvenli DNS kullanıldığına veya kullanılmadığına dair
 bir hüküm değildir. NS-030 DNS alert'i veya kalıcılık üretmez.
 
+NS-031 korelasyonu yalnızca bu sınırlanmış DNS metadata'sını memory-only
+state'te tutar. Varsayılan en fazla 1024 pending işlem ve 1024 yakın
+tamamlanma izi, monotonic timeout ile temizlenir; raw DNS wire, packet,
+payload, kimlik bilgisi veya SQLite kaydı tutulmaz. Eşleşmeyen yanıtlar
+uydurma query oluşturmadan portable observation sonucu olur. Yanıt kodu ve
+truncated flag saldırı hükmü veya alert'e çevrilmez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

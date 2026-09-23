@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from ipaddress import ip_address
 import re
@@ -28,6 +29,13 @@ class DnsRecordType(int, Enum):
     CNAME = 5
     PTR = 12
     AAAA = 28
+
+
+class DnsTransactionStatus(str, Enum):
+    COMPLETED = "completed"
+    TIMED_OUT = "timed_out"
+    EVICTED = "evicted"
+    UNMATCHED_RESPONSE = "unmatched_response"
 
 
 def canonical_dns_name(value: str) -> str:
@@ -134,3 +142,64 @@ class DnsObservation:
             raise ValueError("DNS answers exceed the supported bound")
         if not all(isinstance(item, DnsAnswer) for item in self.answers):
             raise TypeError("answers must contain DnsAnswer values")
+
+
+@dataclass(frozen=True, slots=True)
+class DnsTransaction:
+    """One bounded correlation outcome, with no packet or payload reference."""
+
+    status: DnsTransactionStatus
+    network_fingerprint: str
+    transport: DnsTransport
+    client_ip: str
+    client_port: int
+    server_ip: str
+    server_port: int
+    transaction_id: int
+    questions: tuple[DnsQuestion, ...]
+    query_at: datetime | None
+    response_at: datetime | None
+    latency_seconds: float | None
+    response_code: int | None
+    truncated: bool
+    answers: tuple[DnsAnswer, ...]
+    retry_count: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, DnsTransactionStatus):
+            raise TypeError("status must be a DnsTransactionStatus")
+        if not isinstance(self.transport, DnsTransport):
+            raise TypeError("transport must be a DnsTransport")
+        if len(self.network_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in self.network_fingerprint):
+            raise ValueError("network_fingerprint must be a SHA-256 hex digest")
+        for field in ("client_ip", "server_ip"):
+            value = getattr(self, field)
+            if not isinstance(value, str) or len(value) > 45:
+                raise ValueError(f"{field} is invalid")
+            object.__setattr__(self, field, str(ip_address(value)))
+        for field in ("client_port", "server_port", "transaction_id", "retry_count"):
+            value = getattr(self, field)
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 65535:
+                raise ValueError(f"{field} is outside its supported range")
+        minimum_questions = 0 if self.status is DnsTransactionStatus.UNMATCHED_RESPONSE else 1
+        if not isinstance(self.questions, tuple) or not minimum_questions <= len(self.questions) <= MAX_DNS_QUESTIONS or not all(isinstance(q, DnsQuestion) for q in self.questions):
+            raise ValueError("questions must be a bounded DnsQuestion tuple")
+        if not isinstance(self.answers, tuple) or len(self.answers) > MAX_DNS_ANSWERS or not all(isinstance(a, DnsAnswer) for a in self.answers):
+            raise ValueError("answers must be a bounded DnsAnswer tuple")
+        for field in ("query_at", "response_at"):
+            value = getattr(self, field)
+            if value is not None:
+                if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() != timedelta(0):
+                    raise ValueError(f"{field} must be UTC-aware")
+                object.__setattr__(self, field, value.astimezone(UTC))
+        if self.status is DnsTransactionStatus.UNMATCHED_RESPONSE:
+            if self.query_at is not None or self.response_at is None:
+                raise ValueError("unmatched response timestamps are inconsistent")
+        elif self.query_at is None:
+            raise ValueError("query timestamp is required")
+        if self.status is DnsTransactionStatus.COMPLETED and self.response_at is None:
+            raise ValueError("completed transaction requires a response")
+        if self.latency_seconds is not None and (self.latency_seconds < 0 or self.status is not DnsTransactionStatus.COMPLETED):
+            raise ValueError("latency is only valid for completed transactions")
+        if self.response_code is not None and not 0 <= self.response_code <= 15:
+            raise ValueError("response_code is outside the DNS range")
