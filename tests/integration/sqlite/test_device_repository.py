@@ -46,6 +46,9 @@ def test_migration_and_round_trip_across_repository_instances(tmp_path):
     assert bindings[0].first_seen == T0
     assert bindings[0].last_seen == T0 + timedelta(seconds=10)
     assert len(reopened.list_devices("b" * 64)) == 1
+    latest = reopened.latest_binding_for_ip(FINGERPRINT, "192.168.1.20")
+    assert latest.mac == MAC and latest.last_seen == T0 + timedelta(seconds=10)
+    assert reopened.latest_binding_for_ip("b" * 64, "192.168.1.21") is None
     with db.connection() as connection:
         assert connection.execute("SELECT COUNT(*) FROM devices").fetchone()[0] == 3
         assert connection.execute("SELECT COUNT(*) FROM device_bindings").fetchone()[0] == 4

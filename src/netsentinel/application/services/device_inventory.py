@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from netsentinel.application.detectors.new_device import NewDeviceDetector
+from netsentinel.application.detectors.arp_identity import GatewayMacChangeDetector, IpMacConflictDetector
 from netsentinel.application.ports import (
     DeviceRepository,
     NetworkContextPermissionDenied,
@@ -15,7 +16,7 @@ from netsentinel.application.ports import (
 )
 from netsentinel.application.services.devices import DeviceRegistryService
 from netsentinel.application.services.baselines import GatewayBaselineService
-from netsentinel.domain.alerts import NewDeviceDetected
+from netsentinel.domain.alerts import ArpIdentityConflictDetected, NewDeviceDetected
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
 
@@ -48,6 +49,7 @@ class DeviceInventorySnapshot:
     capture: CaptureHealthSnapshot | None
     problem: DeviceInventoryProblem = DeviceInventoryProblem.NONE
     new_devices: tuple[NewDeviceDetected, ...] = ()
+    identity_events: tuple[ArpIdentityConflictDetected, ...] = ()
 
 
 class DeviceInventoryService:
@@ -67,6 +69,8 @@ class DeviceInventoryService:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
         self._detector = NewDeviceDetector(self._registry)
+        self._ip_conflicts = IpMacConflictDetector(repository, contexts)
+        self._gateway_changes = GatewayMacChangeDetector(gateway_baseline) if gateway_baseline is not None else None
         self._capture = capture
         self._gateway_baseline = gateway_baseline
         self._selected: str | None = None
@@ -106,18 +110,37 @@ class DeviceInventoryService:
             health = self._capture.health_snapshot()
 
         events: list[NewDeviceDetected] = []
+        identity_events: list[ArpIdentityConflictDetected] = []
         observation_failed = False
         if context is not None and health.state is CaptureState.RUNNING:
             try:
                 for observation in self._capture.drain(CAPTURE_DRAIN_LIMIT):
-                    if observation.network_fingerprint != context.fingerprint:
+                    try:
+                        belongs_to_context = observation.network_fingerprint == context.fingerprint
+                    except (AttributeError, TypeError):
+                        observation_failed = True
                         continue
-                    event = self._detector.observe(context, observation)
-                    if event is not None:
-                        events.append(event)
+                    if not belongs_to_context:
+                        continue
+                    try:
+                        conflict = self._ip_conflicts.observe(context, observation)
+                    except Exception:
+                        conflict = None
+                        observation_failed = True
+                    try:
+                        event = self._detector.observe(context, observation)
+                        if event is not None:
+                            events.append(event)
+                        if conflict is not None:
+                            identity_events.append(conflict)
+                    except Exception:
+                        observation_failed = True
                     if self._gateway_baseline is not None:
                         try:
+                            gateway_event = self._gateway_changes.observe(context, observation)
                             self._gateway_baseline.observe(context, observation)
+                            if gateway_event is not None:
+                                identity_events.append(gateway_event)
                         except Exception:
                             observation_failed = True
             except Exception:
@@ -138,7 +161,7 @@ class DeviceInventoryService:
         except Exception:
             return DeviceInventorySnapshot(contexts, selected, (), health, DeviceInventoryProblem.REPOSITORY_UNAVAILABLE)
         problem = DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else DeviceInventoryProblem.NONE
-        return DeviceInventorySnapshot(contexts, selected, entries, health, problem, tuple(events))
+        return DeviceInventorySnapshot(contexts, selected, entries, health, problem, tuple(events), tuple(identity_events))
 
     def close(self) -> bool:
         return self._capture.stop(timeout=1.0)

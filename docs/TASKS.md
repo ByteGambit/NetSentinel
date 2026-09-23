@@ -283,6 +283,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-026 — IP-MAC conflict ve gateway değişim detector'ları
 
+- **Durum:** ✅ Tamamlandı (2026-09-23)
 - **Amaç:** Aynı IP için çelişkili MAC ve beklenen gateway MAC değişimini yapılandırılmış güvenlik olayı olarak tespit etmek.
 - **Yapılacaklar:** İki detector, rule ID, evidence ve severity/confidence kuralları ekle; gratuitous ARP, DHCP/ağ geçişi ve warm-up için istisnaları tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/detectors/arp_identity.py`, `src/netsentinel/domain/alerts.py`, `tests/unit/application/detectors/test_arp_identity.py`.

@@ -887,6 +887,29 @@ Raw frame/payload veya Scapy nesnesi bu tablolara geçmez. Repository hatası
 mevcut inventory consumer'ında izole edilir ve observation health sorununa
 dönüşür; cihaz envanteri okunmaya devam eder.
 
+### NS-026 IP-MAC ve gateway kimlik uyuşmazlığı
+
+Mevcut inventory consumer'ı yeni sender binding'i kaydetmeden önce
+`IpMacConflictDetector` ile aynı fingerprint/IP için en son kalıcı binding'i
+okur. Aynı MAC, ilk 60 saniyelik binding ısınması, 120 saniyeden eski
+binding, out-of-order observation, yanlış/güncelliğini yitirmiş context ve
+gratuitous ARP olay üretmez. Gateway IP bu genel kuraldan hariçtir.
+`GatewayMacChangeDetector`, NS-025'in güncel `GatewayBaselineService.get`
+sonucunu kullanır: `learning` karar vermez; `learned` ve `verified` beklenen
+MAC'leri farklı pasif sender MAC ile karşılaştırır. Pending aynı MAC tekrar
+görülürse olay yinelenmez; beklenen MAC yeniden gözlendikten sonraki anlamlı
+geçiş yeniden olay olabilir. Baseline değişimi hâlâ yalnızca NS-025
+`confirm` komutuyla gerçekleşir.
+
+İki detector da immutable `ArpIdentityConflictDetected` döndürür. Rule/reason,
+fingerprint, IP, eski/yeni MAC, eski son görülme ve yeni gözlem UTC zamanı,
+severity ve confidence taşınır. Tekil uyuşmazlığın confidence değeri `low`;
+IP veya learned gateway severity `low`, verified gateway severity en fazla
+`medium` olur; locally administered aday için `low` kalır. Bu bir saldırı
+atfı değildir. Olaylar yalnızca `DeviceInventorySnapshot.identity_events`
+alanında geçicidir; NS-028 öncesinde alert yaşam döngüsü veya kalıcılığı yoktur.
+Yeni worker/queue/schema, packet payload veya GUI alert sunumu eklenmez.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

@@ -98,6 +98,11 @@ class FakeRepository:
         return tuple(sorted((binding for binding in self.bindings.values() if binding.device_id == device_id),
             key=lambda binding: binding.last_seen, reverse=True))[:limit]
 
+    def latest_binding_for_ip(self, fingerprint, ip):
+        values = (binding for binding in self.bindings.values()
+                  if binding.network_fingerprint == fingerprint and binding.ip_address == ip)
+        return max(values, key=lambda binding: binding.last_seen, default=None)
+
 
 class FakeContexts:
     def __init__(self, *contexts):

@@ -99,6 +99,9 @@ class DeviceRepository(Protocol):
     def list_bindings(self, device_id: UUID, limit: int | None = None) -> tuple[IdentityBinding, ...]:
         """Return observed IP bindings; an optional limit bounds UI reads."""
 
+    def latest_binding_for_ip(self, network_fingerprint: str, ip_address: str) -> IdentityBinding | None:
+        """Return the most recently observed sender binding for one scoped IPv4 address."""
+
 
 class GatewayBaselineRepositoryError(RuntimeError):
     """Sanitized gateway baseline storage failure."""

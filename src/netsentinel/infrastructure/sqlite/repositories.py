@@ -844,6 +844,26 @@ class SQLiteDeviceRepository:
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
             raise DeviceRepositoryError("Device bindings could not be read.") from error
 
+    def latest_binding_for_ip(self, network_fingerprint: str, ip_address: str) -> IdentityBinding | None:
+        if not isinstance(network_fingerprint, str) or len(network_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in network_fingerprint):
+            raise ValueError("network_fingerprint must be canonical SHA-256 hex")
+        ip = str(IPv4Address(ip_address))
+        try:
+            with self._database.connection() as connection:
+                row = connection.execute(
+                    """SELECT b.*, d.network_fingerprint, d.mac
+                       FROM device_bindings AS b JOIN devices AS d ON d.id = b.device_id
+                       WHERE d.network_fingerprint = ? AND b.ip_address = ?
+                       ORDER BY b.last_seen_utc_us DESC, b.first_seen_utc_us DESC, d.mac ASC
+                       LIMIT 1""",
+                    (network_fingerprint, ip),
+                ).fetchone()
+                return _row_to_binding(row) if row is not None else None
+        except DeviceRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise DeviceRepositoryError("IP binding could not be read.") from error
+
 
 def _row_to_device(row: sqlite3.Row) -> DeviceIdentity:
     try:

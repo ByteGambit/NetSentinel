@@ -167,6 +167,12 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   saklanır ve tek başına saldırı kanıtı sayılmaz. SQLite yalnızca fingerprint,
   gateway IP, canonical MAC, sınırlı durum/sayaç ve UTC zamanları tutar;
   ARP target, raw frame, packet payload ve Scapy nesnesi tutulmaz.
+- NS-026 iki pasif kimlik uyuşmazlığı kuralı kullanır. Olay, MITM veya trafik
+  ele geçirilmesi hükmü değildir; tekil gözlemin güveni düşük tutulur.
+  Gratuitous ARP, stale/out-of-order veri ve ağ geçişi tek başına yüksek
+  confidence oluşturmaz. Olay evidence'ı yalnızca canonical IP/MAC,
+  fingerprint, baseline durumu ve UTC zamanlarından oluşur; raw paket/payload
+  veya exception text içermez. Olaylar bu aşamada kalıcılaştırılmaz.
 - Connection history persistence kuyruğu portable lifecycle metadata'sıyla ve
   yapılandırılabilir sabit kapasiteyle sınırlıdır. Queue dolduğunda monitoring
   thread'i DB için beklemez; yeni event kontrollü düşürülür ve toplam drop sayısı
