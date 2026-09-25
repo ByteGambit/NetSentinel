@@ -18,6 +18,8 @@ from netsentinel.application.ports import (
 from netsentinel.application.services.devices import DeviceRegistryService
 from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
+from netsentinel.application.services.dns import DnsTrackingService
+from netsentinel.application.services.dns_history import DnsHistoryWriter
 from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
@@ -54,6 +56,8 @@ class DeviceInventorySnapshot:
     new_devices: tuple[NewDeviceDetected, ...] = ()
     identity_events: tuple[ArpIdentityConflictDetected, ...] = ()
     arp_assessments: tuple[ArpRiskAssessment, ...] = ()
+    dns_persisted_count: int = 0
+    dns_writer_available: bool = True
 
 
 class DeviceInventoryService:
@@ -70,6 +74,8 @@ class DeviceInventoryService:
         capture: PacketCapture,
         gateway_baseline: GatewayBaselineService | None = None,
         alerts: AlertService | None = None,
+        dns_writer: DnsHistoryWriter | None = None,
+        dns_tracking: DnsTrackingService | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
@@ -80,6 +86,10 @@ class DeviceInventoryService:
         self._capture = capture
         self._gateway_baseline = gateway_baseline
         self._alerts = alerts
+        self._dns_writer = dns_writer
+        self._dns_tracking = dns_tracking or DnsTrackingService()
+        if self._dns_writer is not None:
+            self._dns_writer.start()
         self._selected: str | None = None
 
     def refresh(
@@ -110,7 +120,7 @@ class DeviceInventoryService:
         if stop_capture:
             self._capture.stop(timeout=1.0)
         elif start_capture and context is not None:
-            self._capture.start(PacketCaptureRequest(context, "arp"))
+            self._capture.start(PacketCaptureRequest(context, "arp or port 53" if self._dns_writer is not None else "arp"))
         health = self._capture.health_snapshot()
         if context is not None and not health.running and health.capability.reason is CaptureCapabilityReason.NOT_PROBED:
             self._capture.probe(context)
@@ -130,6 +140,13 @@ class DeviceInventoryService:
                         observation_failed = True
                         continue
                     if not belongs_to_context:
+                        continue
+                    if self._dns_writer is not None and observation.dns is not None:
+                        try:
+                            for transaction in self._dns_tracking.observe(observation):
+                                self._dns_writer.submit(transaction)
+                        except Exception:
+                            observation_failed = True
                         continue
                     packet_events: list[ArpIdentityConflictDetected] = []
                     try:
@@ -173,6 +190,12 @@ class DeviceInventoryService:
                         observation_failed = True
             except Exception:
                 observation_failed = True
+        if self._dns_writer is not None:
+            try:
+                for transaction in self._dns_tracking.expire():
+                    self._dns_writer.submit(transaction)
+            except Exception:
+                observation_failed = True
 
         if context is None:
             return DeviceInventorySnapshot(contexts, None, (), health)
@@ -190,10 +213,18 @@ class DeviceInventoryService:
             return DeviceInventorySnapshot(contexts, selected, (), health, DeviceInventoryProblem.REPOSITORY_UNAVAILABLE)
         problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
                    DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else DeviceInventoryProblem.NONE)
-        return DeviceInventorySnapshot(contexts, selected, entries, health, problem, tuple(events), tuple(identity_events), tuple(assessments))
+        dns_health = self._dns_writer.health_snapshot() if self._dns_writer is not None else None
+        return DeviceInventorySnapshot(
+            contexts, selected, entries, health, problem,
+            tuple(events), tuple(identity_events), tuple(assessments),
+            dns_health.persisted if dns_health is not None else 0,
+            dns_health.running if dns_health is not None else True,
+        )
 
     def close(self) -> bool:
-        return self._capture.stop(timeout=1.0)
+        capture_stopped = self._capture.stop(timeout=1.0)
+        writer_stopped = True if self._dns_writer is None else self._dns_writer.stop()
+        return capture_stopped and writer_stopped
 
 
 __all__ = (

@@ -26,11 +26,13 @@ RULE_TITLES = {
     "ip_mac_conflict": "IP-MAC identity conflict observed",
     "gateway_mac_change": "Gateway MAC differs from expected baseline",
     "new_device": "New device observed",
+    "dns_server_set_change": "DNS server configuration changed",
 }
 RULE_EXPLANATIONS = {
     "ip_mac_conflict": "A different sender MAC was observed for an IP recently associated with another MAC. Normal network changes can also cause this signal.",
     "gateway_mac_change": "A gateway sender MAC differs from the stored expected baseline. Review the network and baseline context before drawing conclusions.",
     "new_device": "A device identity was first observed after the initial learning period. Its trust has not been verified.",
+    "dns_server_set_change": "The Windows DNS server set changed after repeated consistent readings. Review the previous and current configuration; this alone does not imply an attack.",
 }
 SCORE_EXPLANATIONS = {
     "identity_conflict": "Identity conflict",

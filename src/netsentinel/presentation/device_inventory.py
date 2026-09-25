@@ -59,7 +59,7 @@ class DeviceInventoryCoordinator(QObject):
                 return False
             return True
 
-    def stop(self, timeout: float = 2.0) -> bool:
+    def stop(self, timeout: float = 3.5) -> bool:
         with self._lock:
             self._accepting = False
             self._stop.set()

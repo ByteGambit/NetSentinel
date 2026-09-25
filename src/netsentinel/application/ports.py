@@ -46,6 +46,10 @@ class DnsHistoryDataCorrupt(DnsHistoryRepositoryError):
     """A persisted DNS row does not satisfy the portable model."""
 
 
+class DnsHistoryQueryCancelled(DnsHistoryRepositoryError):
+    """An obsolete DNS read was cancelled."""
+
+
 @dataclass(frozen=True, slots=True)
 class DnsHistoryQuery:
     """Bounded exact filters; event time is query time, or response time if unmatched."""
@@ -56,6 +60,7 @@ class DnsHistoryQuery:
     event_to: datetime | None = None
     network_fingerprint: str | None = None
     qname: str | None = None
+    qtype: int | None = None
     server_ip: str | None = None
     status: DnsTransactionStatus | None = None
     transport: DnsTransport | None = None
@@ -78,6 +83,8 @@ class DnsHistoryQuery:
             raise ValueError("network_fingerprint must be a SHA-256 hex digest")
         if self.qname is not None:
             object.__setattr__(self, "qname", canonical_dns_name(self.qname))
+        if self.qtype is not None and (type(self.qtype) is not int or not 0 <= self.qtype <= 65535):
+            raise ValueError("qtype is outside the DNS range")
         if self.server_ip is not None:
             if not isinstance(self.server_ip, str) or len(self.server_ip) > 45:
                 raise ValueError("server_ip is invalid")
@@ -91,7 +98,7 @@ class DnsHistoryQuery:
 class DnsHistoryRepository(Protocol):
     def record(self, record: DnsHistoryRecord) -> None: ...
     def get(self, record_id: UUID) -> DnsHistoryRecord | None: ...
-    def query(self, query: DnsHistoryQuery) -> tuple[DnsHistoryRecord, ...]: ...
+    def query(self, query: DnsHistoryQuery, *, is_cancelled: Callable[[], bool] | None = None) -> tuple[DnsHistoryRecord, ...]: ...
 
 
 class DnsHistoryWriteSession(Protocol):
@@ -516,6 +523,7 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 __all__ = (
     "DnsHistoryDataCorrupt",
     "DnsHistoryQuery",
+    "DnsHistoryQueryCancelled",
     "DnsHistoryRepository",
     "DnsHistoryRepositoryError",
     "DnsHistoryRetentionRepository",

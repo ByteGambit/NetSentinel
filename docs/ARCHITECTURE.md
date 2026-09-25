@@ -1128,7 +1128,35 @@ DNS'e özel manuel retention önce tam cutoff'tan eski kayıtları, sonra toplam
 satır limitini aşan en eski kayıtları 500 veya yapılandırılmış daha küçük
 chunk'larla temizler. Her chunk ayrı kısa transaction'dır; pending correlation
 state'i restart'ta restore edilmez. Repository read ayrı bağlantı açar.
-NS-034 DNS ekranı ve canlı akış bağlantısı ayrı tasktır.
+NS-034 DNS ekranı ve canlı akış bağlantısı aşağıdaki akıştır.
+
+### NS-034 DNS ekranı ve M6 akışı
+
+```text
+Kullanıcının Devices üzerinde başlattığı pasif capture (arp or port 53)
+  -> NS-030 portable DNS observation -> NS-031 DnsTrackingService
+  -> NS-033 DnsHistoryWriter bounded nonblocking queue -> SQLite DNS history
+  -> DnsHistoryRepository port -> DnsHistoryQueryService (50 + 1)
+  -> DnsQueryCoordinator tek worker -> Qt ana thread -> DnsTableModel/DnsView
+```
+
+M6 canlı hattı mevcut tek inventory/capture consumer'ını paylaşır. Yalnızca
+klasik DNS transaction sonucu writer'a verilir; query henüz sonuç üretmez,
+completed/timeout/evicted/unmatched sonuçları aynı servis semantiğiyle saklanır.
+Writer worker kendi SQLite bağlantısını açar ve inventory kapanışında capture
+durduktan sonra bounded biçimde kapanır. DNS görünümü capture kapalıyken de
+kalıcı geçmişi okuyabilir. Writer persisted sayacı değiştiğinde en fazla
+inventory snapshot hızıyla coalesced refresh yapılır; paket başına sorgu yoktur.
+
+Sorgu worker'ı tek capacity-one pending istek, generation ve cooperative SQLite
+progress cancellation kullanır. Sorgu/SQLite/UI hata ayrıntıları Qt signal'ına
+taşınmaz. Sayfalama `event_at_utc_us DESC, id DESC` sırasını kullanır;
+`DnsHistoryRecord.id` seçim kimliğidir. İlk soru türü `questions_json` üzerinde
+parametreli JSON extract ile filtrelenir; status, ad, sunucu ve UTC-aware zaman
+filtreleri de repository'de uygulanır. Detay yalnızca bounded portable metadata
+gösterir. DNS config değişimi bağlantısı, NS-032'nin mevcut Alerts rule filtresine
+gider. İlk açılıştaki eşzamanlı DB worker'ları için WAL kurulumu ve migration
+kontrolü süreç içinde serileştirilir; sorgu bağlantıları worker'a aittir.
 
 ### M1 Windows live smoke testi
 

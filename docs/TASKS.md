@@ -367,6 +367,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-034 — DNS ekranı ve M6 entegrasyonu
 
+- **Durum:** ✅ Tamamlandı (2026-09-24)
 - **Amaç:** DNS sorgu/cevap geçmişini, gecikmeyi ve DNS config alert'lerini açıklanabilir biçimde sunmak.
 - **Yapılacaklar:** DNS table/model/detail, status/type/name/server/time filtreleri ve capability açıklaması ekle; parser'dan persistence/read model'e entegrasyon fixture'ı oluştur.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/models/dns.py`, `src/netsentinel/presentation/views/dns.py`, `tests/gui/test_dns_view.py`, `tests/integration/test_dns_pipeline.py`.

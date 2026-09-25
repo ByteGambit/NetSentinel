@@ -25,6 +25,7 @@ from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
+from netsentinel.presentation.dns_query import DnsQueryCoordinator
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.connections import ConnectionsView
@@ -76,6 +77,7 @@ class MainWindow(QMainWindow):
         history_queries: HistoryQueryCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
+        dns_queries: DnsQueryCoordinator | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -83,6 +85,7 @@ class MainWindow(QMainWindow):
         self._close_notified = False
         self._current_page = PageId.DASHBOARD
         self._engine_bridge: QtEngineBridge | None = None
+        self._dns_persisted_count = 0
         self.connections_model = (
             ConnectionsTableModel(self)
             if connections_model is None
@@ -133,7 +136,7 @@ class MainWindow(QMainWindow):
             ),
             PageId.HISTORY: HistoryView(history_queries, parent=self.content),
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory),
-            PageId.DNS: DnsView(self.content),
+            PageId.DNS: DnsView(self.content, coordinator=dns_queries),
             PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries),
         }
 
@@ -156,11 +159,30 @@ class MainWindow(QMainWindow):
         self.navigate_to(PageId.DASHBOARD)
         if device_inventory is not None:
             device_inventory.snapshot_ready.connect(self._on_device_snapshot_for_alerts)
+        dns = self.page_widget(PageId.DNS)
+        assert isinstance(dns, DnsView)
+        dns.config_alert_requested.connect(self._show_dns_config_alerts)
+
+    def _show_dns_config_alerts(self) -> None:
+        alerts = self.page_widget(PageId.ALERTS)
+        assert isinstance(alerts, AlertsView)
+        index = alerts.rule_filter.findData("dns_server_set_change")
+        alerts.rule_filter.setCurrentIndex(index if index >= 0 else 0)
+        self.navigate_to(PageId.ALERTS)
+        alerts.refresh()
 
     def _on_device_snapshot_for_alerts(self, snapshot: object) -> None:
         alerts = self.page_widget(PageId.ALERTS)
         assert isinstance(alerts, AlertsView)
         alerts.set_network_contexts(snapshot.contexts)
+        dns = self.page_widget(PageId.DNS)
+        assert isinstance(dns, DnsView)
+        dns.set_network_contexts(snapshot.contexts)
+        dns.set_capture_running(bool(snapshot.capture and snapshot.capture.running))
+        dns.set_writer_available(snapshot.dns_writer_available)
+        if snapshot.dns_persisted_count > self._dns_persisted_count:
+            self._dns_persisted_count = snapshot.dns_persisted_count
+            dns.refresh()
         if snapshot.new_devices or snapshot.arp_assessments:
             alerts.refresh()
 
@@ -312,6 +334,21 @@ class MainWindow(QMainWindow):
         QWidget.setTabOrder(history.refresh_button, history.table)
         QWidget.setTabOrder(history.table, history.previous_button)
         QWidget.setTabOrder(history.previous_button, history.next_button)
+        dns = self.page_widget(PageId.DNS)
+        assert isinstance(dns, DnsView)
+        QWidget.setTabOrder(self.navigation, dns.qname_filter)
+        QWidget.setTabOrder(dns.qname_filter, dns.type_filter)
+        QWidget.setTabOrder(dns.type_filter, dns.server_filter)
+        QWidget.setTabOrder(dns.server_filter, dns.status_filter)
+        QWidget.setTabOrder(dns.status_filter, dns.from_enabled)
+        QWidget.setTabOrder(dns.from_enabled, dns.from_time)
+        QWidget.setTabOrder(dns.from_time, dns.to_enabled)
+        QWidget.setTabOrder(dns.to_enabled, dns.to_time)
+        QWidget.setTabOrder(dns.to_time, dns.refresh_button)
+        QWidget.setTabOrder(dns.refresh_button, dns.alert_button)
+        QWidget.setTabOrder(dns.alert_button, dns.table)
+        QWidget.setTabOrder(dns.table, dns.previous_button)
+        QWidget.setTabOrder(dns.previous_button, dns.next_button)
         devices = self.page_widget(PageId.DEVICES)
         assert isinstance(devices, DevicesView)
         QWidget.setTabOrder(self.navigation, devices.network_selector)

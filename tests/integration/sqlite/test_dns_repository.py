@@ -92,6 +92,8 @@ def test_bounded_filters_pagination_ordering_and_sql_parameters(repo):
     assert repo.query(DnsHistoryQuery(limit=2, offset=2)) == (records[1], records[0])
     assert repo.query(DnsHistoryQuery(limit=10, network_fingerprint="b" * 64)) == (records[2],)
     assert repo.query(DnsHistoryQuery(limit=10, qname="EXAMPLE.COM.")) == tuple(reversed(records))
+    assert repo.query(DnsHistoryQuery(limit=10, qtype=1)) == tuple(reversed(records))
+    assert repo.query(DnsHistoryQuery(limit=10, qtype=28)) == ()
     assert repo.query(DnsHistoryQuery(limit=10, server_ip="2001:db8::53")) == tuple(reversed(records))
     assert repo.query(DnsHistoryQuery(limit=10, event_from=NOW + timedelta(seconds=2),
                                       event_to=NOW + timedelta(seconds=3))) == (records[2], records[1])

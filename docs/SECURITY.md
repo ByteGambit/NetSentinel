@@ -160,6 +160,15 @@ typed sayaç/kod olarak görünür. DNS'e özel manuel retention varsayılan 30 
 yoktur. Kapanıp açılınca geçmiş okunur, canlı pending correlation restore
 edilmez. DNS history kaydı tek başına alert üretmez.
 
+NS-034 DNS ekranı aynı yerel, sınırlandırılmış metadata'yı gösterir; yeni DNS
+alanı veya raw payload toplamaz. Sorgu adı/sunucu/zaman/durum/tür filtreleri
+repository'nin parametreli sorgusuna gider. Kullanıcı tarafından Devices
+ekranında başlatılan pasif capture klasik port 53 DNS'yi mevcut bounded akışta
+izler; otomatik capture veya yetki yükseltme yoktur. Capture kapalıyken kayıtlı
+geçmiş yine okunur. Ekran DoH/DoT ve mDNS görünürlük sınırını açıkça bildirir.
+DNS adları hassas gezinti metadata'sı olabilir; kayıtlar yerel SQLite retention
+politikasına tabidir. Hata ekranı SQL, DB yolu veya traceback göstermez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

@@ -19,6 +19,7 @@ from netsentinel.application.services.dns_history import (
     DnsHistoryRetentionService, DnsHistoryWriter, DnsRetentionConfig,
 )
 from netsentinel.application.services.alert_query import AlertQueryService
+from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
@@ -173,6 +174,17 @@ def create_alert_query_service_factory(
     return create_service
 
 
+def create_dns_query_service_factory(
+    *, database_path: str | PathLike[str] | None = None,
+) -> Callable[[], DnsHistoryQueryService]:
+    database = SQLiteDatabase(database_path)
+
+    def create_service() -> DnsHistoryQueryService:
+        return DnsHistoryQueryService(SQLiteDnsHistoryRepository(database))
+
+    return create_service
+
+
 def create_network_context_provider() -> NetworkContextProvider:
     """Create the synchronous NS-019 read-only Windows context adapter."""
 
@@ -220,6 +232,7 @@ def create_device_inventory_service_factory(
             create_packet_capture(context_provider=contexts),
             GatewayBaselineService(SQLiteGatewayBaselineRepository(database), contexts),
             AlertService(SQLiteAlertRepository(database)),
+            dns_writer=create_dns_history_writer(database_path=database_path),
         )
 
     return create_service
@@ -242,6 +255,7 @@ __all__ = (
     "create_dns_history_repository",
     "create_dns_history_retention_service",
     "create_dns_history_writer",
+    "create_dns_query_service_factory",
     "create_alert_query_service_factory",
     "create_desktop_engine",
     "create_device_inventory_service_factory",

@@ -13,12 +13,14 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import sqlite3
+from threading import Lock
 from typing import Protocol
 
 
 APPLICATION_DIRECTORY_NAME = "NetSentinel"
 DATABASE_FILENAME = "netsentinel.sqlite3"
 DEFAULT_BUSY_TIMEOUT_MS = 5_000
+_MIGRATION_LOCK = Lock()
 
 
 class SQLiteAdapterError(RuntimeError):
@@ -182,19 +184,22 @@ class SQLiteDatabase:
     def connect(self) -> sqlite3.Connection:
         """Open, validate, and migrate a writable database connection."""
 
-        connection = self._factory.connect()
-        try:
-            runner = self._migration_runner
-            if runner is None:
-                from netsentinel.infrastructure.sqlite.migrations import (
-                    default_migration_runner,
-                )
+        # DNS, inventory and history workers may open a fresh database at
+        # startup. Serialize WAL setup and migration ledger/DDL in this process.
+        with _MIGRATION_LOCK:
+            connection = self._factory.connect()
+            try:
+                runner = self._migration_runner
+                if runner is None:
+                    from netsentinel.infrastructure.sqlite.migrations import (
+                        default_migration_runner,
+                    )
 
-                runner = default_migration_runner()
-            runner.migrate(connection)
-        except BaseException:
-            connection.close()
-            raise
+                    runner = default_migration_runner()
+                runner.migrate(connection)
+            except BaseException:
+                connection.close()
+                raise
         return connection
 
     @contextmanager

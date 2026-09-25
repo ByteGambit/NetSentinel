@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from collections.abc import Callable
 from datetime import datetime
 import json
 from math import isfinite
@@ -11,7 +12,7 @@ from typing import Iterator
 from uuid import UUID
 
 from netsentinel.application.ports import (
-    DnsHistoryDataCorrupt, DnsHistoryQuery, DnsHistoryRepositoryError,
+    DnsHistoryDataCorrupt, DnsHistoryQuery, DnsHistoryQueryCancelled, DnsHistoryRepositoryError,
 )
 from netsentinel.domain.dns import (
     DnsAnswer, DnsHistoryRecord, DnsQuestion, DnsRecordType, DnsTransaction,
@@ -132,7 +133,7 @@ class SQLiteDnsHistoryRepository:
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError):
             raise DnsHistoryRepositoryError("DNS history could not be read.") from None
 
-    def query(self, query: DnsHistoryQuery) -> tuple[DnsHistoryRecord, ...]:
+    def query(self, query: DnsHistoryQuery, *, is_cancelled: Callable[[], bool] | None = None) -> tuple[DnsHistoryRecord, ...]:
         if not isinstance(query, DnsHistoryQuery):
             raise TypeError("query must be a DnsHistoryQuery")
         filters: list[str] = []
@@ -141,7 +142,9 @@ class SQLiteDnsHistoryRepository:
             ("event_at_utc_us >= ?", to_us(query.event_from) if query.event_from else None),
             ("event_at_utc_us <= ?", to_us(query.event_to) if query.event_to else None),
             ("network_fingerprint = ?", query.network_fingerprint),
-            ("qname = ?", query.qname), ("server_ip = ?", query.server_ip),
+            ("qname = ?", query.qname),
+            ("CAST(json_extract(questions_json, '$[0][1]') AS INTEGER) = ?", query.qtype),
+            ("server_ip = ?", query.server_ip),
             ("status = ?", query.status.value if query.status else None),
             ("transport = ?", query.transport.value if query.transport else None),
         ):
@@ -152,15 +155,23 @@ class SQLiteDnsHistoryRepository:
         parameters.extend((query.limit, query.offset))
         try:
             with self._database.connection() as connection:
+                if is_cancelled is not None:
+                    connection.set_progress_handler(lambda: 1 if is_cancelled() else 0, 1000)
                 rows = connection.execute(
                     f"SELECT {_COLUMNS} FROM dns_history{where} "
                     "ORDER BY event_at_utc_us DESC, id DESC LIMIT ? OFFSET ?",
                     parameters,
                 ).fetchall()
+            if is_cancelled is not None and is_cancelled():
+                raise DnsHistoryQueryCancelled("DNS history query was cancelled.")
             return tuple(_decode(row) for row in rows)
+        except DnsHistoryQueryCancelled:
+            raise
         except DnsHistoryDataCorrupt:
             raise
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError):
+            if is_cancelled is not None and is_cancelled():
+                raise DnsHistoryQueryCancelled("DNS history query was cancelled.") from None
             raise DnsHistoryRepositoryError("DNS history could not be read.") from None
 
     def delete_before(self, cutoff: datetime, limit: int) -> int:
