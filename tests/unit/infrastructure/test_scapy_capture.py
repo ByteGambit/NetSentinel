@@ -26,6 +26,7 @@ from netsentinel.application.ports import (
 from netsentinel.bootstrap import create_packet_capture
 from netsentinel.domain.devices import NetworkContext, NetworkInterfaceKind
 from netsentinel.domain.observations import (
+    BroadcastKind,
     LinkLayerProtocol,
     NetworkLayerProtocol,
     ObservationSource,
@@ -88,7 +89,7 @@ class FakePacket:
         self._layers = frozenset(layers)
         self.payload = b"secret payload that must never cross the adapter"
         self._ether = SimpleNamespace(
-            type=0x0806,
+            type=0x0806 if "ARP" in self._layers else 0x0800 if "IP" in self._layers else 0x86DD,
             src="aa:bb:cc:dd:ee:ff",
             dst="ff:ff:ff:ff:ff:ff",
         )
@@ -103,6 +104,7 @@ class FakePacket:
             hwdst="00:00:00:00:00:00",
             pdst="192.168.50.1",
         )
+        self._ip = SimpleNamespace(version=4, src="192.168.50.20", dst="192.168.50.1")
 
     def __len__(self) -> int:
         return self._length
@@ -115,6 +117,8 @@ class FakePacket:
             return self._ether
         if name == "ARP" and name in self._layers:
             return self._arp
+        if name == "IP" and name in self._layers:
+            return self._ip
         return None
 
 
@@ -346,6 +350,11 @@ def test_single_multiple_and_duplicate_packets_preserve_fifo_multiplicity() -> N
     observations = worker.drain(4)
 
     assert [item.captured_length for item in observations] == [60, 61, 61]
+    assert [item.broadcast.kind for item in observations] == [
+        BroadcastKind.ETHERNET_BROADCAST,
+        BroadcastKind.ETHERNET_BROADCAST,
+        BroadcastKind.ETHERNET_BROADCAST,
+    ]
     assert [item.network_layer for item in observations] == [
         NetworkLayerProtocol.IPV4,
         NetworkLayerProtocol.IPV6,
@@ -353,6 +362,21 @@ def test_single_multiple_and_duplicate_packets_preserve_fifo_multiplicity() -> N
     ]
     assert observations[1] == observations[2]
     assert worker.health.counters.enqueued_observations == 3
+    assert worker.stop()
+
+
+def test_malformed_broadcast_header_is_isolated_and_next_packet_survives() -> None:
+    worker, _, backend = worker_for()
+    assert worker.start(request())
+    bad = FakePacket(60, layers=("Ether", "IP"))
+    bad._ether.dst = "not-a-mac"
+    backend.handles[0].emit(bad)
+    backend.handles[0].emit(FakePacket(61, layers=("Ether", "IP")))
+
+    observations = worker.drain(4)
+    assert len(observations) == 1
+    assert observations[0].broadcast.kind is BroadcastKind.ETHERNET_BROADCAST
+    assert worker.health.counters.malformed_packets == 1
     assert worker.stop()
 
 

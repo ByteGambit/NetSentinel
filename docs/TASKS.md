@@ -381,6 +381,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-035 — Broadcast/multicast sınıflandırıcı
 
+- **Durum:** ✅ Tamamlandı (2026-09-25)
 - **Amaç:** L2 ve desteklenen L3 broadcast trafiğini ARP ve multicast'ten doğru ayırmak.
 - **Yapılacaklar:** Ethernet broadcast, IPv4 limited/directed broadcast ve ARP sınıflarını tanımla; multicast'i ayrı kategori yap; yalnızca gerekli metadata'yı observation'a dönüştür.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/parsers/broadcast.py`, `src/netsentinel/domain/observations.py`, `tests/unit/infrastructure/parsers/test_broadcast.py`.

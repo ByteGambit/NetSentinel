@@ -33,6 +33,7 @@ from netsentinel.application.ports import (
 from netsentinel.domain.devices import NetworkContext
 from netsentinel.domain.observations import (
     ArpObservation,
+    BroadcastObservation,
     LinkLayerProtocol,
     MAX_CAPTURED_PACKET_BYTES,
     NetworkLayerProtocol,
@@ -40,6 +41,7 @@ from netsentinel.domain.observations import (
 )
 from netsentinel.domain.dns import DnsObservation
 from netsentinel.infrastructure.parsers.arp import parse_arp_packet
+from netsentinel.infrastructure.parsers.broadcast import parse_broadcast_packet
 from netsentinel.infrastructure.parsers.dns import parse_dns_packet
 from netsentinel.shared.diagnostics import (
     CapabilityStatus,
@@ -59,6 +61,7 @@ Clock = Callable[[], datetime]
 PacketCallback = Callable[[object], None]
 ArpParser = Callable[[object, PacketObservation], ArpObservation | None]
 DnsParser = Callable[[object, PacketObservation], DnsObservation | None]
+BroadcastParser = Callable[[object, PacketObservation, NetworkContext], BroadcastObservation | None]
 
 
 class SnifferHandle(Protocol):
@@ -220,6 +223,7 @@ class ScapyCaptureWorker:
         clock: Clock | None = None,
         arp_parser: ArpParser | None = None,
         dns_parser: DnsParser | None = None,
+        broadcast_parser: BroadcastParser | None = None,
     ) -> None:
         if not hasattr(context_provider, "get_contexts"):
             raise TypeError("context_provider must implement NetworkContextProvider")
@@ -251,6 +255,11 @@ class ScapyCaptureWorker:
         self._dns_parser = dns_parser if dns_parser is not None else parse_dns_packet
         if not callable(self._dns_parser):
             raise TypeError("dns_parser must be callable")
+        self._broadcast_parser = (
+            broadcast_parser if broadcast_parser is not None else parse_broadcast_packet
+        )
+        if not callable(self._broadcast_parser):
+            raise TypeError("broadcast_parser must be callable")
 
         self._lock = RLock()
         self._handle: SnifferHandle | None = None
@@ -527,6 +536,7 @@ class ScapyCaptureWorker:
                 self._utc_now(),
                 arp_parser=self._arp_parser,
                 dns_parser=self._dns_parser,
+                broadcast_parser=self._broadcast_parser,
             )
         except Exception:
             with self._lock:
@@ -781,6 +791,7 @@ def _packet_observation(
     *,
     arp_parser: ArpParser = parse_arp_packet,
     dns_parser: DnsParser = parse_dns_packet,
+    broadcast_parser: BroadcastParser = parse_broadcast_packet,
 ) -> PacketObservation:
     captured_length = len(packet)  # type: ignore[arg-type]
     if isinstance(captured_length, bool) or not isinstance(captured_length, int):
@@ -808,9 +819,10 @@ def _packet_observation(
     )
     arp = arp_parser(packet, observation)
     dns = dns_parser(packet, observation)
-    if arp is None and dns is None:
+    broadcast = broadcast_parser(packet, observation, context)
+    if arp is None and dns is None and broadcast is None:
         return observation
-    return replace(observation, arp=arp, dns=dns)
+    return replace(observation, arp=arp, dns=dns, broadcast=broadcast)
 
 
 def _has_layer(packet: object, layer_name: str) -> bool:

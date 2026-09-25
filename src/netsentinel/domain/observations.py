@@ -49,6 +49,31 @@ class ArpOpcode(int, Enum):
     REPLY = 2
 
 
+class BroadcastKind(str, Enum):
+    """Exclusive count class for one Ethernet frame (including ARP)."""
+
+    ARP = "arp"
+    ETHERNET_BROADCAST = "ethernet_broadcast"
+    IPV4_LIMITED_BROADCAST = "ipv4_limited_broadcast"
+    IPV4_DIRECTED_BROADCAST = "ipv4_directed_broadcast"
+    MULTICAST = "multicast"
+    UNICAST = "unicast"
+
+
+@dataclass(frozen=True, slots=True)
+class BroadcastObservation:
+    """Payload-free traffic class; one frame contributes to exactly one class."""
+
+    kind: BroadcastKind
+    ethernet_broadcast: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, BroadcastKind):
+            raise TypeError("kind must be a BroadcastKind")
+        if not isinstance(self.ethernet_broadcast, bool):
+            raise TypeError("ethernet_broadcast must be a bool")
+
+
 @dataclass(frozen=True, slots=True)
 class MacAddress:
     """Canonical, immutable 48-bit MAC address value.
@@ -168,6 +193,7 @@ class PacketObservation:
     source: ObservationSource = ObservationSource.PACKET_CAPTURE
     arp: ArpObservation | None = None
     dns: DnsObservation | None = None
+    broadcast: BroadcastObservation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.interface_id, str):
@@ -223,6 +249,15 @@ class PacketObservation:
                 raise ValueError("dns details require an IP network layer")
             if self.arp is not None:
                 raise ValueError("a packet cannot contain both ARP and DNS details")
+        if self.broadcast is not None:
+            if not isinstance(self.broadcast, BroadcastObservation):
+                raise TypeError("broadcast must be a BroadcastObservation or None")
+            if self.link_layer is not LinkLayerProtocol.ETHERNET:
+                raise ValueError("broadcast classification requires Ethernet")
+            if (self.broadcast.kind is BroadcastKind.ARP) != (
+                self.network_layer is NetworkLayerProtocol.ARP
+            ):
+                raise ValueError("ARP classification must match the network layer")
 
         object.__setattr__(self, "interface_id", interface_id)
         object.__setattr__(self, "network_fingerprint", fingerprint)
@@ -236,6 +271,8 @@ class PacketObservation:
 __all__ = (
     "ArpObservation",
     "ArpOpcode",
+    "BroadcastKind",
+    "BroadcastObservation",
     "LinkLayerProtocol",
     "MacAddress",
     "MAX_CAPTURED_PACKET_BYTES",

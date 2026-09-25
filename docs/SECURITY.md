@@ -118,6 +118,14 @@ worker'ını durdurmaz; mevcut bounded malformed sayacı ve sanitize diagnostic 
 izole edilir. Parser paket göndermez, ARP keşfi/poisoning yapmaz ve gözlemden
 saldırı kararı üretmez.
 
+NS-035 Ethernet/IPv4 broadcast sınıflandırması da aynı pasif capture callback'i
+içinde yapılır. Header türü/adresi doğrulanır; bozuk frame mevcut malformed
+sayacı ve sanitized diagnostic ile atlanır. Portable sonuç yalnızca tekil
+kategori ve L2 broadcast bayrağı taşır; frame, adres/payload, Scapy nesnesi
+veya ek kalıcı kayıt taşımaz. Directed broadcast yalnızca seçili güncel
+`NetworkContext.subnet` için tanınır. Bu sınıflandırma saldırı hükmü veya
+otomatik capture başlatma davranışı oluşturmaz.
+
 NS-030 DNS parser'ı yalnızca açıkça seçilmiş capture filtresinde görülen klasik
 UDP/TCP port 53 ve ayrı sınıflandırılan mDNS port 5353 mesajlarını işler.
 Transaction ID, endpoint, sınırlı soru ve A/AAAA/CNAME/PTR cevap metadata'sı

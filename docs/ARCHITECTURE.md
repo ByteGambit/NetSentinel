@@ -121,6 +121,14 @@ Event'ler `OPENED`, `UPDATED`, `CLOSED` grupları halinde ve her grup içinde ka
 - `ArpObservation`: opcode, sender/target IP ve MAC bilgileri.
 - `DnsObservation`: transaction ID, yön, soru ve normalize edilmiş cevap kayıtları.
 - `BroadcastObservation`: L2/L3 broadcast türü ve sayaç sınıflandırması.
+- NS-035 `BroadcastObservation`, mevcut `PacketObservation.broadcast` alanında
+  Ethernet frame'i başına tek bir sınıf taşır: ARP, L2 broadcast, IPv4 limited/
+  seçili subnet'e directed broadcast, multicast veya unicast. ARP frame'i L2
+  broadcast olsa da sayaç sınıfı yalnızca ARP'dir; ek `ethernet_broadcast`
+  bayrağı gözlemi açıklar fakat ayrı bir sayım anlamına gelmez. Sınıflandırıcı
+  Scapy callback'inde mevcut ARP/DNS parser'larının yanında çalışır; aynı
+  bounded queue, interface, network fingerprint ve UTC zamanını kullanır.
+  Oran/baseline/detector/dashboard bu aşamada yoktur.
 - `VlanObservation`: 802.1Q VLAN ID, öncelik alanları ve kapsüllenmiş protokol bilgisi.
 
 Ham Scapy paketleri domain/application sınırını geçmez ve varsayılan olarak kalıcılaştırılmaz.
