@@ -126,6 +126,15 @@ veya ek kalıcı kayıt taşımaz. Directed broadcast yalnızca seçili güncel
 `NetworkContext.subnet` için tanınır. Bu sınıflandırma saldırı hükmü veya
 otomatik capture başlatma davranışı oluşturmaz.
 
+NS-036, aynı açıkça başlatılmış capture consumer'ında yalnızca NS-035'in portable
+ARP/broadcast sınıfını sayar. Bellekte fingerprint/interface kapsamında en fazla
+64 context ve context başına 60 bucket tutulur; 600 saniye gözlemsiz context
+temizlenir. Snapshot yalnızca aggregate paket sayısı/oranı, baseline öğrenme
+özeti ve capture queue kaybı/güven durumunu taşır. Source MAC/IP listesi, raw
+frame/payload, credential veya DNS içerikleri tutulmaz; SQLite'a yazılmaz.
+Kayıplı capture ölçüm güvenini düşürür. Öğrenilmiş baseline ve yüksek oran,
+tek başına saldırı hükmü değildir; NS-036 alert üretmez.
+
 NS-030 DNS parser'ı yalnızca açıkça seçilmiş capture filtresinde görülen klasik
 UDP/TCP port 53 ve ayrı sınıflandırılan mDNS port 5353 mesajlarını işler.
 Transaction ID, endpoint, sınırlı soru ve A/AAAA/CNAME/PTR cevap metadata'sı

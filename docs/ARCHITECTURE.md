@@ -128,10 +128,45 @@ Event'ler `OPENED`, `UPDATED`, `CLOSED` grupları halinde ve her grup içinde ka
   bayrağı gözlemi açıklar fakat ayrı bir sayım anlamına gelmez. Sınıflandırıcı
   Scapy callback'inde mevcut ARP/DNS parser'larının yanında çalışır; aynı
   bounded queue, interface, network fingerprint ve UTC zamanını kullanır.
-  Oran/baseline/detector/dashboard bu aşamada yoktur.
+  NS-036 bu portable sınıfı mevcut consumer içinde oran/baseline servisine verir;
+  detector ve dashboard sonraki tasklardadır.
 - `VlanObservation`: 802.1Q VLAN ID, öncelik alanları ve kapsüllenmiş protokol bilgisi.
 
 Ham Scapy paketleri domain/application sınırını geçmez ve varsayılan olarak kalıcılaştırılmaz.
+
+### NS-036 rolling broadcast/ARP metriği
+
+`TrafficMetricsService` mevcut tek pasif capture consumer'ında senkron çalışır.
+Yalnızca `PacketObservation.broadcast.kind` değerini okur: `ARP` ayrı sayaçtır;
+Ethernet, IPv4 limited ve seçili subnet'e directed broadcast tek broadcast
+sayacıdır. Multicast/unicast dışarıda kalır. Consumer filtresi ARP, Ethernet/IP
+broadcast ve mevcut DNS history etkinse port 53 trafiğini kapsar. BPF'nin
+yakalayamadığı trafik sayılmaz; ölçüm tüm LAN trafiğini temsil etmez.
+
+Scope, network fingerprint + case-insensitive interface ID + interface index'tir.
+Varsayılan 60 saniyelik rolling pencere, monotonic saatten türetilen 60 adet
+birer saniyelik bucket içerir. Bucket `[n, n+1)` sınırına sahiptir; `n+60`
+anında eski bucket çıkar. Paket/saniye `penceredeki paket / 60` olur; ilk,
+seyrek ve boş dönemde de payda tam penceredir. UTC packet zamanı yalnızca
+observation metadata'sıdır; eski UTC zamanı rolling state'i geriye götürmez.
+
+Baseline her protokol için ayrı, ilk health/gözlem tick'inden başlayan tam ve
+kayıpsız 60 saniyelik pencereler üzerinden öğrenilir. Varsayılan üç pencerenin
+en az ikisi dolu ve toplamda en az
+üç paket varsa median pencere oranı `learned` olur. Bir packet baseline kurmaz.
+Öğrenilen değer 600 saniye observation gelmeyip scope silinene kadar sabittir;
+sonraki burst referansı hemen yükseltmez. Bu öğrenme yalnızca ölçüm referansıdır,
+saldırı/normal davranış hükmü değildir. SQLite, alert ve GUI değişimi yoktur.
+
+Capture health'in cumulative `dropped_observations` farkı aynı scope'un
+rolling bucket'ına yazılır. Kayıp varsa `MeasurementConfidence.REDUCED` olur ve
+ilgili tamamlanmış pencere baseline'a alınmaz. İlk health okuması mevcut kaybı
+konservatif olarak o scope'a bağlar; context switch'te yeni cursor kurulur.
+Varsayılan en fazla 64 scope ve scope başına 60 bucket tutulur; önce 600 saniye
+idle scope'lar, sonra en eski gözlenen scope (eşitlikte scope key) tahliye edilir.
+Uzun zaman sıçraması yalnızca mevcut bucket'ları temizler. Sonuç immutable,
+aggregate `TrafficMetricsSnapshot` değeridir; ham paket, payload, kaynak adres
+listesi, worker, socket veya yeni queue taşımaz.
 
 ### Cihaz ve ağ kimliği
 

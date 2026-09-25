@@ -391,6 +391,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-036 — Rolling broadcast/ARP metrikleri ve baseline
 
+- **Durum:** ✅ Tamamlandı (2026-09-25)
 - **Amaç:** Interface/context/protokol başına sınırlı zaman pencerelerinde paket oranı ölçmek.
 - **Yapılacaklar:** Bucket tabanlı rolling counter, paket/saniye ve baseline özeti ekle; context warm-up, idle expiry ve clock davranışını tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/traffic_metrics.py`, `src/netsentinel/application/services/baselines.py`, `tests/unit/application/test_traffic_metrics.py`.

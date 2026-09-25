@@ -129,8 +129,9 @@
 
 **Tasklar:** NS-035–NS-038
 
-**Durum:** NS-035 tamamlandı; sınıflandırma mevcut pasif capture observation'ına
-bağlandı. Rolling metrikler, yoğunluk alert'i ve dashboard NS-036–NS-038'de.
+**Durum:** NS-035 ve NS-036 tamamlandı; sınıflandırma ve bounded bellek içi
+rolling ARP/broadcast oranları mevcut pasif consumer'a bağlandı. Yoğunluk
+alert'i ve dashboard NS-037–NS-038'de.
 
 ## M8 — Device Security
 

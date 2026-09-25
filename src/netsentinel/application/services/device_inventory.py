@@ -20,6 +20,7 @@ from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.dns import DnsTrackingService
 from netsentinel.application.services.dns_history import DnsHistoryWriter
+from netsentinel.application.services.traffic_metrics import TrafficMetricsService, TrafficMetricsSnapshot
 from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
@@ -58,6 +59,7 @@ class DeviceInventorySnapshot:
     arp_assessments: tuple[ArpRiskAssessment, ...] = ()
     dns_persisted_count: int = 0
     dns_writer_available: bool = True
+    traffic_metrics: TrafficMetricsSnapshot | None = None
 
 
 class DeviceInventoryService:
@@ -76,6 +78,7 @@ class DeviceInventoryService:
         alerts: AlertService | None = None,
         dns_writer: DnsHistoryWriter | None = None,
         dns_tracking: DnsTrackingService | None = None,
+        traffic_metrics: TrafficMetricsService | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
@@ -88,6 +91,7 @@ class DeviceInventoryService:
         self._alerts = alerts
         self._dns_writer = dns_writer
         self._dns_tracking = dns_tracking or DnsTrackingService()
+        self._traffic_metrics = traffic_metrics or TrafficMetricsService()
         if self._dns_writer is not None:
             self._dns_writer.start()
         self._selected: str | None = None
@@ -113,6 +117,7 @@ class DeviceInventoryService:
         if selected not in by_fingerprint:
             selected = next(iter(by_fingerprint), None)
         context = by_fingerprint.get(selected)
+        observation_failed = False
         health = self._capture.health_snapshot()
         if health.running and health.network_fingerprint != selected:
             self._capture.stop(timeout=1.0)
@@ -120,8 +125,16 @@ class DeviceInventoryService:
         if stop_capture:
             self._capture.stop(timeout=1.0)
         elif start_capture and context is not None:
-            self._capture.start(PacketCaptureRequest(context, "arp or port 53" if self._dns_writer is not None else "arp"))
+            capture_filter = "arp or ether broadcast or ip broadcast"
+            if self._dns_writer is not None:
+                capture_filter += " or port 53"
+            self._capture.start(PacketCaptureRequest(context, capture_filter))
         health = self._capture.health_snapshot()
+        if context is not None and health.running:
+            try:
+                self._traffic_metrics.record_capture_health(context, health)
+            except Exception:
+                observation_failed = True
         if context is not None and not health.running and health.capability.reason is CaptureCapabilityReason.NOT_PROBED:
             self._capture.probe(context)
             health = self._capture.health_snapshot()
@@ -129,7 +142,6 @@ class DeviceInventoryService:
         events: list[NewDeviceDetected] = []
         identity_events: list[ArpIdentityConflictDetected] = []
         assessments: list[ArpRiskAssessment] = []
-        observation_failed = False
         alert_failed = False
         if context is not None and health.state is CaptureState.RUNNING:
             try:
@@ -141,6 +153,10 @@ class DeviceInventoryService:
                         continue
                     if not belongs_to_context:
                         continue
+                    try:
+                        self._traffic_metrics.observe(context, observation)
+                    except Exception:
+                        observation_failed = True
                     if self._dns_writer is not None and observation.dns is not None:
                         try:
                             for transaction in self._dns_tracking.observe(observation):
@@ -190,6 +206,11 @@ class DeviceInventoryService:
                         observation_failed = True
             except Exception:
                 observation_failed = True
+            try:
+                health = self._capture.health_snapshot()
+                self._traffic_metrics.record_capture_health(context, health)
+            except Exception:
+                observation_failed = True
         if self._dns_writer is not None:
             try:
                 for transaction in self._dns_tracking.expire():
@@ -214,11 +235,18 @@ class DeviceInventoryService:
         problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
                    DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else DeviceInventoryProblem.NONE)
         dns_health = self._dns_writer.health_snapshot() if self._dns_writer is not None else None
+        try:
+            traffic_snapshot = self._traffic_metrics.snapshot(context)
+        except Exception:
+            traffic_snapshot = None
+            observation_failed = True
+            problem = DeviceInventoryProblem.OBSERVATION_UNAVAILABLE
         return DeviceInventorySnapshot(
             contexts, selected, entries, health, problem,
             tuple(events), tuple(identity_events), tuple(assessments),
             dns_health.persisted if dns_health is not None else 0,
             dns_health.running if dns_health is not None else True,
+            traffic_snapshot,
         )
 
     def close(self) -> bool:
