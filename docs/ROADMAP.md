@@ -129,9 +129,9 @@
 
 **Tasklar:** NS-035–NS-038
 
-**Durum:** NS-035 ve NS-036 tamamlandı; sınıflandırma ve bounded bellek içi
-rolling ARP/broadcast oranları mevcut pasif consumer'a bağlandı. Yoğunluk
-alert'i ve dashboard NS-037–NS-038'de.
+**Durum:** NS-035–NS-037 tamamlandı; sınıflandırma, bounded rolling oran/baseline
+ve açıklanabilir yoğunluk alert'i mevcut pasif consumer'a bağlandı. Dashboard ve
+M7 yük testi NS-038'de.
 
 ## M8 — Device Security
 

@@ -255,6 +255,12 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   gateway kimliğinin doğrulanması veya saldırı kanıtı değildir. Yalnızca
   confidence/severity geçişi veya 120 saniye aralığı yeni bildirim üretir.
   Alert saklama süresi/temizliği bu task kapsamında tanımlanmaz.
+- NS-037 yoğunluk kararı yalnızca NS-036'nın öğrenilmiş ARP/broadcast baseline'ı
+  ve aggregate rolling oranlarıyla verilir. Öğrenme ve ölçüm kalitesi bilinmeyen
+  durumlarda karar yoktur; capture queue kaybı confidence'ı düşürür ve kayıplı
+  ölçüm recovery sayılmaz. Ani oran artışı saldırı veya DoS kanıtı değildir.
+  Alert evidence'ı bounded pencere/sayaç/eşik/kalite metadata'sıyla sınırlıdır;
+  raw frame, packet payload, kaynak listesi veya credential tutulmaz.
 - NS-029 Alerts ekranı yalnızca bu kalıcı, bounded kanıt özetlerini gösterir.
   Eski/yeni MAC ile ağ bağlamını açıklar; tek gözlemden kesin saldırı veya
   trafik ele geçirilmesi sonucu çıkarmaz. Onay, kullanıcı inceleme durumudur;

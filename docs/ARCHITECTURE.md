@@ -168,6 +168,28 @@ Uzun zaman sıçraması yalnızca mevcut bucket'ları temizler. Sonuç immutable
 aggregate `TrafficMetricsSnapshot` değeridir; ham paket, payload, kaynak adres
 listesi, worker, socket veya yeni queue taşımaz.
 
+### NS-037 broadcast/ARP yoğunluk detector'ı
+
+`TrafficRateDetector`, aynı consumer'ın NS-036 `TrafficMetricsSnapshot` çıktısını
+alır; packet parse etmez ve ikinci rolling counter/baseline tutmaz. Öğrenilmiş
+ARP ve broadcast referanslarını ayrı değerlendirir. Varsayılan tetik koşulu,
+ilgili mutlak paket/saniye eşiğinin (broadcast 5, ARP 2) ve baseline'ın 3 katının
+üstündeki orandır. Tam pencere boyunca eşit aralıklı üç yüksek snapshot gerekir;
+tek kısa burst böylece doğrulanmaz. Aktif sinyalde 120 saniyelik cooldown ve
+tetik eşiğinin yarısına iki ayrı temiz ölçümle dönüş, sırasıyla tekrar yazımını
+sınırlar ve recovery üretir. `UNKNOWN` kalite ve öğrenme durumu karar üretmez;
+`REDUCED` kalite alert güvenini `low` yapar ve recovery için kullanılmaz.
+Tetik eşiğinin iki katını aşan doğrulanmış oran `medium`, diğer tetikler `low`
+severity alır; kayıpsız ölçümün confidence değeri `moderate` olur.
+
+State network fingerprint + normalize interface ID + index + protocol için
+bellekte tutulur; en fazla 128 kayıt, 600 saniye idle expiry ve deterministik
+tahliye vardır. UTC duplicate/eski snapshot state'i ilerletmez; monotonic saat
+confirmation/cooldown içindir. Portable karar, mevcut `AlertService` üzerinden
+SQLite'a kaydedilir veya çözülür. Fingerprint kural ve scope için sabittir;
+evidence yalnızca bounded aggregate oran/sayaç, baseline, eşik, pencere ve kalite
+bilgilerini içerir. Bu anomali saldırı hükmü değildir. Yeni worker/queue/GUI yoktur.
+
 ### Cihaz ve ağ kimliği
 
 - `DeviceIdentity`: kararlı dahili ID, gözlenen MAC/IP kümeleri, ilk/son görülme ve kullanıcı profili referansı.

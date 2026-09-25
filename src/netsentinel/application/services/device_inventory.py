@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Callable
+from datetime import UTC, datetime
 from enum import Enum
 
 from netsentinel.application.detectors.new_device import NewDeviceDetector
 from netsentinel.application.detectors.arp_identity import GatewayMacChangeDetector, IpMacConflictDetector
 from netsentinel.application.detectors.arp_anomaly import ArpAnomalyCorrelator
+from netsentinel.application.detectors.traffic_rate import TrafficRateDetector
 from netsentinel.application.ports import (
     DeviceRepository,
     NetworkContextPermissionDenied,
@@ -22,6 +25,7 @@ from netsentinel.application.services.dns import DnsTrackingService
 from netsentinel.application.services.dns_history import DnsHistoryWriter
 from netsentinel.application.services.traffic_metrics import TrafficMetricsService, TrafficMetricsSnapshot
 from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
+from netsentinel.domain.alerts import alert_id
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
 
@@ -79,6 +83,8 @@ class DeviceInventoryService:
         dns_writer: DnsHistoryWriter | None = None,
         dns_tracking: DnsTrackingService | None = None,
         traffic_metrics: TrafficMetricsService | None = None,
+        traffic_detector: TrafficRateDetector | None = None,
+        traffic_observed_clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
@@ -92,6 +98,8 @@ class DeviceInventoryService:
         self._dns_writer = dns_writer
         self._dns_tracking = dns_tracking or DnsTrackingService()
         self._traffic_metrics = traffic_metrics or TrafficMetricsService()
+        self._traffic_detector = traffic_detector or TrafficRateDetector()
+        self._traffic_observed_clock = traffic_observed_clock or (lambda: datetime.now(UTC))
         if self._dns_writer is not None:
             self._dns_writer.start()
         self._selected: str | None = None
@@ -241,6 +249,22 @@ class DeviceInventoryService:
             traffic_snapshot = None
             observation_failed = True
             problem = DeviceInventoryProblem.OBSERVATION_UNAVAILABLE
+        if traffic_snapshot is not None and health.state is CaptureState.RUNNING and self._alerts is not None:
+            try:
+                decisions = self._traffic_detector.assess(traffic_snapshot, self._traffic_observed_clock())
+                for decision in decisions:
+                    try:
+                        if decision.candidate is not None:
+                            self._alerts.record(decision.candidate)
+                        elif decision.resolved_fingerprint is not None:
+                            self._alerts.resolve(alert_id(decision.resolved_fingerprint))
+                    except Exception:
+                        alert_failed = True
+                        self._traffic_detector.retry_after_alert_failure(decision)
+            except Exception:
+                observation_failed = True
+        problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
+                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else problem)
         return DeviceInventorySnapshot(
             contexts, selected, entries, health, problem,
             tuple(events), tuple(identity_events), tuple(assessments),

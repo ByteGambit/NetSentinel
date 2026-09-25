@@ -401,6 +401,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-037 — Broadcast/ARP yoğunluk detector'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-25)
 - **Amaç:** Mutlak eşik ve öğrenilmiş baseline sapmasını kullanarak anormal yoğunluk alert'i üretmek.
 - **Yapılacaklar:** Yapılandırılabilir threshold, minimum örnek, hysteresis, cooldown ve recovery kuralı ekle; evidence'a pencere/sayaç/baseline değerlerini koy.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/detectors/traffic_rate.py`, `src/netsentinel/shared/config.py`, `tests/unit/application/detectors/test_traffic_rate.py`.

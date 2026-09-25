@@ -182,4 +182,12 @@ interface kimliği/index'i başına bellek içi baseline, en az üç tamamlanmı
 pencere ve iki dolu pencere/üç gözlemden sonra median oranı öğrenir; idle expiry'ye
 kadar sabit tutar. Capture queue kaybı ölçüm güvenini azaltır ve kayıplı pencere
 öğrenilmez. Bu baseline bir saldırı veya normal trafik garantisi değildir.
-Alert ve dashboard NS-037/NS-038 kapsamındadır.
+NS-036 metrik/baseline aşaması alert veya dashboard eklemez.
+
+NS-037, öğrenilmiş ağ/interface baseline'ı hazır olduğunda NS-036'nın 60 saniyelik
+ARP ve broadcast paket/saniye özetlerini ayrı kurallarla değerlendirir. Mutlak
+eşik ve baseline'ın 3 katı birlikte aşılmalı; üç yüksek örnek tam pencereye
+yayılmalıdır. Eşik altına kalıcı dönüş alert'i `resolved` yapar. Capture kaybı
+confidence'ı düşürür; kalite bilinmiyorsa karar verilmez. Bu sinyal saldırı kanıtı
+değildir. Yalnızca aggregate sayaç/eşik metadata'sı saklanır, raw paket/payload
+saklanmaz. Görsel metrik kartları NS-038 kapsamındadır.
