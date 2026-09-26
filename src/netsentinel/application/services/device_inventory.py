@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 
 from netsentinel.application.detectors.new_device import NewDeviceDetector
 from netsentinel.application.detectors.arp_identity import GatewayMacChangeDetector, IpMacConflictDetector
 from netsentinel.application.detectors.arp_anomaly import ArpAnomalyCorrelator
 from netsentinel.application.detectors.traffic_rate import TrafficRateDetector
+from netsentinel.application.detectors.device_identity import DeviceIdentityChangeDetector
 from netsentinel.application.ports import (
     DeviceRepository,
+    DeviceProfileRepository,
     NetworkContextPermissionDenied,
     NetworkContextProvider,
     PacketCapture,
@@ -67,6 +69,7 @@ class DeviceInventorySnapshot:
     traffic_metrics: TrafficMetricsSnapshot | None = None
     traffic_policy: TrafficRateConfig | None = None
     traffic_alert_changed: bool = False
+    identity_alert_changed: bool = False
 
 
 class DeviceInventoryService:
@@ -88,6 +91,7 @@ class DeviceInventoryService:
         traffic_metrics: TrafficMetricsService | None = None,
         traffic_detector: TrafficRateDetector | None = None,
         traffic_observed_clock: Callable[[], datetime] | None = None,
+        profiles: DeviceProfileRepository | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
@@ -103,6 +107,8 @@ class DeviceInventoryService:
         self._traffic_metrics = traffic_metrics or TrafficMetricsService()
         self._traffic_detector = traffic_detector or TrafficRateDetector()
         self._traffic_observed_clock = traffic_observed_clock or (lambda: datetime.now(UTC))
+        self._profiles = profiles
+        self._identity_detector = DeviceIdentityChangeDetector() if profiles is not None else None
         if self._dns_writer is not None:
             self._dns_writer.start()
         self._selected: str | None = None
@@ -154,6 +160,16 @@ class DeviceInventoryService:
         identity_events: list[ArpIdentityConflictDetected] = []
         assessments: list[ArpRiskAssessment] = []
         alert_failed = False
+        identity_alert_changed = False
+        profile_ready = False
+        if context is not None and health.state is CaptureState.RUNNING and self._profiles is not None:
+            try:
+                now = self._traffic_observed_clock()
+                rows = self._profiles.snapshot_for_network(context.fingerprint, now - timedelta(minutes=5))
+                self._identity_detector.replace_snapshot(context.fingerprint, rows, now)
+                profile_ready = True
+            except Exception:
+                observation_failed = True
         if context is not None and health.state is CaptureState.RUNNING:
             try:
                 for observation in self._capture.drain(min(CAPTURE_DRAIN_LIMIT, health.queue_capacity)):
@@ -182,7 +198,7 @@ class DeviceInventoryService:
                         conflict = None
                         observation_failed = True
                     try:
-                        event = self._detector.observe(context, observation)
+                        event, observed = self._detector.observe_with_state(context, observation)
                         if event is not None:
                             events.append(event)
                             if self._alerts is not None:
@@ -195,6 +211,21 @@ class DeviceInventoryService:
                             packet_events.append(conflict)
                     except Exception:
                         observation_failed = True
+                        observed = None
+                    if profile_ready and observed is not None:
+                        try:
+                            for candidate in self._identity_detector.observe(
+                                context, observed[0], observed[1], observation.observed_at
+                            ):
+                                if self._alerts is not None:
+                                    try:
+                                        self._alerts.record(candidate)
+                                        self._identity_detector.mark_persisted(candidate)
+                                        identity_alert_changed = True
+                                    except Exception:
+                                        alert_failed = True
+                        except Exception:
+                            observation_failed = True
                     if self._gateway_baseline is not None:
                         try:
                             gateway_event = self._gateway_changes.observe(context, observation)
@@ -279,6 +310,7 @@ class DeviceInventoryService:
             traffic_snapshot,
             self._traffic_detector.config,
             traffic_alert_changed,
+            identity_alert_changed,
         )
 
     def close(self) -> bool:

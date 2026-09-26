@@ -39,7 +39,7 @@ from netsentinel.infrastructure.sqlite import (
     SQLiteHistoryWriter,
 )
 from netsentinel.infrastructure.sqlite.repositories import (
-    SQLiteDeviceRepository, SQLiteGatewayBaselineRepository,
+    SQLiteDeviceRepository, SQLiteDeviceProfileRepository, SQLiteGatewayBaselineRepository,
 )
 from netsentinel.infrastructure.sqlite.alert_repository import SQLiteAlertRepository
 from netsentinel.infrastructure.sqlite.dns_repository import (
@@ -233,6 +233,7 @@ def create_device_inventory_service_factory(
             GatewayBaselineService(SQLiteGatewayBaselineRepository(database), contexts),
             AlertService(SQLiteAlertRepository(database)),
             dns_writer=create_dns_history_writer(database_path=database_path),
+            profiles=SQLiteDeviceProfileRepository(database),
         )
 
     return create_service

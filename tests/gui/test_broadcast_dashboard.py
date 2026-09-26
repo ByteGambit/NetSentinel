@@ -160,6 +160,8 @@ def test_alert_change_refreshes_existing_alerts_view_and_close_blocks_delivery(
     changed = replace(_snapshot(), traffic_alert_changed=True)
     window._on_device_snapshot_for_alerts(changed)
     assert refreshes
+    window._on_device_snapshot_for_alerts(replace(_snapshot(), identity_alert_changed=True))
+    assert len(refreshes) == 2
     assert dashboard.broadcast_rate_label.text() == "1.2 pkt/s"
     window.close()
     window._on_device_snapshot_for_alerts(_snapshot(broadcast_rate=9.0))

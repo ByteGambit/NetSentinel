@@ -925,6 +925,60 @@ class SQLiteDeviceProfileRepository:
         except (SQLiteAdapterError, sqlite3.Error) as error:
             raise DeviceProfileRepositoryError("Device profile could not be read.") from error
 
+    def snapshot_for_network(self, network_fingerprint: str, since: datetime) -> tuple[tuple[DeviceProfile, tuple[UUID, ...], tuple[IdentityBinding, ...]], ...]:
+        """One consistent, bounded read for the inventory consumer, never per packet."""
+        _check_fingerprint(network_fingerprint)
+        since_us = datetime_to_epoch_microseconds(since)
+        try:
+            with self._database.connection() as connection:
+                connection.execute("BEGIN")
+                rows = connection.execute(
+                    """SELECT * FROM device_profiles WHERE network_fingerprint = ?
+                       AND merged_into IS NULL ORDER BY id LIMIT 513""",
+                    (network_fingerprint,),
+                ).fetchall()
+                if len(rows) > 512:
+                    raise DeviceProfileRepositoryError("Device profile snapshot capacity exceeded.")
+                members = connection.execute(
+                    """SELECT m.profile_id, m.device_id FROM device_profile_members AS m
+                       JOIN device_profiles AS p ON p.id = m.profile_id
+                       WHERE p.network_fingerprint = ? AND p.merged_into IS NULL
+                       ORDER BY m.profile_id, m.device_id LIMIT 2049""",
+                    (network_fingerprint,),
+                ).fetchall()
+                if len(members) > 2048:
+                    raise DeviceProfileRepositoryError("Device profile membership capacity exceeded.")
+                by_profile: dict[UUID, list[UUID]] = {UUID(row["id"]): [] for row in rows}
+                for member in members:
+                    by_profile[UUID(member["profile_id"])].append(UUID(member["device_id"]))
+                bindings = connection.execute(
+                    """SELECT m.profile_id, b.*, d.network_fingerprint, d.mac
+                       FROM device_bindings AS b JOIN devices AS d ON d.id = b.device_id
+                       JOIN device_profile_members AS m ON m.device_id = d.id
+                       JOIN device_profiles AS p ON p.id = m.profile_id
+                       WHERE p.network_fingerprint = ? AND p.merged_into IS NULL
+                         AND b.last_seen_utc_us >= ?
+                       ORDER BY b.last_seen_utc_us DESC, b.id LIMIT 4097""",
+                    (network_fingerprint, since_us),
+                ).fetchall()
+                if len(bindings) > 4096:
+                    raise DeviceProfileRepositoryError("Recent device binding snapshot capacity exceeded.")
+                by_binding: dict[UUID, list[IdentityBinding]] = {UUID(row["id"]): [] for row in rows}
+                for binding in bindings:
+                    profile_bindings = by_binding[UUID(binding["profile_id"])]
+                    if len(profile_bindings) < 20:
+                        profile_bindings.append(_row_to_binding(binding))
+                snapshot = tuple(
+                    (_row_to_profile(row), tuple(by_profile[UUID(row["id"])]), tuple(by_binding[UUID(row["id"])]))
+                    for row in rows
+                )
+                connection.execute("COMMIT")
+                return snapshot
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, ValueError, KeyError) as error:
+            raise DeviceProfileRepositoryError("Device profile snapshot could not be read.") from error
+
     def update(self, profile: DeviceProfile) -> DeviceProfile:
         if not isinstance(profile, DeviceProfile):
             raise TypeError("profile must be DeviceProfile")

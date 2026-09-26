@@ -27,12 +27,18 @@ RULE_TITLES = {
     "gateway_mac_change": "Gateway MAC differs from expected baseline",
     "new_device": "New device observed",
     "dns_server_set_change": "DNS server configuration changed",
+    "device_mac_identity_change": "Device MAC differs from saved identity",
+    "device_identity_context_mismatch": "Device seen at another profile's expected IP",
+    "device_ip_churn": "Device IP addresses changed repeatedly",
 }
 RULE_EXPLANATIONS = {
     "ip_mac_conflict": "A different sender MAC was observed for an IP recently associated with another MAC. Normal network changes can also cause this signal.",
     "gateway_mac_change": "A gateway sender MAC differs from the stored expected baseline. Review the network and baseline context before drawing conclusions.",
     "new_device": "A device identity was first observed after the initial learning period. Its trust has not been verified.",
     "dns_server_set_change": "The Windows DNS server set changed after repeated consistent readings. Review the previous and current configuration; this alone does not imply an attack.",
+    "device_mac_identity_change": "A passive MAC observation differs from a user-saved expectation. Review recent bindings and possible address randomization; this is not proof of spoofing.",
+    "device_identity_context_mismatch": "A saved MAC appeared at an IP expected for another profile in this network. DHCP reassignment may explain it.",
+    "device_ip_churn": "A saved MAC used three distinct unexpected IPs within five minutes. DHCP and interface changes can explain this low-severity signal.",
 }
 SCORE_EXPLANATIONS = {
     "identity_conflict": "Identity conflict",

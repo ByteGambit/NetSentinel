@@ -129,6 +129,29 @@ def test_placeholder_empty_single_multiple_details_and_no_duplicates(qtbot):
         assert coordinator.stop()
 
 
+def test_device_identity_rule_filter_and_confidence_basis_are_visible(qtbot):
+    repo, coordinator, view = setup(qtbot)
+    try:
+        event = AlertCandidate(
+            "f" * 64, "device_mac_identity_change", "a" * 64,
+            "00000000-0000-0000-0000-000000000001", "low", "low",
+            AlertEvidence(T0, "192.0.2.20", MacAddress("02:11:22:33:44:66"),
+                          MacAddress("00:11:22:33:44:55"),
+                          details=(("confidence_basis", "single_passive_observation"),)),
+        )
+        AlertService(repo, clock=lambda: T0 + timedelta(days=1)).record(event)
+        index = view.rule_filter.findData(event.rule_id)
+        assert index >= 0
+        view.rule_filter.setCurrentIndex(index)
+        qtbot.waitUntil(lambda: not view._loading and view.model.rowCount() == 1)
+        view.table.selectRow(0)
+        assert "saved identity" in view.details.values["type"].text()
+        assert "single passive observation" in view.details.evidence.toPlainText()
+        assert "not proof" in view.details.explanation.text()
+    finally:
+        assert coordinator.stop()
+
+
 def test_filters_page_boundary_selection_and_ack_restart(qtbot):
     repo = Repository()
     alerts = AlertService(repo, clock=lambda: T0 + timedelta(days=1))

@@ -10,7 +10,7 @@ from uuid import UUID
 
 from netsentinel.application.services.devices import DeviceRegistryService
 from netsentinel.domain.alerts import NewDeviceDetected
-from netsentinel.domain.devices import NetworkContext
+from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.domain.observations import PacketObservation
 
 
@@ -68,7 +68,13 @@ class NewDeviceDetector:
     def observe(
         self, context: NetworkContext, observation: PacketObservation
     ) -> NewDeviceDetected | None:
-        """Persist a valid sender and emit once if its scope is past warm-up.
+        event, _ = self.observe_with_state(context, observation)
+        return event
+
+    def observe_with_state(
+        self, context: NetworkContext, observation: PacketObservation
+    ) -> tuple[NewDeviceDetected | None, tuple[DeviceIdentity, IdentityBinding] | None]:
+        """Persist a sender and return both NS-023 event and observed registry state.
 
         Invalid, non-ARP, non-device, or stale-context observations never
         produce an event. Typed registry/repository failures propagate without
@@ -91,11 +97,11 @@ class NewDeviceDetector:
 
         result = self._registry.observe(context, observation)
         if result is None:
-            return None
+            return None, None
 
         device, binding = result
         if device.device_id in state.known_ids:
-            return None
+            return None, result
 
         # A failed write never arrives here; accepted sender is now durable.
         state.known_ids.add(device.device_id)
@@ -104,12 +110,12 @@ class NewDeviceDetector:
             if state.warmup_started_at is None:
                 state.warmup_started_at = now
             if now - state.warmup_started_at < self._config.warmup_seconds:
-                return None
+                return None, result
             state.needs_warmup = False
 
         return NewDeviceDetected(
             device=device, binding=binding, observed_at=observation.observed_at
-        )
+        ), result
 
 
 __all__ = ("NewDeviceConfig", "NewDeviceDetector")

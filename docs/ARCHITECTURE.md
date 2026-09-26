@@ -1084,6 +1084,36 @@ metni veya açık güven durumu atomik olarak reddedilir. Kaynak profil
 `merged_into` alias'ı olarak okunabilir kalır, observed cihaz/binding geçmişi
 silinmez. Bu işlem güvenlik kararı, alert veya capture davranışı üretmez.
 
+### NS-040 cihaz kimliği sapması
+
+Mevcut inventory worker, açıkça başlatılmış pasif capture sırasında seçili
+fingerprint için aktif profil/membership ve son beş dakikalık observed binding
+snapshot'ını refresh başına tek SQLite okumasıyla alır. Snapshot en çok 512
+profil, 2048 üye ve 4096 yakın binding ile sınırlıdır; detector her profil için
+en çok 20 yakın binding ve toplam 512 sinyal durumu tutar. Kullanıcı update/merge
+sonraki refresh'te görünür; beklenen kimlik veya trust değişimi eski detector
+durumunu geçersiz kılar. Etiket/not alert fingerprint'ine girmez. Kaynak veri
+NS-039 repository'sidir; snapshot ikinci kalıcı profil deposu değildir.
+
+`DeviceIdentityChangeDetector`, NS-023'ün tek registry yazısından dönen observed
+cihaz/binding'i kullanır. Profil üyesinin MAC'i beklenen kümenin dışındaysa veya
+beklenen IP'de yeni MAC görülürse `device_mac_identity_change` adayı üretir.
+Beklenen MAC başka profil için ayrılmış IP'de görülürse düşük güvenli
+`device_identity_context_mismatch` sinyali üretir. Beklenen MAC'in aynı ağda
+beş dakikada üç farklı beklenmeyen IP'ye bağlanması düşük önemli
+`device_ip_churn` sinyalidir; tek DHCP yenilemesi değildir. Boş beklenen liste,
+başka fingerprint, eski/out-of-order observation ve eski binding karşılaştırma
+dayanağı olmaz. Yakın beklenen binding MAC sinyalinin confidence gerekçesidir;
+locally administered yeni MAC severity'yi yükseltmez. Bu kurallar saldırı
+atfetmez ve güven durumunu değiştirmez.
+
+Çıktı mevcut `AlertCandidate -> AlertService -> AlertRepository` hattına gider.
+Fingerprint kural, profil UUID'si, ağ fingerprint'i ve ilgili beklenmeyen
+kimlikten türetilir; zaman, etiket ve not içermez. Yazma başarısızlığında
+detector sinyali teslim edildi saymaz; sonraki observation ile yeniden dener.
+Hata registry/capture/DNS akışından izole edilir. Ek worker, queue, migration,
+GUI profil düzenleyici veya packet payload yoktur.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

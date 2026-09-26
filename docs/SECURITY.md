@@ -232,6 +232,14 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   içinde reddedilir, eski profil alias olarak saklanır. Profil verisi raw
   packet, payload, secret, process veya DNS içeriği taşımaz. Bu adımlar capture
   başlatmaz ve güven/kimlik sapması alert'i üretmez.
+- NS-040 beklenen MAC/IP ve trust değerlerini yalnızca kullanıcıya ait beklenti
+  olarak okur; pasif gözlem bu alanları, etiketi, notu veya trust değişim zamanını
+  yazmaz. Ağ fingerprint'i dışındaki profiller karşılaştırılmaz. Tek DHCP IP
+  yenilemesi alert üretmez; locally administered MAC tek başına malicious
+  sayılmaz. Beklenmeyen kimlik veya IP churn şüpheli gözlem sinyalidir, kesin
+  spoofing/saldırı kanıtı değildir. Alert yalnızca kısa profil etiketi/UUID,
+  canonical MAC/IP, ağ bağlamı, güven gerekçesi ve UTC zamanı saklar. Kullanıcı
+  notu, ham ARP paket/frame ve payload alert'e veya detector state'ine kopyalanmaz.
 - NS-023 yeni cihaz olayı yalnızca warm-up sonrasında ilk kez gözlenen network
   fingerprint + MAC kimliği için bilgi amaçlıdır. İlk envanter import'u alert
   üretmez; restart'ta bilinen cihazlar repository'den yüklenir. Pasif ARP

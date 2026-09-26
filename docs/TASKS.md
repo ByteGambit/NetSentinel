@@ -435,6 +435,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-040 — Device identity change detector'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Bilinen cihaz profilinin beklenen MAC/IP davranışından şüpheli sapmaları tespit etmek.
 - **Yapılacaklar:** Beklenmeyen MAC, aynı MAC'in uygunsuz context'te görünmesi ve IP churn kurallarını ekle; DHCP toleransı ve locally administered MAC davranışını tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/detectors/device_identity.py`, `src/netsentinel/application/services/devices.py`, `tests/unit/application/detectors/test_device_identity.py`.

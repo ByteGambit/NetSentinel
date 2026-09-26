@@ -190,7 +190,7 @@ class MainWindow(QMainWindow):
         if snapshot.dns_persisted_count > self._dns_persisted_count:
             self._dns_persisted_count = snapshot.dns_persisted_count
             dns.refresh()
-        if snapshot.new_devices or snapshot.arp_assessments or snapshot.traffic_alert_changed:
+        if snapshot.new_devices or snapshot.arp_assessments or snapshot.traffic_alert_changed or snapshot.identity_alert_changed:
             alerts.refresh()
 
     def bind_engine_bridge(self, bridge: QtEngineBridge) -> bool:

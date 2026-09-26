@@ -137,7 +137,7 @@ işaretli sentetik yük testi queue, kalite ve kapanma sınırlarını doğrular
 
 ## M8 — Device Security
 
-**Durum:** NS-039 tamamlandı (2026-09-26); NS-040–NS-042 bekliyor.
+**Durum:** NS-039–NS-040 tamamlandı (2026-09-26); NS-041–NS-042 bekliyor.
 
 **Amaç:** Bilinen cihaz profilleri ile gözlenen ağ kimliği arasındaki şüpheli değişimleri tespit etmek.
 

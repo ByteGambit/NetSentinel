@@ -144,6 +144,25 @@ def test_merge_links_devices_and_preserves_source_profile_and_bindings(tmp_path)
         reopened.delete(target.profile_id)
 
 
+def test_active_profile_snapshot_scopes_members_and_recent_history_after_merge(tmp_path):
+    _, observations, profiles = repositories(tmp_path)
+    first_device = observed(observations)
+    second_device = observed(observations, MAC_B, "192.168.1.30")
+    first = profiles.create(first_device.device_id, profile(label="", note="", trust=DeviceTrust.UNKNOWN))
+    second = profiles.create(second_device.device_id, profile(label="", note="", trust=DeviceTrust.UNKNOWN,
+                                                               macs=(MAC_B,), ips=("192.168.1.30",)))
+    merged = profiles.merge_devices(first_device.device_id, second_device.device_id, T0 + timedelta(seconds=1))
+    rows = profiles.snapshot_for_network(FP, T0 - timedelta(seconds=1))
+    assert len(rows) == 1
+    active, members, bindings = rows[0]
+    assert active == merged and active.profile_id == first.profile_id
+    assert set(members) == {first_device.device_id, second_device.device_id}
+    assert {item.device_id for item in bindings} == set(members)
+    assert profiles.get(second.profile_id).merged_into == first.profile_id
+    assert profiles.snapshot_for_network("b" * 64, T0 - timedelta(seconds=1)) == ()
+    assert profiles.snapshot_for_network(FP, T0 + timedelta(seconds=2))[0][2] == ()
+
+
 def test_conflicting_or_cross_network_merge_is_atomic(tmp_path):
     _, observations, profiles = repositories(tmp_path)
     a = observed(observations)

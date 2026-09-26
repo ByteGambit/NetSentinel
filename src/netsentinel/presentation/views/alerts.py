@@ -99,7 +99,8 @@ class AlertDetailsWidget(QGroupBox):
             for part in evidence.breakdown:
                 lines.append(f"  {SCORE_EXPLANATIONS.get(part.rule.value, part.rule.value)}: {part.points}")
             for key, value in evidence.details:
-                lines.append(f"  {key.replace('_', ' ')}: {value}")
+                display_value = value.replace("_", " ") if key == "confidence_basis" else value
+                lines.append(f"  {key.replace('_', ' ')}: {display_value}")
         self.evidence.setPlainText("\n".join(lines))
 
 
