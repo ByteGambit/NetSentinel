@@ -425,6 +425,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-039 — Device profile ve trust persistence
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Kullanıcının cihazı adlandırmasını, beklenen kimlikleri ve güven durumunu ağ gözleminden ayrı saklamak.
 - **Yapılacaklar:** `DeviceProfile`, trust enum, not/label sınırları, migration/repository ve merge kuralları ekle; kullanıcı verisi ile observed state'i ayır.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/domain/devices.py`, `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `src/netsentinel/infrastructure/sqlite/repositories.py`, `tests/integration/sqlite/test_device_profiles.py`.

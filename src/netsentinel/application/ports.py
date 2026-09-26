@@ -20,7 +20,7 @@ from netsentinel.domain.connections import (
     TransportProtocol,
 )
 from netsentinel.domain.devices import (
-    DeviceIdentity, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
+    DeviceIdentity, DeviceProfile, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
 from netsentinel.domain.observations import PacketObservation
 from netsentinel.domain.dns import (
@@ -225,6 +225,29 @@ class DeviceRepository(Protocol):
 
     def latest_binding_for_ip(self, network_fingerprint: str, ip_address: str) -> IdentityBinding | None:
         """Return the most recently observed sender binding for one scoped IPv4 address."""
+
+
+class DeviceProfileRepositoryError(RuntimeError):
+    """Sanitized user-profile storage failure."""
+
+
+class DeviceProfileDataCorrupt(DeviceProfileRepositoryError):
+    """Persisted profile violates the portable model."""
+
+
+class DeviceProfileMergeConflict(DeviceProfileRepositoryError):
+    """Two explicit user annotations cannot be merged without losing meaning."""
+
+
+class DeviceProfileRepository(Protocol):
+    """User-owned profiles and their observed-device links, separate from ARP writes."""
+
+    def create(self, device_id: UUID, profile: DeviceProfile) -> DeviceProfile: ...
+    def get(self, profile_id: UUID) -> DeviceProfile | None: ...
+    def get_for_device(self, device_id: UUID) -> DeviceProfile | None: ...
+    def update(self, profile: DeviceProfile) -> DeviceProfile: ...
+    def delete(self, profile_id: UUID) -> bool: ...
+    def merge_devices(self, target_device_id: UUID, source_device_id: UUID, at: datetime) -> DeviceProfile: ...
 
 
 class GatewayBaselineRepositoryError(RuntimeError):
@@ -536,6 +559,10 @@ __all__ = (
     "AlertRepositoryError",
     "MAX_ALERT_QUERY_LIMIT",
     "DeviceDataCorrupt",
+    "DeviceProfileDataCorrupt",
+    "DeviceProfileMergeConflict",
+    "DeviceProfileRepository",
+    "DeviceProfileRepositoryError",
     "DeviceRepository",
     "DeviceRepositoryError",
     "GatewayBaselineRepository",

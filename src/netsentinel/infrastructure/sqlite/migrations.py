@@ -135,6 +135,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="dns_history",
             sql=_read_resource("006_dns_history.sql", 6, "dns_history"),
         ),
+        Migration(
+            version=7,
+            name="device_profiles",
+            sql=_read_resource("007_device_profiles.sql", 7, "device_profiles"),
+        ),
     )
 
 

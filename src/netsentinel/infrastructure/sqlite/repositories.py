@@ -6,12 +6,16 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
+import json
 import sqlite3
 from uuid import UUID, uuid4
 
 from netsentinel.application.ports import (
     ConnectionHistoryQuery,
     DeviceDataCorrupt,
+    DeviceProfileDataCorrupt,
+    DeviceProfileMergeConflict,
+    DeviceProfileRepositoryError,
     DeviceRepositoryError,
     GatewayBaselineDataCorrupt,
     GatewayBaselineRepositoryError,
@@ -23,7 +27,7 @@ from netsentinel.application.ports import (
     HistoryStorageDiagnostics,
 )
 from netsentinel.domain.devices import (
-    DeviceIdentity, GatewayBaseline, GatewayBaselineChange, GatewayBaselineStatus,
+    DeviceIdentity, DeviceProfile, DeviceTrust, GatewayBaseline, GatewayBaselineChange, GatewayBaselineStatus,
     IdentityBinding,
 )
 from netsentinel.domain.observations import MacAddress
@@ -865,6 +869,232 @@ class SQLiteDeviceRepository:
             raise DeviceRepositoryError("IP binding could not be read.") from error
 
 
+class SQLiteDeviceProfileRepository:
+    """Short transactional user edits; observed device rows remain untouched."""
+
+    def __init__(self, database: SQLiteDatabase) -> None:
+        if not isinstance(database, SQLiteDatabase):
+            raise TypeError("database must be SQLiteDatabase")
+        self._database = database
+
+    def create(self, device_id: UUID, profile: DeviceProfile) -> DeviceProfile:
+        _profile_args(device_id, profile)
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                _require_device_scope(connection, device_id, profile.network_fingerprint)
+                if connection.execute("SELECT 1 FROM device_profile_members WHERE device_id = ?", (str(device_id),)).fetchone():
+                    raise DeviceProfileMergeConflict("Device already has a profile.")
+                connection.execute(
+                    """INSERT INTO device_profiles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    _profile_values(profile),
+                )
+                connection.execute(
+                    "INSERT INTO device_profile_members (device_id, profile_id) VALUES (?, ?)",
+                    (str(device_id), str(profile.profile_id)),
+                )
+                return profile
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise DeviceProfileRepositoryError("Device profile could not be created.") from error
+
+    def get(self, profile_id: UUID) -> DeviceProfile | None:
+        _require_uuid(profile_id, "profile_id")
+        try:
+            with self._database.connection() as connection:
+                row = connection.execute("SELECT * FROM device_profiles WHERE id = ?", (str(profile_id),)).fetchone()
+                return _row_to_profile(row) if row is not None else None
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise DeviceProfileRepositoryError("Device profile could not be read.") from error
+
+    def get_for_device(self, device_id: UUID) -> DeviceProfile | None:
+        _require_uuid(device_id, "device_id")
+        try:
+            with self._database.connection() as connection:
+                row = connection.execute(
+                    """SELECT p.* FROM device_profile_members AS m
+                       JOIN device_profiles AS p ON p.id = m.profile_id
+                       WHERE m.device_id = ?""",
+                    (str(device_id),),
+                ).fetchone()
+                return _row_to_profile(row) if row is not None else None
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise DeviceProfileRepositoryError("Device profile could not be read.") from error
+
+    def update(self, profile: DeviceProfile) -> DeviceProfile:
+        if not isinstance(profile, DeviceProfile):
+            raise TypeError("profile must be DeviceProfile")
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                row = connection.execute("SELECT * FROM device_profiles WHERE id = ?", (str(profile.profile_id),)).fetchone()
+                if row is None:
+                    raise DeviceProfileRepositoryError("Device profile does not exist.")
+                old = _row_to_profile(row)
+                if old.merged_into is not None or profile.merged_into is not None:
+                    raise DeviceProfileMergeConflict("Merged profiles cannot be edited.")
+                if profile.network_fingerprint != old.network_fingerprint or profile.created_at != old.created_at:
+                    raise DeviceProfileMergeConflict("Profile identity cannot change.")
+                if profile.updated_at < old.updated_at:
+                    raise DeviceProfileMergeConflict("Stale profile update was rejected.")
+                if profile.updated_at == old.updated_at:
+                    if profile == old:
+                        return old
+                    raise DeviceProfileMergeConflict("Conflicting profile update timestamp.")
+                if profile.trust != old.trust:
+                    if profile.trust_changed_at != profile.updated_at:
+                        raise DeviceProfileMergeConflict("Trust change time must equal update time.")
+                elif profile.trust_changed_at != old.trust_changed_at:
+                    raise DeviceProfileMergeConflict("Unchanged trust must preserve its change time.")
+                connection.execute(
+                    """UPDATE device_profiles SET label = ?, note = ?, trust = ?,
+                       updated_at_utc_us = ?, trust_changed_at_utc_us = ?,
+                       expected_macs_json = ?, expected_ips_json = ? WHERE id = ?""",
+                    (_profile_values(profile)[2], _profile_values(profile)[3], profile.trust.value,
+                     datetime_to_epoch_microseconds(profile.updated_at),
+                     _optional_profile_time(profile.trust_changed_at),
+                     _profile_values(profile)[8], _profile_values(profile)[9], str(profile.profile_id)),
+                )
+                return profile
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise DeviceProfileRepositoryError("Device profile could not be updated.") from error
+
+    def delete(self, profile_id: UUID) -> bool:
+        _require_uuid(profile_id, "profile_id")
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                row = connection.execute("SELECT * FROM device_profiles WHERE id = ?", (str(profile_id),)).fetchone()
+                if row is None:
+                    return False
+                if row["merged_into"] is not None or connection.execute(
+                    "SELECT 1 FROM device_profiles WHERE merged_into = ?", (str(profile_id),)
+                ).fetchone():
+                    raise DeviceProfileMergeConflict("Merged profile history must be preserved.")
+                connection.execute("DELETE FROM device_profile_members WHERE profile_id = ?", (str(profile_id),))
+                connection.execute("DELETE FROM device_profiles WHERE id = ?", (str(profile_id),))
+                return True
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise DeviceProfileRepositoryError("Device profile could not be deleted.") from error
+
+    def merge_devices(self, target_device_id: UUID, source_device_id: UUID, at: datetime) -> DeviceProfile:
+        _require_uuid(target_device_id, "target_device_id")
+        _require_uuid(source_device_id, "source_device_id")
+        at_us = datetime_to_epoch_microseconds(at)
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                target_row = _profile_for_device_row(connection, target_device_id)
+                if target_row is None:
+                    raise DeviceProfileRepositoryError("Target device needs a profile.")
+                target = _row_to_profile(target_row)
+                _require_device_scope(connection, source_device_id, target.network_fingerprint)
+                source_row = _profile_for_device_row(connection, source_device_id)
+                if source_row is None:
+                    connection.execute("INSERT INTO device_profile_members VALUES (?, ?)", (str(source_device_id), str(target.profile_id)))
+                    return target
+                source = _row_to_profile(source_row)
+                if source.profile_id == target.profile_id:
+                    return target
+                if source.merged_into is not None or target.merged_into is not None:
+                    raise DeviceProfileMergeConflict("Merged profiles cannot be merged again.")
+                if source.network_fingerprint != target.network_fingerprint:
+                    raise DeviceProfileDataCorrupt("Persisted profile scope is inconsistent.")
+                if at_us < datetime_to_epoch_microseconds(max(source.updated_at, target.updated_at)):
+                    raise DeviceProfileMergeConflict("Merge time cannot precede profile updates.")
+                if (source.label and target.label and source.label != target.label) or (source.note and target.note and source.note != target.note):
+                    raise DeviceProfileMergeConflict("Conflicting user text must be resolved before merge.")
+                if source.trust is not DeviceTrust.UNKNOWN and target.trust is not DeviceTrust.UNKNOWN and source.trust != target.trust:
+                    raise DeviceProfileMergeConflict("Conflicting trust must be resolved before merge.")
+                trust = target.trust if target.trust is not DeviceTrust.UNKNOWN else source.trust
+                changed = target.trust_changed_at if trust == target.trust else at
+                macs = tuple(sorted(set((*target.expected_macs, *source.expected_macs)), key=str))
+                ips = tuple(sorted(set((*target.expected_ips, *source.expected_ips)), key=lambda ip: int(IPv4Address(ip))))
+                if len(macs) > 32 or len(ips) > 32:
+                    raise DeviceProfileMergeConflict("Expected identity capacity would be exceeded.")
+                merged = DeviceProfile(
+                    target.profile_id, target.network_fingerprint, target.label or source.label,
+                    target.note or source.note, trust, target.created_at, at,
+                    changed, macs, ips,
+                )
+                values = _profile_values(merged)
+                connection.execute(
+                    """UPDATE device_profiles SET label = ?, note = ?, trust = ?, updated_at_utc_us = ?,
+                       trust_changed_at_utc_us = ?, expected_macs_json = ?, expected_ips_json = ? WHERE id = ?""",
+                    (values[2], values[3], values[4], values[6], values[7], values[8], values[9], values[0]),
+                )
+                connection.execute("UPDATE device_profile_members SET profile_id = ? WHERE profile_id = ?", (str(target.profile_id), str(source.profile_id)))
+                connection.execute("UPDATE device_profiles SET merged_into = ? WHERE id = ?", (str(target.profile_id), str(source.profile_id)))
+                return merged
+        except DeviceProfileRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error) as error:
+            raise DeviceProfileRepositoryError("Device profiles could not be merged.") from error
+
+
+def _require_uuid(value: UUID, name: str) -> None:
+    if not isinstance(value, UUID):
+        raise TypeError(f"{name} must be UUID")
+
+
+def _profile_args(device_id: UUID, profile: DeviceProfile) -> None:
+    _require_uuid(device_id, "device_id")
+    if not isinstance(profile, DeviceProfile) or profile.merged_into is not None:
+        raise ValueError("profile must be an active DeviceProfile")
+
+
+def _optional_profile_time(value: datetime | None) -> int | None:
+    return datetime_to_epoch_microseconds(value) if value is not None else None
+
+
+def _profile_values(profile: DeviceProfile) -> tuple[object, ...]:
+    return (
+        str(profile.profile_id), profile.network_fingerprint, profile.label, profile.note,
+        profile.trust.value, datetime_to_epoch_microseconds(profile.created_at),
+        datetime_to_epoch_microseconds(profile.updated_at), _optional_profile_time(profile.trust_changed_at),
+        json.dumps([str(mac) for mac in profile.expected_macs], separators=(",", ":")),
+        json.dumps(list(profile.expected_ips), separators=(",", ":")),
+        str(profile.merged_into) if profile.merged_into else None,
+    )
+
+
+def _row_to_profile(row: sqlite3.Row) -> DeviceProfile:
+    try:
+        macs = json.loads(row["expected_macs_json"])
+        ips = json.loads(row["expected_ips_json"])
+        if not isinstance(macs, list) or not isinstance(ips, list):
+            raise ValueError("invalid expected identities")
+        return DeviceProfile(
+            profile_id=UUID(row["id"]), network_fingerprint=row["network_fingerprint"],
+            label=row["label"], note=row["note"], trust=DeviceTrust(row["trust"]),
+            created_at=epoch_microseconds_to_datetime(row["created_at_utc_us"]),
+            updated_at=epoch_microseconds_to_datetime(row["updated_at_utc_us"]),
+            trust_changed_at=epoch_microseconds_to_datetime(row["trust_changed_at_utc_us"]) if row["trust_changed_at_utc_us"] is not None else None,
+            expected_macs=tuple(MacAddress(mac) for mac in macs), expected_ips=tuple(ips),
+            merged_into=UUID(row["merged_into"]) if row["merged_into"] else None,
+        )
+    except (AttributeError, KeyError, IndexError, TypeError, ValueError, OverflowError, UnicodeError) as error:
+        raise DeviceProfileDataCorrupt("Persisted device profile is invalid.") from error
+
+
+def _require_device_scope(connection: sqlite3.Connection, device_id: UUID, fingerprint: str) -> None:
+    row = connection.execute("SELECT network_fingerprint FROM devices WHERE id = ?", (str(device_id),)).fetchone()
+    if row is None or row[0] != fingerprint:
+        raise DeviceProfileMergeConflict("Device is missing or belongs to another network.")
+
+
+def _profile_for_device_row(connection: sqlite3.Connection, device_id: UUID) -> sqlite3.Row | None:
+    return connection.execute(
+        """SELECT p.* FROM device_profile_members AS m JOIN device_profiles AS p ON p.id = m.profile_id
+           WHERE m.device_id = ?""", (str(device_id),),
+    ).fetchone()
+
+
 def _row_to_device(row: sqlite3.Row) -> DeviceIdentity:
     try:
         device = DeviceIdentity(
@@ -1058,6 +1288,7 @@ def _row_to_gateway_change(row: sqlite3.Row) -> GatewayBaselineChange:
 
 __all__ = (
     "SQLiteDeviceRepository",
+    "SQLiteDeviceProfileRepository",
     "SQLiteGatewayBaselineRepository",
     "SQLiteConnectionHistoryRepository",
     "SQLiteHistoryRetentionRepository",

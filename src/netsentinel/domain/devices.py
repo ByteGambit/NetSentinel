@@ -219,6 +219,76 @@ class DeviceIdentity:
         object.__setattr__(self, "device_id", uuid5(_DEVICE_NAMESPACE, f"{fingerprint}:{self.mac}"))
 
 
+class DeviceTrust(str, Enum):
+    """Explicit user annotation; passive observations never change it."""
+
+    UNKNOWN = "unknown"
+    TRUSTED = "trusted"
+    UNTRUSTED = "untrusted"
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceProfile:
+    """User-owned metadata independent of observed MAC/IP binding state."""
+
+    profile_id: UUID
+    network_fingerprint: str
+    label: str
+    note: str
+    trust: DeviceTrust
+    created_at: datetime
+    updated_at: datetime
+    trust_changed_at: datetime | None = None
+    expected_macs: tuple[MacAddress, ...] = ()
+    expected_ips: tuple[str, ...] = ()
+    merged_into: UUID | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.profile_id, UUID):
+            raise TypeError("profile_id must be a UUID")
+        object.__setattr__(self, "network_fingerprint", _require_fingerprint(self.network_fingerprint))
+        for name, maximum in (("label", 128), ("note", 1024)):
+            value = getattr(self, name)
+            if not isinstance(value, str):
+                raise TypeError(f"{name} must be a string")
+            value = value.strip()
+            if len(value) > maximum or any(ord(char) < 32 and char not in "\n\t" for char in value):
+                raise ValueError(f"{name} is invalid or exceeds {maximum} characters")
+            if name == "label" and any(char in "\n\t" for char in value):
+                raise ValueError("label must be a single line")
+            object.__setattr__(self, name, value)
+        if not isinstance(self.trust, DeviceTrust):
+            raise TypeError("trust must be DeviceTrust")
+        created = _require_utc(self.created_at, "created_at")
+        updated = _require_utc(self.updated_at, "updated_at")
+        if updated < created:
+            raise ValueError("updated_at cannot precede created_at")
+        changed = self.trust_changed_at
+        if changed is not None:
+            changed = _require_utc(changed, "trust_changed_at")
+            if not created <= changed <= updated:
+                raise ValueError("trust_changed_at is outside profile lifetime")
+        if self.trust is not DeviceTrust.UNKNOWN and changed is None:
+            raise ValueError("explicit trust requires trust_changed_at")
+        if not isinstance(self.expected_macs, tuple) or len(self.expected_macs) > 32:
+            raise ValueError("expected_macs must be a tuple of at most 32 addresses")
+        if not isinstance(self.expected_ips, tuple) or len(self.expected_ips) > 32:
+            raise ValueError("expected_ips must be a tuple of at most 32 addresses")
+        macs = set()
+        for mac in self.expected_macs:
+            if not isinstance(mac, MacAddress) or mac.is_zero or mac.is_multicast or mac.is_broadcast:
+                raise ValueError("expected_macs must contain unicast MacAddress values")
+            macs.add(mac)
+        ips = {_canonical_ipv4(ip, "expected_ips item") for ip in self.expected_ips}
+        object.__setattr__(self, "expected_macs", tuple(sorted(macs, key=str)))
+        object.__setattr__(self, "expected_ips", tuple(sorted(ips, key=lambda ip: int(IPv4Address(ip)))))
+        object.__setattr__(self, "created_at", created)
+        object.__setattr__(self, "updated_at", updated)
+        object.__setattr__(self, "trust_changed_at", changed)
+        if self.merged_into is not None and (not isinstance(self.merged_into, UUID) or self.merged_into == self.profile_id):
+            raise ValueError("merged_into must identify another profile")
+
+
 @dataclass(frozen=True, slots=True)
 class IdentityBinding:
     """Observed sender IP/MAC pair and its first/last observation times."""
@@ -321,6 +391,8 @@ class GatewayBaselineChange:
 
 __all__ = (
     "DeviceIdentity",
+    "DeviceProfile",
+    "DeviceTrust",
     "GatewayBaseline",
     "GatewayBaselineChange",
     "GatewayBaselineStatus",

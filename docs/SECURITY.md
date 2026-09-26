@@ -224,6 +224,14 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - NS-022 cihaz tabloları yalnızca network fingerprint, canonical sender MAC/IP ve
   ilk/son UTC görülme zamanlarını saklar. ARP target, raw frame, payload ve Scapy
   nesnesi kalıcılaştırılmaz. Cihaz/binding state'i saldırı veya güven kararı değildir.
+- NS-039 kullanıcı profilleri ayrı SQLite tablolarında etiket (en çok 128
+  karakter), not (en çok 1024 karakter), açık güven durumu/zamanı ve en çok
+  32'şer beklenen canonical MAC/IPv4 kimliği saklar. Bunlar hassas kullanıcı
+  girdileridir; pasif ARP gözlemi profili oluşturmaz veya değiştirmez. Merge
+  aynı ağ fingerprint'iyle sınırlıdır; çelişen kullanıcı değerleri transaction
+  içinde reddedilir, eski profil alias olarak saklanır. Profil verisi raw
+  packet, payload, secret, process veya DNS içeriği taşımaz. Bu adımlar capture
+  başlatmaz ve güven/kimlik sapması alert'i üretmez.
 - NS-023 yeni cihaz olayı yalnızca warm-up sonrasında ilk kez gözlenen network
   fingerprint + MAC kimliği için bilgi amaçlıdır. İlk envanter import'u alert
   üretmez; restart'ta bilinen cihazlar repository'den yüklenir. Pasif ARP

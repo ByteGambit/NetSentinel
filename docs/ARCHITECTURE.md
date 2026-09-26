@@ -1060,6 +1060,30 @@ Envanter snapshot'ındaki yeni cihaz veya risk assessment çıktısı yalnızca
 yenileme tetikler; GUI detector veya puanlama yapmaz. Kanıt en son sekiz portable
 özet olarak, yerel saat ve düz metinle sunulur; raw paket taşınmaz.
 
+### NS-039 kullanıcı cihaz profili
+
+`DeviceProfile`, gözlenen `DeviceIdentity` ve `IdentityBinding` kayıtlarından
+ayrı immutable kullanıcı verisidir. Ağ fingerprint'i ile scope edilir; kararlı
+profil UUID'si bir veya daha çok gözlenen cihaz UUID'sine
+`device_profile_members` üzerinden bağlanır. Profil etiketini (128 karakter),
+notunu (1024 karakter), açık `unknown/trusted/untrusted` durumunu, son güven
+değişimi UTC zamanını ve en çok 32'şer beklenen canonical MAC/IPv4 kimliğini
+taşır. Beklenen kimlikler gözlemden otomatik türetilmez. `DeviceProfileRepository`
+application portunu `SQLiteDeviceProfileRepository` uygular; SQL ve bağlantı
+yalnızca infrastructure içindedir.
+
+Migration 007, profil ve membership tablolarını mevcut migration manifest'ine
+ekler. Kullanıcıya ait create/update/delete/merge komutları kısa transaction
+ve çağrıya ait SQLite bağlantısı kullanır. NS-022 `record_binding` yalnızca
+observed tablolarına yazar; profil alanlarını değiştirmez. Update eski UTC
+timestamp ile state'i geri götürmez, eşit zamanda farklı içerik reddedilir;
+güven değişimi `trust_changed_at = updated_at` ile saklanır. Merge yalnızca
+aynı network fingerprint içindeki gözlenen cihazları birleştirir. Beklenen
+kimlik kümeleri birleşir; boş etiket/not tamamlanır; çelişen dolu kullanıcı
+metni veya açık güven durumu atomik olarak reddedilir. Kaynak profil
+`merged_into` alias'ı olarak okunabilir kalır, observed cihaz/binding geçmişi
+silinmez. Bu işlem güvenlik kararı, alert veya capture davranışı üretmez.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:
