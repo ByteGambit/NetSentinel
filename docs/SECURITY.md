@@ -155,6 +155,15 @@ broadcast ve multicast kaynak cihaz sayılmaz; locally administered unicast MAC
 pasif gözlenen kimlik olabilir. Cihaz kimliği yoksa cihaz tag değişimi atfedilmez.
 Aktif VLAN sorgulama, injection veya switch etkileşimi yoktur.
 
+NS-046 Dashboard, yalnızca seçili ağ/interface için kalıcı aggregate metadata
+gösterir. `learned` pasif referanstır; `verified`, kullanıcının gözlenen donmuş
+seti açıkça kabul etmesidir, switch konfigürasyonu veya kriptografik doğrulama
+değildir. Yeni VID uyarısı VLAN hopping kanıtı değildir. Untagged görünüm VLAN
+yokluğunu kanıtlamaz; NIC/driver offload ve capture filtresi tag'leri
+gizleyebilir. İç QinQ etiketi parse edilmez. Alert kanıtı VID, kapsam, sayım
+ve sınırlama ile bounded kalır; raw frame/payload saklanmaz. Uyarı yazma
+hatasında bounded bellek retry'si diğer pasif gözlem yollarını durdurmaz.
+
 NS-035 Ethernet/IPv4 broadcast sınıflandırması da aynı pasif capture callback'i
 içinde yapılır. Header türü/adresi doğrulanır; bozuk frame mevcut malformed
 sayacı ve sanitized diagnostic ile atlanır. Portable sonuç yalnızca tekil

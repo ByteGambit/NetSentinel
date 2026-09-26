@@ -26,6 +26,7 @@ class DeviceInventoryCoordinator(QObject):
         self._lock = RLock()
         self._thread: Thread | None = None
         self._accepting = False
+        self._desired_selection: str | None = None
 
     @property
     def worker_alive(self) -> bool:
@@ -57,6 +58,8 @@ class DeviceInventoryCoordinator(QObject):
                 self._commands.put_nowait((command, fingerprint))
             except Full:
                 return False
+            if command == "select":
+                self._desired_selection = fingerprint
             return True
 
     def stop(self, timeout: float = 3.5) -> bool:
@@ -103,7 +106,11 @@ class DeviceInventoryCoordinator(QObject):
                         start_capture=command == "capture_start",
                         stop_capture=command == "capture_stop",
                     )
-                    if not self._stop.is_set():
+                    with self._lock:
+                        stale = (self._desired_selection is not None
+                                 and any(item.fingerprint == self._desired_selection for item in snapshot.contexts)
+                                 and snapshot.selected_fingerprint != self._desired_selection)
+                    if not self._stop.is_set() and not stale:
                         self.snapshot_ready.emit(snapshot)
                 except Exception:
                     if not self._stop.is_set():

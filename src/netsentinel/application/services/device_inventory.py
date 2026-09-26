@@ -31,6 +31,7 @@ from netsentinel.application.services.vlan import VlanSummaryService
 from netsentinel.domain.alerts import AlertCandidate, ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
 from netsentinel.domain.alerts import alert_id
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
+from netsentinel.domain.vlan_summary import VlanSummarySnapshot
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
 from netsentinel.shared.config import TrafficRateConfig
 
@@ -73,6 +74,9 @@ class DeviceInventorySnapshot:
     traffic_alert_changed: bool = False
     identity_alert_changed: bool = False
     vlan_events: tuple[AlertCandidate, ...] = ()
+    vlan_summary: VlanSummarySnapshot | None = None
+    vlan_alert_changed: bool = False
+    vlan_summary_unavailable: bool = False
 
 
 class DeviceInventoryService:
@@ -115,6 +119,7 @@ class DeviceInventoryService:
         self._profiles = profiles
         self._vlan_summary = vlan_summary
         self._vlan_detector = (vlan_detector or VlanAnomalyDetector()) if vlan_summary is not None else None
+        self._pending_vlan_alerts: dict[str, AlertCandidate] = {}
         self._identity_detector = DeviceIdentityChangeDetector() if profiles is not None else None
         if self._dns_writer is not None:
             self._dns_writer.start()
@@ -281,6 +286,7 @@ class DeviceInventoryService:
 
         if context is None:
             return DeviceInventorySnapshot(contexts, None, (), health)
+        device_repository_failed = False
         try:
             entries = tuple(
                 DeviceInventoryEntry(
@@ -292,9 +298,12 @@ class DeviceInventoryService:
                 for device in self._registry.devices(context)
             )
         except Exception:
-            return DeviceInventorySnapshot(contexts, selected, (), health, DeviceInventoryProblem.REPOSITORY_UNAVAILABLE)
+            entries = ()
+            device_repository_failed = True
         problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
-                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else DeviceInventoryProblem.NONE)
+                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else
+                   DeviceInventoryProblem.REPOSITORY_UNAVAILABLE if device_repository_failed else
+                   DeviceInventoryProblem.NONE)
         dns_health = self._dns_writer.health_snapshot() if self._dns_writer is not None else None
         try:
             traffic_snapshot = self._traffic_metrics.snapshot(context)
@@ -320,7 +329,35 @@ class DeviceInventoryService:
             except Exception:
                 observation_failed = True
         problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
-                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else problem)
+                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else
+                   DeviceInventoryProblem.REPOSITORY_UNAVAILABLE if device_repository_failed else problem)
+        vlan_alert_changed = False
+        if self._alerts is not None:
+            for candidate in vlan_events:
+                # The detector may emit once per confirmation state. Keep an
+                # undelivered candidate until AlertService actually persists it.
+                if len(self._pending_vlan_alerts) >= 512 and candidate.fingerprint not in self._pending_vlan_alerts:
+                    self._pending_vlan_alerts.pop(next(iter(self._pending_vlan_alerts)))
+                self._pending_vlan_alerts[candidate.fingerprint] = candidate
+            for fingerprint, candidate in tuple(self._pending_vlan_alerts.items()):
+                try:
+                    self._alerts.record(candidate)
+                except Exception:
+                    alert_failed = True
+                else:
+                    del self._pending_vlan_alerts[fingerprint]
+                    vlan_alert_changed = True
+        vlan_snapshot = None
+        vlan_summary_unavailable = False
+        if self._vlan_summary is not None:
+            try:
+                vlan_snapshot = self._vlan_summary.get(context)
+            except Exception:
+                observation_failed = True
+                vlan_summary_unavailable = True
+        problem = (DeviceInventoryProblem.OBSERVATION_UNAVAILABLE if observation_failed else
+                   DeviceInventoryProblem.ALERT_UNAVAILABLE if alert_failed else
+                   DeviceInventoryProblem.REPOSITORY_UNAVAILABLE if device_repository_failed else problem)
         return DeviceInventorySnapshot(
             contexts, selected, entries, health, problem,
             tuple(events), tuple(identity_events), tuple(assessments),
@@ -331,6 +368,9 @@ class DeviceInventoryService:
             traffic_alert_changed,
             identity_alert_changed,
             tuple(vlan_events),
+            vlan_snapshot,
+            vlan_alert_changed,
+            vlan_summary_unavailable,
         )
 
     def close(self) -> bool:

@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QPlainTextEdit,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -21,6 +22,8 @@ from netsentinel.presentation.models.dashboard import (
     DashboardTrafficState,
     DashboardViewModel,
 )
+from netsentinel.presentation.models.vlan import VlanDashboardState, vlan_dashboard_state
+from netsentinel.application.services.device_inventory import DeviceInventorySnapshot
 
 
 class DashboardView(QWidget):
@@ -109,6 +112,40 @@ class DashboardView(QWidget):
         self.traffic_capture_label.setAccessibleName("Traffic capture status")
         traffic_layout.addWidget(self.traffic_capture_label, 9, 0, 1, 2)
 
+        vlan_frame = QFrame(self)
+        vlan_frame.setObjectName("dashboardVlanCard")
+        vlan_frame.setAccessibleName("Selected network VLAN observations")
+        vlan_frame.setStyleSheet(
+            "QFrame#dashboardVlanCard { background: #f8fafc; "
+            "border: 1px solid #d9e2ec; border-radius: 6px; }"
+        )
+        vlan_layout = QVBoxLayout(vlan_frame)
+        vlan_layout.setContentsMargins(16, 12, 16, 12)
+        vlan_title = QLabel("VLAN observations", vlan_frame)
+        vlan_title.setStyleSheet("font-size: 16px; font-weight: 600; color: #102a43;")
+        vlan_layout.addWidget(vlan_title)
+        self.vlan_labels = {}
+        for key, name in (("scope", "VLAN scope"), ("status", "VLAN observation status"),
+                          ("baseline", "VLAN baseline state"), ("observed", "Observed VLAN IDs"),
+                          ("reference", "Learned or verified reference IDs"),
+                          ("counts", "VLAN category counts"), ("times", "VLAN first and last seen"),
+                          ("visibility", "VLAN capture visibility limitation")):
+            label = QLabel(vlan_frame)
+            label.setObjectName(f"dashboardVlan_{key}")
+            label.setAccessibleName(name)
+            label.setTextFormat(Qt.TextFormat.PlainText)
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            vlan_layout.addWidget(label)
+            self.vlan_labels[key] = label
+        self.vlan_rows = QPlainTextEdit(vlan_frame)
+        self.vlan_rows.setObjectName("dashboardVlanRows")
+        self.vlan_rows.setAccessibleName("Observed VLAN ID counts and first and last seen")
+        self.vlan_rows.setReadOnly(True)
+        self.vlan_rows.setMaximumHeight(150)
+        vlan_layout.insertWidget(7, self.vlan_rows)
+        self.set_vlan_state(VlanDashboardState())
+
         health_frame = QFrame(self)
         health_frame.setObjectName("dashboardHealthCard")
         health_frame.setAccessibleName("Monitoring health summary")
@@ -183,6 +220,7 @@ class DashboardView(QWidget):
         layout.addWidget(self.subtitle_label)
         layout.addLayout(metrics_grid)
         layout.addWidget(traffic_frame)
+        layout.addWidget(vlan_frame)
         layout.addWidget(health_frame)
         layout.addStretch(1)
 
@@ -214,6 +252,15 @@ class DashboardView(QWidget):
         self.traffic_quality_label.setText(traffic.measurement)
         self.capture_drop_label.setText(traffic.dropped)
         self.traffic_capture_label.setText(traffic.capture)
+
+    def set_vlan_snapshot(self, inventory: DeviceInventorySnapshot) -> None:
+        self.set_vlan_state(vlan_dashboard_state(inventory))
+
+    def set_vlan_state(self, state: VlanDashboardState) -> None:
+        for key, label in self.vlan_labels.items():
+            label.setText(getattr(state, key))
+        if self.vlan_rows.toPlainText() != state.rows:
+            self.vlan_rows.setPlainText(state.rows)
 
     def _add_traffic_row(self, grid: QGridLayout, row: int, title: str, name: str) -> QLabel:
         caption = QLabel(title, self)

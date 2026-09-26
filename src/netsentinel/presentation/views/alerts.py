@@ -99,7 +99,14 @@ class AlertDetailsWidget(QGroupBox):
             for part in evidence.breakdown:
                 lines.append(f"  {SCORE_EXPLANATIONS.get(part.rule.value, part.rule.value)}: {part.points}")
             for key, value in evidence.details:
-                display_value = value.replace("_", " ") if key == "confidence_basis" else value
+                if key == "visibility" and value == "capture_filter_and_nic_offload_limited":
+                    display_value = "NIC/driver offload and capture filtering can hide VLAN tags."
+                elif key == "baseline" and value == "verified_observed":
+                    display_value = "User-accepted observed reference; switch configuration is not verified."
+                elif key == "confidence_basis":
+                    display_value = value.replace("_", " ")
+                else:
+                    display_value = value
                 lines.append(f"  {key.replace('_', ' ')}: {display_value}")
         self.evidence.setPlainText("\n".join(lines))
 

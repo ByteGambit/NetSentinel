@@ -499,6 +499,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-046 — VLAN görünümü, persistence ve M9 entegrasyonu
 
+- **Durum:** ✅ Tamamlandı (2026-09-27)
 - **Amaç:** VLAN özetlerini ve ilişkili alert'leri UI'da göstermek, parser-to-alert akışını doğrulamak.
 - **Yapılacaklar:** Dashboard/diagnostics VLAN bölümü, filtreli özet read model'i ve sentetik packet pipeline testi ekle; ayrı büyük ekran yerine mevcut görünümlere entegre et.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/models/vlan.py`, `src/netsentinel/presentation/views/dashboard.py`, `src/netsentinel/presentation/views/alerts.py`, `tests/integration/test_vlan_pipeline.py`.

@@ -30,6 +30,9 @@ RULE_TITLES = {
     "device_mac_identity_change": "Device MAC differs from saved identity",
     "device_identity_context_mismatch": "Device seen at another profile's expected IP",
     "device_ip_churn": "Device IP addresses changed repeatedly",
+    "vlan_previously_unobserved_vid": "Previously unobserved VLAN ID observed",
+    "vlan_device_tag_change": "Device VLAN tag behavior changed",
+    "vlan_unusual_diversity": "Short-term VLAN ID diversity observed",
 }
 RULE_EXPLANATIONS = {
     "ip_mac_conflict": "A different sender MAC was observed for an IP recently associated with another MAC. Normal network changes can also cause this signal.",
@@ -39,6 +42,9 @@ RULE_EXPLANATIONS = {
     "device_mac_identity_change": "A passive MAC observation differs from a user-saved expectation. Review recent bindings and possible address randomization; this is not proof of spoofing.",
     "device_identity_context_mismatch": "A saved MAC appeared at an IP expected for another profile in this network. DHCP reassignment may explain it.",
     "device_ip_churn": "A saved MAC used three distinct unexpected IPs within five minutes. DHCP and interface changes can explain this low-severity signal.",
+    "vlan_previously_unobserved_vid": "A VLAN ID outside the user-accepted observed reference appeared repeatedly. Capture visibility is limited; this is not proof of VLAN hopping.",
+    "vlan_device_tag_change": "A passively observed device used a different VLAN ID repeatedly. This does not establish switch configuration or intent.",
+    "vlan_unusual_diversity": "Several previously unobserved VLAN IDs appeared in a short window. Review the evidence and capture limitations.",
 }
 SCORE_EXPLANATIONS = {
     "identity_conflict": "Identity conflict",
@@ -50,6 +56,9 @@ SCORE_EXPLANATIONS = {
 
 def entity_text(alert: Alert) -> str:
     latest = alert.evidence[-1]
+    if alert.rule_id.startswith("vlan_"):
+        details = dict(latest.details)
+        return f"VID {details['vid']}" if "vid" in details else "Observed VLAN behavior"
     if latest.ip_address:
         return latest.ip_address
     if latest.observed_mac is not None:

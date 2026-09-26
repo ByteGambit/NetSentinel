@@ -190,6 +190,7 @@ class MainWindow(QMainWindow):
         dashboard = self.page_widget(PageId.DASHBOARD)
         assert isinstance(dashboard, DashboardView)
         dashboard.view_model.set_traffic_snapshot(snapshot)
+        dashboard.set_vlan_snapshot(snapshot)
         alerts = self.page_widget(PageId.ALERTS)
         assert isinstance(alerts, AlertsView)
         alerts.set_network_contexts(snapshot.contexts)
@@ -201,7 +202,8 @@ class MainWindow(QMainWindow):
         if snapshot.dns_persisted_count > self._dns_persisted_count:
             self._dns_persisted_count = snapshot.dns_persisted_count
             dns.refresh()
-        if snapshot.new_devices or snapshot.arp_assessments or snapshot.traffic_alert_changed or snapshot.identity_alert_changed:
+        if (snapshot.new_devices or snapshot.arp_assessments or snapshot.traffic_alert_changed
+                or snapshot.identity_alert_changed or snapshot.vlan_alert_changed):
             alerts.refresh()
 
     def bind_engine_bridge(self, bridge: QtEngineBridge) -> bool:

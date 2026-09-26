@@ -206,6 +206,16 @@ olarak inventory snapshot'ında taşınır; bu aşamada `AlertService`, alert
 persistence, GUI, yeni worker/queue veya recovery yoktur. NS-046 bu portable
 çıktının kalıcı alert ve görünüm entegrasyonunu üstlenir.
 
+NS-046, aynı inventory worker'ında üretilen portable adayları mevcut
+`AlertService.record` çağrısına verir. Yazma başarısızlığı VLAN aggregate'ini
+geri almaz; en çok 512 teslim edilmemiş aday aynı worker belleğinde sonraki
+inventory yenilemesinde yeniden denenir. Alert fingerprint ve durum yaşam
+döngüsü NS-028 repository'sinde kalır. Her inventory yenilemesinde yalnızca
+seçili network/interface özeti worker'da okunur ve portable snapshot ile Qt
+thread'ine taşınır; GUI SQLite çağırmaz. Dashboard bu scope'u gösterir,
+capture kapalıyken önceki gözlemleri belirtir. Alerts ekranı mevcut genel
+kanıt detayını ve NS-028 sorgu worker'ını kullanır.
+
 ### NS-036 rolling broadcast/ARP metriği
 
 `TrafficMetricsService` mevcut tek pasif capture consumer'ında senkron çalışır.
