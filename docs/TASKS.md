@@ -455,6 +455,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-042 — Device security uçtan uca ve false-positive testleri
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Profil, observation, detector, alert ve UI akışının normal ağ değişimlerinde gereksiz alarm üretmediğini doğrulamak.
 - **Yapılacaklar:** Senaryo fixture'ları, restart testi ve rule decision table oluştur; random MAC ve DHCP örneklerini kapsa; ürün/güvenlik belgelerini sınırlarla güncelle.
 - **Etkilenecek muhtemel dosyalar:** `tests/integration/test_device_security_pipeline.py`, `tests/fixtures/devices/`, `docs/PRODUCT.md`, `docs/SECURITY.md`.

@@ -246,6 +246,15 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   Save/Cancel ayrıdır; profil notu yalnızca seçili profil detayında gösterilir,
   alert'e ve tanılama kaydına taşınmaz. İşlemler yerel SQLite worker'ında
   yürür, pasif capture başlatmaz ve raw packet/payload saklamaz.
+- NS-042'nin sentetik senaryoları tek DHCP adres yenilemesinde MAC mismatch
+  veya yüksek önem alert'i oluşmadığını, üç farklı beklenmeyen IP'nin beş
+  dakikalık pencerede düşük önem churn sinyali ürettiğini doğrular. Beklenen
+  locally administered MAC normal kimliktir; yeni randomized/private MAC tek
+  başına saldırı hükmü veya önem yükseltme nedeni değildir. Aynı mantıksal
+  kimlik uyarısı uygulama yeniden kurulduğunda NS-028'in kalıcı fingerprint/UUID
+  kaydına birleşir. Alert'e kullanıcı notu, ham ARP frame'i veya payload
+  aktarılmaz. [Karar tablosu](DEVICE_SECURITY_DECISIONS.md) gözlem ile
+  kullanıcı beklentisinin ayrımını ve sinyal sınırlarını gösterir.
 - NS-023 yeni cihaz olayı yalnızca warm-up sonrasında ilk kez gözlenen network
   fingerprint + MAC kimliği için bilgi amaçlıdır. İlk envanter import'u alert
   üretmez; restart'ta bilinen cihazlar repository'den yüklenir. Pasif ARP

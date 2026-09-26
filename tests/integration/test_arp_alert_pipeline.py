@@ -151,7 +151,7 @@ def test_real_sqlite_alert_pages_and_restart_ack(tmp_path, qtbot):
         view.table.selectRow(0)
         view.acknowledge_button.click()
         qtbot.waitUntil(lambda: alerts.get(item.id).status is AlertStatus.ACKNOWLEDGED)
-        qtbot.waitUntil(lambda: not view._loading)
+        qtbot.waitUntil(lambda: view.model.alert_at(view.model.row_for_id(item.id)).status is AlertStatus.ACKNOWLEDGED)
         assert AlertService(SQLiteAlertRepository(database)).get(item.id).status is AlertStatus.ACKNOWLEDGED
         assert view.model.alert_at(view.model.row_for_id(item.id)).status is AlertStatus.ACKNOWLEDGED
     finally:

@@ -137,7 +137,7 @@ işaretli sentetik yük testi queue, kalite ve kapanma sınırlarını doğrular
 
 ## M8 — Device Security
 
-**Durum:** NS-039–NS-041 tamamlandı (2026-09-26); NS-042 bekliyor.
+**Durum:** ✅ Tamamlandı (NS-039–NS-042, 2026-09-26).
 
 **Amaç:** Bilinen cihaz profilleri ile gözlenen ağ kimliği arasındaki şüpheli değişimleri tespit etmek.
 
@@ -151,6 +151,11 @@ işaretli sentetik yük testi queue, kalite ve kapanma sınırlarını doğrular
 **Çıkış ölçütü:** Kullanıcı cihazı adlandırıp beklenen kimlikleri doğrulayabilir; beklenmeyen değişiklikler açıklanabilir alert üretir.
 
 **Tasklar:** NS-039–NS-042
+
+NS-042 sentetik device-identity karar matrisi, ARP → profil → detector → alert
+→ SQLite entegrasyonu, servis yeniden kurulumu ve offscreen profil/alert
+görünümüyle M8 çıkış ölçütünü doğruladı. Kural ve yanlış pozitif sınırları
+[karar tablosunda](DEVICE_SECURITY_DECISIONS.md) belgelenmiştir.
 
 ## M9 — VLAN Monitoring
 

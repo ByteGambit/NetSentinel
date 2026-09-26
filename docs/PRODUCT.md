@@ -90,6 +90,14 @@ Uygulama broadcast/ARP yoğunluğunu zaman pencereleri içinde ölçer; yakalana
 - **Yanlış pozitif farkındalığı:** Anomali bir saldırı kanıtı olarak değil, incelenmesi gereken sinyal olarak sunulur.
 - **Öğretici:** Protokol alanları ile çıkarımlar birbirinden ayrılır ve kullanıcıya anlaşılır bağlam verilir.
 
+M8 cihaz profili, gözlenen cihaz/binding geçmişinden ayrı kullanıcı verisidir.
+Beklenen MAC/IP listeleri ve `trusted` işareti yalnızca kullanıcının açık
+seçimidir; `trusted` kriptografik doğrulama veya cihazın güvenli olduğu anlamına
+gelmez. Tek bir normal DHCP IP yenilemesi veya randomized/locally administered
+MAC tek başına saldırı kanıtı değildir. Kimlik uyuşmazlığı uyarısı da kesin
+spoofing hükmü değildir. [NS-042 karar tablosu](DEVICE_SECURITY_DECISIONS.md)
+bu sınırları ve false-positive senaryolarını açıklar.
+
 ## Kapsam dışı özellikler
 
 İlk ana sürüm kapsamında şunlar yoktur:
