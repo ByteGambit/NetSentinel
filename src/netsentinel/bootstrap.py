@@ -14,6 +14,7 @@ from netsentinel.application.services.connections import (
 from netsentinel.application.services.device_inventory import DeviceInventoryService
 from netsentinel.application.services.device_profiles import DeviceProfileService
 from netsentinel.application.services.baselines import GatewayBaselineService
+from netsentinel.application.services.vlan import VlanSummaryService
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.dns_config import DnsConfigMonitoringService
 from netsentinel.application.services.dns_history import (
@@ -42,6 +43,7 @@ from netsentinel.infrastructure.sqlite import (
 from netsentinel.infrastructure.sqlite.repositories import (
     SQLiteDeviceRepository, SQLiteDeviceProfileRepository, SQLiteGatewayBaselineRepository,
 )
+from netsentinel.infrastructure.sqlite.vlan_repository import SQLiteVlanSummaryRepository
 from netsentinel.infrastructure.sqlite.alert_repository import SQLiteAlertRepository
 from netsentinel.infrastructure.sqlite.dns_repository import (
     SQLiteDnsHistoryRepository, SQLiteDnsHistorySessionFactory,
@@ -235,6 +237,7 @@ def create_device_inventory_service_factory(
             AlertService(SQLiteAlertRepository(database)),
             dns_writer=create_dns_history_writer(database_path=database_path),
             profiles=SQLiteDeviceProfileRepository(database),
+            vlan_summary=VlanSummaryService(SQLiteVlanSummaryRepository(database)),
         )
 
     return create_service

@@ -140,6 +140,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="device_profiles",
             sql=_read_resource("007_device_profiles.sql", 7, "device_profiles"),
         ),
+        Migration(
+            version=8,
+            name="vlan_summaries",
+            sql=_read_resource("008_vlan_summaries.sql", 8, "vlan_summaries"),
+        ),
     )
 
 

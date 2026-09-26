@@ -479,6 +479,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-044 — VLAN observation baseline ve özetler
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Network context/interface için görülen VLAN kimliklerinin bounded özetini ve öğrenme durumunu tutmak.
 - **Yapılacaklar:** VLAN baseline modeli/service/repository, first/last seen, count ve warm-up ekle; raw frame yerine aggregate sakla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/vlan.py`, `src/netsentinel/application/services/baselines.py`, `src/netsentinel/infrastructure/sqlite/schema/*.sql`, `tests/unit/application/test_vlan_baseline.py`.

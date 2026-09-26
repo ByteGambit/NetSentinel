@@ -26,6 +26,7 @@ from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.dns import DnsTrackingService
 from netsentinel.application.services.dns_history import DnsHistoryWriter
 from netsentinel.application.services.traffic_metrics import TrafficMetricsService, TrafficMetricsSnapshot
+from netsentinel.application.services.vlan import VlanSummaryService
 from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
 from netsentinel.domain.alerts import alert_id
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
@@ -92,6 +93,7 @@ class DeviceInventoryService:
         traffic_detector: TrafficRateDetector | None = None,
         traffic_observed_clock: Callable[[], datetime] | None = None,
         profiles: DeviceProfileRepository | None = None,
+        vlan_summary: VlanSummaryService | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
@@ -108,6 +110,7 @@ class DeviceInventoryService:
         self._traffic_detector = traffic_detector or TrafficRateDetector()
         self._traffic_observed_clock = traffic_observed_clock or (lambda: datetime.now(UTC))
         self._profiles = profiles
+        self._vlan_summary = vlan_summary
         self._identity_detector = DeviceIdentityChangeDetector() if profiles is not None else None
         if self._dns_writer is not None:
             self._dns_writer.start()
@@ -142,7 +145,7 @@ class DeviceInventoryService:
         if stop_capture:
             self._capture.stop(timeout=1.0)
         elif start_capture and context is not None:
-            capture_filter = "arp or ether broadcast or ip broadcast"
+            capture_filter = "arp or ether broadcast or ip broadcast or vlan"
             if self._dns_writer is not None:
                 capture_filter += " or port 53"
             self._capture.start(PacketCaptureRequest(context, capture_filter))
@@ -184,6 +187,11 @@ class DeviceInventoryService:
                         self._traffic_metrics.observe(context, observation)
                     except Exception:
                         observation_failed = True
+                    if self._vlan_summary is not None and observation.vlan is not None:
+                        try:
+                            self._vlan_summary.observe(context, observation)
+                        except Exception:
+                            observation_failed = True
                     if self._dns_writer is not None and observation.dns is not None:
                         try:
                             for transaction in self._dns_tracking.observe(observation):

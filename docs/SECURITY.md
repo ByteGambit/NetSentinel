@@ -127,6 +127,16 @@ etiket bulunmadığı anlamına gelmez: NIC/driver offload capture öncesi etike
 çıkarabilir; capture filtresi de tagged trafiği dışlayabilir. Bu parser ağ
 paketi göndermez, VLAN anomali kararı veya alert üretmez.
 
+NS-044 aynı portable `PacketObservation.vlan` bilgisinden ağ/interface kapsamlı
+aggregate üretir. SQLite'da yalnızca tür sayıları, normal dış VID için sınırlı
+count/ilk-son UTC zamanları ve pasif öğrenme durumu saklanır; frame, payload,
+iç QinQ etiketi ve kaynak cihaz kimliği saklanmaz. VID 0 priority tag ve
+VID 4095 reserved normal öğrenilmiş VLAN listesine alınmaz. Öğrenilen liste
+gözlenen davranıştır, güvenilir/eksiksiz ağ yapılandırması değildir. NIC/driver
+offload etiketi capture öncesi çıkarabilir; seçili BPF filtresi de görünürlüğü
+sınırlar. Bu yüzden `untagged` sayacı ağda VLAN olmadığını veya switch port
+modunu kanıtlamaz. Bu aşama alert veya aktif ağ işlemi üretmez.
+
 NS-035 Ethernet/IPv4 broadcast sınıflandırması da aynı pasif capture callback'i
 içinde yapılır. Header türü/adresi doğrulanır; bozuk frame mevcut malformed
 sayacı ve sanitized diagnostic ile atlanır. Portable sonuç yalnızca tekil

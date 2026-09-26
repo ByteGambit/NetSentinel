@@ -140,10 +140,37 @@ etikette VID 0 priority-only, 1–4094 normal, 4095 reserved olarak ayrılır.
 iç tag parse edilmez. Etiketli frame'ler, untagged EtherType varsayan mevcut
 ARP/DNS/broadcast parser'larına gönderilmez. Malformed tag mevcut capture
 malformed sayacı ve sanitized diagnostic yoluyla tek frame olarak düşürülür.
-Yeni worker, queue, state, repository veya alert hattı eklenmez. VLAN baseline
-NS-044, detector NS-045, persistence/UI entegrasyonu NS-046 kapsamındadır.
+NS-043 parser aşaması yeni worker, queue, state, repository veya alert hattı eklemez.
+NS-044 aggregate ve SQLite baseline'ı, NS-045 detector'ı, NS-046 UI entegrasyonunu ekler.
 NIC offload/driver VLAN tag'ini capture öncesi kaldırabilir ve BPF filtreleri
 tagged frame'i dışlayabilir; tag yokluğu güvenilir ağ yokluğu ölçümü değildir.
+
+### NS-044 VLAN gözlem özeti
+
+Mevcut inventory consumer, `PacketObservation.vlan` alanını senkron
+`VlanSummaryService`'e verir. Kapsam fingerprint + casefold interface ID +
+interface index'tir. Her görülen frame tam bir kez sayılır; tekrar eden aynı
+değer gerçek paket çokluğunu temsil eder. İlk/son UTC gözlem zamanı sırasız
+paketlerde min/max ile korunur. `untagged`, normal `tagged`, VID 0
+`priority_tagged`, VID 4095 `reserved` ve `stacked` ayrı sayaçlardır.
+Yalnızca normal VID 1–4094 için per-VID count ve ilk/son görülme tutulur.
+
+Varsayılan 60 saniyelik ısınma, servis UTC saatiyle ölçülür; en az iki normal
+tag gözlemi olmadan durum `learning` kalır. Öğrenme anında en az iki kez
+görülen VID'ler sabit `learned` setine alınır. Sonraki yeni VID özet içinde
+görünür, referans setine kendiliğinden girmez. Bu pasif, gözlenen davranış
+referansıdır; kullanıcı doğrulaması veya güvenilir switch konfigürasyonu
+değildir. Rolling pencere/rate bu taskta yoktur.
+
+SQLite migration 008, scope başına toplam sayaçları ve en çok 128 normal VID
+aggregate'ini saklar. Yeni VID kapasite aşımında `overflow_count` artar;
+en çok 64 scope tutulur ve kapasitede son gözlemi en eski olan scope
+deterministik anahtar sırasıyla tahliye edilir. Yazma mevcut inventory worker'ında
+kısa transaction ile yapılır; yeni thread/queue eklenmez. Restart sonrası
+özet ve öğrenme durumu sürer. Varsayılan capture filtresi `vlan` trafiğini de
+kapsar; untagged sayaç yalnızca filtrenin diğer kollarından görülen Ethernet
+frame'lerini sayar. Bu sayılar tüm ağ trafiğinin veya switch VLAN envanterinin
+eksiksiz ölçümü değildir. NS-044 alert, GUI ve inner QinQ parse etmez.
 
 Ham Scapy paketleri domain/application sınırını geçmez ve varsayılan olarak kalıcılaştırılmaz.
 

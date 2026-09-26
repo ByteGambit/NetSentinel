@@ -23,6 +23,7 @@ from netsentinel.domain.devices import (
     DeviceIdentity, DeviceProfile, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
 from netsentinel.domain.observations import PacketObservation
+from netsentinel.domain.vlan_summary import VlanSummarySnapshot
 from netsentinel.domain.dns import (
     DnsHistoryRecord, DnsTransactionStatus, DnsTransport, canonical_dns_name,
 )
@@ -271,6 +272,21 @@ class GatewayBaselineRepository(Protocol):
     ) -> GatewayBaseline: ...
 
     def changes(self, network_fingerprint: str) -> tuple[GatewayBaselineChange, ...]: ...
+
+
+class VlanSummaryRepositoryError(RuntimeError):
+    """Sanitized VLAN aggregate persistence failure."""
+
+
+class VlanSummaryDataCorrupt(VlanSummaryRepositoryError):
+    """Persisted VLAN aggregate is invalid."""
+
+
+class VlanSummaryRepository(Protocol):
+    def get(self, network_fingerprint: str, interface_id: str,
+            interface_index: int) -> VlanSummarySnapshot | None: ...
+
+    def save(self, summary: VlanSummarySnapshot) -> VlanSummarySnapshot: ...
 
 
 class PacketCaptureError(RuntimeError):
@@ -549,6 +565,9 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 
 
 __all__ = (
+    "VlanSummaryDataCorrupt",
+    "VlanSummaryRepository",
+    "VlanSummaryRepositoryError",
     "DnsHistoryDataCorrupt",
     "DnsHistoryQuery",
     "DnsHistoryQueryCancelled",
