@@ -28,6 +28,7 @@ from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssess
 from netsentinel.domain.alerts import alert_id
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
+from netsentinel.shared.config import TrafficRateConfig
 
 
 MAX_VISIBLE_BINDINGS = 20
@@ -64,6 +65,8 @@ class DeviceInventorySnapshot:
     dns_persisted_count: int = 0
     dns_writer_available: bool = True
     traffic_metrics: TrafficMetricsSnapshot | None = None
+    traffic_policy: TrafficRateConfig | None = None
+    traffic_alert_changed: bool = False
 
 
 class DeviceInventoryService:
@@ -153,7 +156,7 @@ class DeviceInventoryService:
         alert_failed = False
         if context is not None and health.state is CaptureState.RUNNING:
             try:
-                for observation in self._capture.drain(CAPTURE_DRAIN_LIMIT):
+                for observation in self._capture.drain(min(CAPTURE_DRAIN_LIMIT, health.queue_capacity)):
                     try:
                         belongs_to_context = observation.network_fingerprint == context.fingerprint
                     except (AttributeError, TypeError):
@@ -249,6 +252,7 @@ class DeviceInventoryService:
             traffic_snapshot = None
             observation_failed = True
             problem = DeviceInventoryProblem.OBSERVATION_UNAVAILABLE
+        traffic_alert_changed = False
         if traffic_snapshot is not None and health.state is CaptureState.RUNNING and self._alerts is not None:
             try:
                 decisions = self._traffic_detector.assess(traffic_snapshot, self._traffic_observed_clock())
@@ -256,8 +260,10 @@ class DeviceInventoryService:
                     try:
                         if decision.candidate is not None:
                             self._alerts.record(decision.candidate)
+                            traffic_alert_changed = True
                         elif decision.resolved_fingerprint is not None:
                             self._alerts.resolve(alert_id(decision.resolved_fingerprint))
+                            traffic_alert_changed = True
                     except Exception:
                         alert_failed = True
                         self._traffic_detector.retry_after_alert_failure(decision)
@@ -271,6 +277,8 @@ class DeviceInventoryService:
             dns_health.persisted if dns_health is not None else 0,
             dns_health.running if dns_health is not None else True,
             traffic_snapshot,
+            self._traffic_detector.config,
+            traffic_alert_changed,
         )
 
     def close(self) -> bool:

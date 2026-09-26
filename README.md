@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001–NS-036 tamamlandı; M6 tamamlandı, M7 sürüyor. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History ekranı kalıcı kayıtları filtreli, sayfalı ve GUI thread'ini bloklamayan ayrı bir query worker üzerinden gösterir. NS-019, aktif Windows IPv4 interface/subnet/gateway/DNS bağlamını read-only IP Helper API üzerinden normalize eder. NS-020, açıkça seçilen güncel context ve zorunlu capture filtresiyle çalışan, otomatik başlamayan güvenli Scapy sınırını sağlar. NS-021, bu capture callback'i içinde Ethernet/IPv4 ARP request ve reply alanlarını doğrular; canonical MAC/IP değerlerini payload taşımayan immutable observation'a dönüştürür. NS-024, pasif gözlemleri kalıcı Devices ekranında gösterir.
+> Durum: NS-001–NS-038 tamamlandı; M7 tamamlandı. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History ekranı kalıcı kayıtları filtreli, sayfalı ve GUI thread'ini bloklamayan ayrı bir query worker üzerinden gösterir. NS-019, aktif Windows IPv4 interface/subnet/gateway/DNS bağlamını read-only IP Helper API üzerinden normalize eder. NS-020, açıkça seçilen güncel context ve zorunlu capture filtresiyle çalışan, otomatik başlamayan güvenli Scapy sınırını sağlar. NS-021, bu capture callback'i içinde Ethernet/IPv4 ARP request ve reply alanlarını doğrular; canonical MAC/IP değerlerini payload taşımayan immutable observation'a dönüştürür. NS-024, pasif gözlemleri kalıcı Devices ekranında gösterir.
 
 ## Tasarım ilkeleri
 
@@ -191,3 +191,13 @@ yayılmalıdır. Eşik altına kalıcı dönüş alert'i `resolved` yapar. Captu
 confidence'ı düşürür; kalite bilinmiyorsa karar verilmez. Bu sinyal saldırı kanıtı
 değildir. Yalnızca aggregate sayaç/eşik metadata'sı saklanır, raw paket/payload
 saklanmaz. Görsel metrik kartları NS-038 kapsamındadır.
+
+NS-038 Dashboard'u aynı portable inventory snapshot'ındaki gözlenen broadcast
+ve ARP paket/saniye oranlarını, 60 saniyelik rolling pencereyi, öğrenilmiş
+baseline durumunu, detector eşik politikasını ve ölçüm kalitesini gösterir.
+`Learning baseline` normal trafik hükmü değildir. `Reduced`, capture kuyruğundan
+observation düştüğünü ve oranın eksik olabileceğini bildirir; capture kapalıysa
+son oranlar stale olabilir. Uyarılar Alerts ekranındadır. İşaretli sentetik
+burst testi yerel ağa paket göndermez: `python -m pytest -m performance`.
+Gerçek lab capture testi yalnızca mevcut `NETSENTINEL_LAB_CAPTURE=1` kapısıyla
+pasif gözlem yapar.

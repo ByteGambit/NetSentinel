@@ -261,6 +261,12 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   ölçüm recovery sayılmaz. Ani oran artışı saldırı veya DoS kanıtı değildir.
   Alert evidence'ı bounded pencere/sayaç/eşik/kalite metadata'sıyla sınırlıdır;
   raw frame, packet payload, kaynak listesi veya credential tutulmaz.
+- NS-038 Dashboard yalnızca seçili ağ/interface için aggregate oran, baseline,
+  eşik politikası ve kayıp observation sayısını gösterir. Öğrenilmiş baseline
+  saldırı veya normal trafik hükmü değildir; `REDUCED` eksik örnekleme anlamına
+  gelir. Sentetik yük testi fake backend kullanır ve ağa trafik göndermez.
+  Opt-in gerçek lab testi yalnızca izinli interface'te pasif capture yapar;
+  flood veya packet injection içermez.
 - NS-029 Alerts ekranı yalnızca bu kalıcı, bounded kanıt özetlerini gösterir.
   Eski/yeni MAC ile ağ bağlamını açıklar; tek gözlemden kesin saldırı veya
   trafik ele geçirilmesi sonucu çıkarmaz. Onay, kullanıcı inceleme durumudur;

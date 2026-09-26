@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -17,6 +18,7 @@ from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.models.dashboard import (
     DashboardHealthState,
     DashboardMetrics,
+    DashboardTrafficState,
     DashboardViewModel,
 )
 
@@ -81,6 +83,31 @@ class DashboardView(QWidget):
         self.closed_value = self._add_metric_card(
             metrics_grid, 2, 2, "Closed (last 60s)", "closedEventsMetric"
         )
+
+        traffic_frame = QFrame(self)
+        traffic_frame.setObjectName("dashboardTrafficCard")
+        traffic_frame.setAccessibleName("Broadcast and ARP monitoring summary")
+        traffic_frame.setStyleSheet(
+            "QFrame#dashboardTrafficCard { background: #f8fafc; "
+            "border: 1px solid #d9e2ec; border-radius: 6px; }"
+        )
+        traffic_layout = QGridLayout(traffic_frame)
+        traffic_layout.setContentsMargins(16, 12, 16, 12)
+        traffic_title = QLabel("Broadcast and ARP", traffic_frame)
+        traffic_title.setStyleSheet("font-size: 16px; font-weight: 600; color: #102a43;")
+        traffic_layout.addWidget(traffic_title, 0, 0, 1, 2)
+        self.broadcast_rate_label = self._add_traffic_row(traffic_layout, 1, "Broadcast rate", "dashboardBroadcastRate")
+        self.arp_rate_label = self._add_traffic_row(traffic_layout, 2, "ARP rate", "dashboardArpRate")
+        self.broadcast_baseline_label = self._add_traffic_row(traffic_layout, 3, "Broadcast baseline", "dashboardBroadcastBaseline")
+        self.arp_baseline_label = self._add_traffic_row(traffic_layout, 4, "ARP baseline", "dashboardArpBaseline")
+        self.traffic_window_label = self._add_traffic_row(traffic_layout, 5, "Measurement window", "dashboardTrafficWindow")
+        self.traffic_threshold_label = self._add_traffic_row(traffic_layout, 6, "Alert threshold", "dashboardTrafficThreshold")
+        self.traffic_quality_label = self._add_traffic_row(traffic_layout, 7, "Measurement quality", "dashboardTrafficQuality")
+        self.capture_drop_label = self._add_traffic_row(traffic_layout, 8, "Dropped observations in window", "dashboardCaptureDrops")
+        self.traffic_capture_label = QLabel(traffic_frame)
+        self.traffic_capture_label.setObjectName("dashboardTrafficCapture")
+        self.traffic_capture_label.setAccessibleName("Traffic capture status")
+        traffic_layout.addWidget(self.traffic_capture_label, 9, 0, 1, 2)
 
         health_frame = QFrame(self)
         health_frame.setObjectName("dashboardHealthCard")
@@ -148,19 +175,56 @@ class DashboardView(QWidget):
         health_layout.addWidget(self.diagnostic_label)
         health_layout.addLayout(facts)
 
-        layout = QVBoxLayout(self)
+        content = QWidget(self)
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
         layout.addLayout(metrics_grid)
+        layout.addWidget(traffic_frame)
         layout.addWidget(health_frame)
         layout.addStretch(1)
 
+        scroll = QScrollArea(self)
+        scroll.setObjectName("dashboardScrollArea")
+        scroll.setAccessibleName("Dashboard content")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scroll)
+
         self.view_model.metrics_changed.connect(self.set_metrics)
         self.view_model.health_changed.connect(self.set_health)
+        self.view_model.traffic_changed.connect(self.set_traffic)
         self.set_metrics(self.view_model.metrics)
         self.set_health(self.view_model.health)
+        self.set_traffic(self.view_model.traffic)
+
+    @pyqtSlot(DashboardTrafficState)
+    def set_traffic(self, traffic: DashboardTrafficState) -> None:
+        self.broadcast_rate_label.setText(traffic.broadcast_rate)
+        self.arp_rate_label.setText(traffic.arp_rate)
+        self.broadcast_baseline_label.setText(traffic.broadcast_baseline)
+        self.arp_baseline_label.setText(traffic.arp_baseline)
+        self.traffic_window_label.setText(traffic.window)
+        self.traffic_threshold_label.setText(traffic.threshold)
+        self.traffic_quality_label.setText(traffic.measurement)
+        self.capture_drop_label.setText(traffic.dropped)
+        self.traffic_capture_label.setText(traffic.capture)
+
+    def _add_traffic_row(self, grid: QGridLayout, row: int, title: str, name: str) -> QLabel:
+        caption = QLabel(title, self)
+        value = QLabel("—", self)
+        value.setObjectName(name)
+        value.setAccessibleName(title)
+        value.setTextFormat(Qt.TextFormat.PlainText)
+        value.setWordWrap(True)
+        grid.addWidget(caption, row, 0)
+        grid.addWidget(value, row, 1)
+        return value
 
     @pyqtSlot(DashboardMetrics)
     def set_metrics(self, metrics: DashboardMetrics) -> None:

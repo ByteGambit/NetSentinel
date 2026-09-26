@@ -116,6 +116,8 @@
 
 ## M7 — Broadcast Monitoring
 
+**Durum:** ✅ Tamamlandı (NS-035–NS-038, 2026-09-26).
+
 **Amaç:** Broadcast ve ARP yoğunluğunu bounded rolling window'larla ölçmek ve beklenmeyen artışları raporlamak.
 
 **Kapsam:**
@@ -129,9 +131,9 @@
 
 **Tasklar:** NS-035–NS-038
 
-**Durum:** NS-035–NS-037 tamamlandı; sınıflandırma, bounded rolling oran/baseline
-ve açıklanabilir yoğunluk alert'i mevcut pasif consumer'a bağlandı. Dashboard ve
-M7 yük testi NS-038'de.
+Sınıflandırma, bounded rolling oran/baseline ve açıklanabilir yoğunluk alert'i
+mevcut pasif consumer'a bağlıdır. Dashboard portable metrikleri gösterir;
+işaretli sentetik yük testi queue, kalite ve kapanma sınırlarını doğrular.
 
 ## M8 — Device Security
 

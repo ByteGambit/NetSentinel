@@ -411,6 +411,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-038 — Broadcast dashboard ve M7 yük testi
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Broadcast/ARP oranlarını görünür kılmak ve burst altında kaynak kullanımını doğrulamak.
 - **Yapılacaklar:** Dashboard kart/trend read model'i, pencere/eşik açıklaması ve health göstergesi ekle; yüksek hacimli sentetik observation performans testi oluştur.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/models/dashboard.py`, `src/netsentinel/presentation/views/dashboard.py`, `tests/gui/test_broadcast_dashboard.py`, `tests/performance/test_broadcast_burst.py`.

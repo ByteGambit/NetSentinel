@@ -106,7 +106,8 @@ def test_offline_normal_then_sustained_alert_and_recovery(tmp_path) -> None:
         for t in (31, 36, 41):
             ticks[0] = t
             capture.items.extend((broadcast,) * 6 + (arp,) * 4)
-            service.refresh()
+            snapshot = service.refresh()
+        assert snapshot.traffic_alert_changed
         persisted = {item.rule_id: item for item in alerts.query(_all_alerts())}
         assert set(persisted) == {"broadcast_rate_anomaly", "arp_rate_anomaly"}
         for rule, item in persisted.items():
@@ -123,7 +124,7 @@ def test_offline_normal_then_sustained_alert_and_recovery(tmp_path) -> None:
         ticks[0] = 56
         service.refresh()
         ticks[0] = 61
-        service.refresh()
+        assert service.refresh().traffic_alert_changed
         assert all(item.status is AlertStatus.RESOLVED for item in alerts.query(_all_alerts()))
         restarted = AlertService(SQLiteAlertRepository(database))
         assert {item.id for item in restarted.query(_all_alerts())} == {item.id for item in persisted.values()}

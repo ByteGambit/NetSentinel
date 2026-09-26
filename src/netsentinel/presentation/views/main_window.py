@@ -85,6 +85,7 @@ class MainWindow(QMainWindow):
         self._close_notified = False
         self._current_page = PageId.DASHBOARD
         self._engine_bridge: QtEngineBridge | None = None
+        self._device_inventory = device_inventory
         self._dns_persisted_count = 0
         self.connections_model = (
             ConnectionsTableModel(self)
@@ -172,6 +173,12 @@ class MainWindow(QMainWindow):
         alerts.refresh()
 
     def _on_device_snapshot_for_alerts(self, snapshot: object) -> None:
+        if self._close_notified or (self._device_inventory is not None
+                                   and not self._device_inventory.accepting):
+            return
+        dashboard = self.page_widget(PageId.DASHBOARD)
+        assert isinstance(dashboard, DashboardView)
+        dashboard.view_model.set_traffic_snapshot(snapshot)
         alerts = self.page_widget(PageId.ALERTS)
         assert isinstance(alerts, AlertsView)
         alerts.set_network_contexts(snapshot.contexts)
@@ -183,7 +190,7 @@ class MainWindow(QMainWindow):
         if snapshot.dns_persisted_count > self._dns_persisted_count:
             self._dns_persisted_count = snapshot.dns_persisted_count
             dns.refresh()
-        if snapshot.new_devices or snapshot.arp_assessments:
+        if snapshot.new_devices or snapshot.arp_assessments or snapshot.traffic_alert_changed:
             alerts.refresh()
 
     def bind_engine_bridge(self, bridge: QtEngineBridge) -> bool:

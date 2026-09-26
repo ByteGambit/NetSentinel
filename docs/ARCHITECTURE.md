@@ -190,6 +190,25 @@ SQLite'a kaydedilir veya çözülür. Fingerprint kural ve scope için sabittir;
 evidence yalnızca bounded aggregate oran/sayaç, baseline, eşik, pencere ve kalite
 bilgilerini içerir. Bu anomali saldırı hükmü değildir. Yeni worker/queue/GUI yoktur.
 
+### NS-038 Dashboard read model ve sentetik yük
+
+`DeviceInventoryService` aynı worker'da NS-036 snapshot'ını ve NS-037 policy
+değerlerini `DeviceInventorySnapshot` içinde taşır. Mevcut coordinator yaklaşık
+bir saniyelik refresh ritmiyle tek portable snapshot'ı Qt ana thread'ine iletir.
+Dashboard presentation modeli yalnızca bu snapshot'ı formatlar; packet parse,
+rate/baseline/threshold kararı ve uzun süreli history tutmaz. Eşdeğer snapshot
+widget güncellemesi üretmez. Ağ fingerprint/interface uyuşmazlığında metrik
+gösterilmez; capture kapalıysa son değerler stale olarak etiketlenir. Detector
+alert yazma veya çözme işlemi başarılı olduğunda mevcut Alerts sorgusu yenilenir.
+Küçük capture queue'larında consumer drain sınırı bildirilen kapasiteyle
+sınırlanır. İşaretli `performance` testi fake backend ile 2.048 sentetik frame
+ve 32 öğelik queue kullanır; producer için 15 saniyelik geniş timeout,
+capture stop için 1 saniyelik bounded timeout uygular. Queue 32'yi ve metric
+bucket sayısı pencere boyunu aşmamalı, dropped counter `REDUCED` kaliteye
+geçmeli ve offscreen Qt heartbeat burst sırasında ilerlemelidir. Bunlar hız
+benchmark'ı değil davranış sınırlarıdır; gerçek LAN, Npcap, yönetici yetkisi
+veya internet kullanılmaz.
+
 ### Cihaz ve ağ kimliği
 
 - `DeviceIdentity`: kararlı dahili ID, gözlenen MAC/IP kümeleri, ilk/son görülme ve kullanıcı profili referansı.

@@ -64,6 +64,11 @@ class TrafficRateDetector:
     def tracked_states(self) -> int:
         return len(self._states)
 
+    @property
+    def config(self) -> TrafficRateConfig:
+        """Portable policy for read-only UI explanation."""
+        return self._config
+
     def retry_after_alert_failure(self, decision: TrafficRateDecision) -> None:
         """Release cooldown or recovery after a failed AlertService operation."""
         fingerprint = (decision.candidate.fingerprint if decision.candidate is not None

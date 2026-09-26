@@ -41,4 +41,5 @@ testpaths = ["tests"]
 markers = [
     "windows_live: opt-in read-only Windows adapter tests and local loopback sockets",
     "lab_live: opt-in passive packet capture tests for an explicitly authorized lab network",
+    "performance: deterministic offline burst and resource-bound validation",
 ]

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime
-from math import ceil
+from math import ceil, isfinite
 
-from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
+from netsentinel.application.services.device_inventory import DeviceInventorySnapshot
+from netsentinel.application.services.traffic_metrics import BaselineState, MeasurementConfidence
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.domain.connections import ConnectionState, TransportProtocol
 from netsentinel.presentation.bridge import BridgeHealthSnapshot, ConnectionEventBatch
@@ -46,6 +48,21 @@ class DashboardHealthState:
     tone: str = "neutral"
 
 
+@dataclass(frozen=True, slots=True)
+class DashboardTrafficState:
+    """One presentation snapshot derived from the current network read model."""
+
+    broadcast_rate: str = "—"
+    arp_rate: str = "—"
+    broadcast_baseline: str = "—"
+    arp_baseline: str = "—"
+    window: str = "—"
+    threshold: str = "—"
+    measurement: str = "Unknown"
+    capture: str = "Capture off — rates are unavailable."
+    dropped: str = "—"
+
+
 _DIAGNOSTIC_TEXT: dict[DiagnosticCode, str] = {
     DiagnosticCode.COLLECTOR_PERMISSION_DENIED: (
         "Connection access is restricted by Windows permissions."
@@ -80,6 +97,7 @@ class DashboardViewModel(QObject):
 
     metrics_changed = pyqtSignal(DashboardMetrics)
     health_changed = pyqtSignal(DashboardHealthState)
+    traffic_changed = pyqtSignal(DashboardTrafficState)
 
     def __init__(
         self,
@@ -94,6 +112,7 @@ class DashboardViewModel(QObject):
             rolling_window_seconds=max(1, int(statistics.window.total_seconds()))
         )
         self._health = DashboardHealthState()
+        self._traffic = DashboardTrafficState()
         self._expiry_timer = QTimer(self)
         self._expiry_timer.setSingleShot(True)
         self._expiry_timer.timeout.connect(self.refresh_statistics)
@@ -115,6 +134,54 @@ class DashboardViewModel(QObject):
     @property
     def statistics(self) -> StatisticsService:
         return self._statistics
+
+    @property
+    def traffic(self) -> DashboardTrafficState:
+        return self._traffic
+
+    @pyqtSlot(object)
+    def set_traffic_snapshot(self, inventory: object) -> None:
+        if QThread.currentThread() is not self.thread():
+            raise RuntimeError("Dashboard traffic mutations must run in its Qt thread")
+        if not isinstance(inventory, DeviceInventorySnapshot):
+            raise TypeError("inventory must be a DeviceInventorySnapshot")
+        metric = inventory.traffic_metrics
+        capture_running = bool(inventory.capture and inventory.capture.running)
+        if (metric is None or inventory.selected_fingerprint != metric.network_fingerprint
+                or not any(context.fingerprint == metric.network_fingerprint
+                           and context.interface_id.casefold() == metric.interface_id.casefold()
+                           and context.interface_index == metric.interface_index
+                           for context in inventory.contexts)):
+            state = DashboardTrafficState()
+        else:
+            quality = metric.confidence
+            measurement = {
+                MeasurementConfidence.UNKNOWN: "Unknown — capture quality not established",
+                MeasurementConfidence.COMPLETE: "Complete",
+                MeasurementConfidence.REDUCED: "Reduced — capture queue dropped observations",
+            }.get(quality, "Unknown — capture quality not established")
+            policy = inventory.traffic_policy
+            threshold = "—" if policy is None else (
+                f"Broadcast >{_format_number(policy.broadcast_floor_pps)} pkt/s; "
+                f"ARP >{_format_number(policy.arp_floor_pps)} pkt/s, and "
+                f">{_format_number(policy.baseline_multiplier)}× learned baseline; "
+                f"{policy.minimum_samples} high samples across the window."
+            )
+            state = DashboardTrafficState(
+                broadcast_rate=_format_rate(metric.broadcast.packets_per_second),
+                arp_rate=_format_rate(metric.arp.packets_per_second),
+                broadcast_baseline=_format_baseline(metric.broadcast.baseline),
+                arp_baseline=_format_baseline(metric.arp.baseline),
+                window=f"Last {metric.window_seconds} s rolling window",
+                threshold=threshold,
+                measurement=measurement,
+                capture=("Passive capture running — observed packets only." if capture_running
+                         else "Capture off — last rates may be stale."),
+                dropped=str(metric.dropped_observations),
+            )
+        if state != self._traffic:
+            self._traffic = state
+            self.traffic_changed.emit(state)
 
     @pyqtSlot(ConnectionEventBatch)
     def handle_events(self, batch: ConnectionEventBatch) -> None:
@@ -261,8 +328,30 @@ def _format_poll_time(value: datetime | None) -> str:
     return value.astimezone().strftime("%H:%M:%S")
 
 
+def _format_number(value: float) -> str:
+    if not isfinite(value) or value < 0:
+        return "—"
+    return f"{value:g}"
+
+
+def _format_rate(value: float) -> str:
+    if not isfinite(value) or value < 0:
+        return "—"
+    if value == 0:
+        return "0 pkt/s"
+    return f"{value:.2f} pkt/s" if value < 0.1 else f"{value:.1f} pkt/s"
+
+
+def _format_baseline(baseline: object) -> str:
+    if getattr(baseline, "state", None) is not BaselineState.LEARNED:
+        return "Learning baseline"
+    value = getattr(baseline, "packets_per_second", None)
+    return _format_rate(value) if isinstance(value, (int, float)) else "—"
+
+
 __all__ = (
     "DashboardHealthState",
     "DashboardMetrics",
+    "DashboardTrafficState",
     "DashboardViewModel",
 )
