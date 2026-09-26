@@ -118,6 +118,15 @@ worker'ını durdurmaz; mevcut bounded malformed sayacı ve sanitize diagnostic 
 izole edilir. Parser paket göndermez, ARP keşfi/poisoning yapmaz ve gözlemden
 saldırı kararı üretmez.
 
+NS-043 802.1Q parser'ı yalnızca açıkça başlatılmış mevcut pasif capture
+callback'inde çalışır. Frame ve payload saklamadan, görülen dış VLAN etiketinin
+VID/PCP/DEI/EtherType alanlarını bounded immutable metadata'ya indirger;
+stacked trafikte iç etiket okunmaz. Bozuk etiket tek frame'i düşürür ve mevcut
+sanitized malformed diagnostic'ini günceller. VLAN etiketi gözlenmemesi
+etiket bulunmadığı anlamına gelmez: NIC/driver offload capture öncesi etiketi
+çıkarabilir; capture filtresi de tagged trafiği dışlayabilir. Bu parser ağ
+paketi göndermez, VLAN anomali kararı veya alert üretmez.
+
 NS-035 Ethernet/IPv4 broadcast sınıflandırması da aynı pasif capture callback'i
 içinde yapılır. Header türü/adresi doğrulanır; bozuk frame mevcut malformed
 sayacı ve sanitized diagnostic ile atlanır. Portable sonuç yalnızca tekil

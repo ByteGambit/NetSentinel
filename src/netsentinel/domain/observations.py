@@ -14,6 +14,7 @@ from ipaddress import IPv4Address, ip_address
 import re
 
 from netsentinel.domain.dns import DnsObservation
+from netsentinel.domain.vlan import VlanObservation
 
 
 MAX_CAPTURED_PACKET_BYTES = 16 * 1024 * 1024
@@ -194,6 +195,7 @@ class PacketObservation:
     arp: ArpObservation | None = None
     dns: DnsObservation | None = None
     broadcast: BroadcastObservation | None = None
+    vlan: VlanObservation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.interface_id, str):
@@ -258,6 +260,11 @@ class PacketObservation:
                 self.network_layer is NetworkLayerProtocol.ARP
             ):
                 raise ValueError("ARP classification must match the network layer")
+        if self.vlan is not None:
+            if not isinstance(self.vlan, VlanObservation):
+                raise TypeError("vlan must be a VlanObservation or None")
+            if self.link_layer is not LinkLayerProtocol.ETHERNET:
+                raise ValueError("VLAN observation requires Ethernet")
 
         object.__setattr__(self, "interface_id", interface_id)
         object.__setattr__(self, "network_fingerprint", fingerprint)

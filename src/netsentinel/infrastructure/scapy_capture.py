@@ -40,9 +40,11 @@ from netsentinel.domain.observations import (
     PacketObservation,
 )
 from netsentinel.domain.dns import DnsObservation
+from netsentinel.domain.vlan import VlanObservation, VlanTagKind
 from netsentinel.infrastructure.parsers.arp import parse_arp_packet
 from netsentinel.infrastructure.parsers.broadcast import parse_broadcast_packet
 from netsentinel.infrastructure.parsers.dns import parse_dns_packet
+from netsentinel.infrastructure.parsers.vlan import parse_vlan_packet
 from netsentinel.shared.diagnostics import (
     CapabilityStatus,
     CaptureCapabilityReason,
@@ -62,6 +64,7 @@ PacketCallback = Callable[[object], None]
 ArpParser = Callable[[object, PacketObservation], ArpObservation | None]
 DnsParser = Callable[[object, PacketObservation], DnsObservation | None]
 BroadcastParser = Callable[[object, PacketObservation, NetworkContext], BroadcastObservation | None]
+VlanParser = Callable[[object, PacketObservation], VlanObservation | None]
 
 
 class SnifferHandle(Protocol):
@@ -224,6 +227,7 @@ class ScapyCaptureWorker:
         arp_parser: ArpParser | None = None,
         dns_parser: DnsParser | None = None,
         broadcast_parser: BroadcastParser | None = None,
+        vlan_parser: VlanParser | None = None,
     ) -> None:
         if not hasattr(context_provider, "get_contexts"):
             raise TypeError("context_provider must implement NetworkContextProvider")
@@ -260,6 +264,9 @@ class ScapyCaptureWorker:
         )
         if not callable(self._broadcast_parser):
             raise TypeError("broadcast_parser must be callable")
+        self._vlan_parser = vlan_parser if vlan_parser is not None else parse_vlan_packet
+        if not callable(self._vlan_parser):
+            raise TypeError("vlan_parser must be callable")
 
         self._lock = RLock()
         self._handle: SnifferHandle | None = None
@@ -537,6 +544,7 @@ class ScapyCaptureWorker:
                 arp_parser=self._arp_parser,
                 dns_parser=self._dns_parser,
                 broadcast_parser=self._broadcast_parser,
+                vlan_parser=self._vlan_parser,
             )
         except Exception:
             with self._lock:
@@ -792,6 +800,7 @@ def _packet_observation(
     arp_parser: ArpParser = parse_arp_packet,
     dns_parser: DnsParser = parse_dns_packet,
     broadcast_parser: BroadcastParser = parse_broadcast_packet,
+    vlan_parser: VlanParser = parse_vlan_packet,
 ) -> PacketObservation:
     captured_length = len(packet)  # type: ignore[arg-type]
     if isinstance(captured_length, bool) or not isinstance(captured_length, int):
@@ -817,12 +826,17 @@ def _packet_observation(
         link_layer=_link_layer(packet),
         network_layer=_network_layer(packet),
     )
+    vlan = vlan_parser(packet, observation)
+    if vlan is not None and vlan.kind is not VlanTagKind.UNTAGGED:
+        # Existing ARP/DNS/broadcast parsers assume an untagged EtherType. Their
+        # VLAN-aware behavior belongs to later integration work.
+        return replace(observation, vlan=vlan)
     arp = arp_parser(packet, observation)
     dns = dns_parser(packet, observation)
     broadcast = broadcast_parser(packet, observation, context)
-    if arp is None and dns is None and broadcast is None:
+    if arp is None and dns is None and broadcast is None and vlan is None:
         return observation
-    return replace(observation, arp=arp, dns=dns, broadcast=broadcast)
+    return replace(observation, arp=arp, dns=dns, broadcast=broadcast, vlan=vlan)
 
 
 def _has_layer(packet: object, layer_name: str) -> bool:

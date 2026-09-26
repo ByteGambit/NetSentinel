@@ -132,6 +132,19 @@ Event'ler `OPENED`, `UPDATED`, `CLOSED` grupları halinde ve her grup içinde ka
   detector ve dashboard sonraki tasklardadır.
 - `VlanObservation`: 802.1Q VLAN ID, öncelik alanları ve kapsüllenmiş protokol bilgisi.
 
+NS-043 `ScapyCaptureWorker` callback'inde Ethernet için aynı `PacketObservation`
+zarfına immutable `vlan` alanı ekler. `untagged` yalnızca capture'da görünen
+Ethernet frame'ini belirtir; Ethernet dışı input `vlan=None` kalır. Tekli 802.1Q
+etikette VID 0 priority-only, 1–4094 normal, 4095 reserved olarak ayrılır.
+`stacked` yalnızca dış etiketin VID/PCP/DEI ve iç etiket EtherType'ını taşır;
+iç tag parse edilmez. Etiketli frame'ler, untagged EtherType varsayan mevcut
+ARP/DNS/broadcast parser'larına gönderilmez. Malformed tag mevcut capture
+malformed sayacı ve sanitized diagnostic yoluyla tek frame olarak düşürülür.
+Yeni worker, queue, state, repository veya alert hattı eklenmez. VLAN baseline
+NS-044, detector NS-045, persistence/UI entegrasyonu NS-046 kapsamındadır.
+NIC offload/driver VLAN tag'ini capture öncesi kaldırabilir ve BPF filtreleri
+tagged frame'i dışlayabilir; tag yokluğu güvenilir ağ yokluğu ölçümü değildir.
+
 Ham Scapy paketleri domain/application sınırını geçmez ve varsayılan olarak kalıcılaştırılmaz.
 
 ### NS-036 rolling broadcast/ARP metriği

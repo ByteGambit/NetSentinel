@@ -469,6 +469,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-043 — 802.1Q VLAN parser
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Yakalanan Ethernet frame'lerindeki tekli 802.1Q tag bilgisini güvenli biçimde gözleme dönüştürmek.
 - **Yapılacaklar:** VLAN ID, PCP, DEI ve kapsüllenmiş protokol parse'ı ekle; tagged/untagged/malformed ayrımı yap; stacked tag'i gözlenebilir ama ilk kapsam dışı durum olarak işaretle.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/infrastructure/parsers/vlan.py`, `src/netsentinel/domain/vlan.py`, `tests/unit/infrastructure/parsers/test_vlan.py`, `tests/fixtures/packets/`.
