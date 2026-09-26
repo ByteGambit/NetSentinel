@@ -1114,6 +1114,27 @@ detector sinyali teslim edildi saymaz; sonraki observation ile yeniden dener.
 Hata registry/capture/DNS akışından izole edilir. Ek worker, queue, migration,
 GUI profil düzenleyici veya packet payload yoktur.
 
+### NS-041 profil düzenleme sınırı
+
+Devices ekranında seçili observed `DeviceIdentity` UUID'si, ağ fingerprint'i ve
+son görülen MAC/IPv4 yalnızca bağlam olarak kullanılır. Ayrı profil UUID'si
+`DeviceProfileService` tarafından açık Save komutunda oluşturulur; gözlenen
+değerler beklenen listeye ancak kullanıcı ayrı ekleme düğmesine bastığında
+girer. Dialog Cancel hiçbir yazma başlatmaz. Etiket/not/trust/beklenen kimlik
+doğrulaması domain sınırlarıyla uyumludur; trust kullanıcı işaretidir, doğrulama
+veya güvenlik garantisi değildir.
+
+`DeviceProfileCoordinator`, SQLite işlemlerini tek bounded worker'da sırayla
+yürütür. Seçim bazlı okumalar generation ile korunur; seçili UUID değişince
+eski sonuç GUI'ye uygulanmaz. Update, okunmuş `updated_at` değerini aynı
+transaction içinde karşılaştırır; stale edit reddedilir ve son profil yeniden
+yüklenir. Save sonrası profil ve inventory yenilenir; NS-040 detector sonraki
+inventory refresh'te repository snapshot'ını yeniden alır. Alert bağlantısı
+profil UUID'si ve ağ fingerprint'iyle mevcut Alerts query'sine gider; profile
+edit doğrudan alert lifecycle değiştirmez. SQL, DB yolu, not, ham paket ve
+payload GUI hata mesajına veya alert bağlantısına taşınmaz. Merge/silme GUI'si
+yoktur.
+
 ## 14. Detection yaklaşımı
 
 Detectors üç girdiyi ayırır:

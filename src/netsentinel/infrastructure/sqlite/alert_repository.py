@@ -157,7 +157,7 @@ class SQLiteAlertRepository:
             raise TypeError("query must be AlertQuery")
         clauses: list[str] = []
         values: list[object] = []
-        for column, value in (("rule_id", query.rule_id), ("network_fingerprint", query.network_fingerprint),
+        for column, value in (("rule_id", query.rule_id), ("network_fingerprint", query.network_fingerprint), ("entity_id", query.entity_id),
                               ("severity", query.severity), ("confidence", query.confidence),
                               ("status", query.status.value if query.status is not None else None)):
             if value is not None:

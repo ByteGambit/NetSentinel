@@ -12,6 +12,7 @@ from netsentinel.application.services.connections import (
     ConnectionTrackingService,
 )
 from netsentinel.application.services.device_inventory import DeviceInventoryService
+from netsentinel.application.services.device_profiles import DeviceProfileService
 from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.dns_config import DnsConfigMonitoringService
@@ -239,6 +240,17 @@ def create_device_inventory_service_factory(
     return create_service
 
 
+def create_device_profile_service_factory(
+    *, database_path: str | PathLike[str] | None = None,
+) -> Callable[[], DeviceProfileService]:
+    database = SQLiteDatabase(database_path)
+
+    def create_service() -> DeviceProfileService:
+        return DeviceProfileService(SQLiteDeviceProfileRepository(database))
+
+    return create_service
+
+
 def create_gateway_baseline_service(
     *,
     database_path: str | PathLike[str] | None = None,
@@ -260,6 +272,7 @@ __all__ = (
     "create_alert_query_service_factory",
     "create_desktop_engine",
     "create_device_inventory_service_factory",
+    "create_device_profile_service_factory",
     "create_gateway_baseline_service",
     "create_history_retention_service",
     "create_history_query_service_factory",

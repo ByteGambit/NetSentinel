@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QApplication
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import EngineEventSource, QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator, DeviceServiceFactory
+from netsentinel.presentation.device_profile import DeviceProfileCoordinator, ProfileServiceFactory
 from netsentinel.presentation.history_query import (
     HistoryQueryCoordinator,
     HistoryServiceFactory,
@@ -42,6 +43,7 @@ class ApplicationLifecycle:
         bridge: QtEngineBridge,
         history_queries: HistoryQueryCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
+        device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
     ) -> None:
@@ -49,6 +51,7 @@ class ApplicationLifecycle:
         self._bridge = bridge
         self._history_queries = history_queries
         self._device_inventory = device_inventory
+        self._device_profiles = device_profiles
         self._alert_queries = alert_queries
         self._dns_queries = dns_queries
         self._start_requested = False
@@ -74,6 +77,8 @@ class ApplicationLifecycle:
         if self._device_inventory is not None:
             self._device_inventory.start()
             self._device_inventory.request("refresh")
+        if self._device_profiles is not None:
+            self._device_profiles.start()
         self._bridge.start()
         try:
             return self._engine.start()
@@ -87,6 +92,8 @@ class ApplicationLifecycle:
                 self._dns_queries.stop()
             if self._device_inventory is not None:
                 self._device_inventory.stop()
+            if self._device_profiles is not None:
+                self._device_profiles.stop()
             raise
 
     def shutdown(self) -> bool:
@@ -105,8 +112,9 @@ class ApplicationLifecycle:
         devices_stopped = (
             True if self._device_inventory is None else self._device_inventory.stop()
         )
+        profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped and alerts_stopped and dns_stopped and devices_stopped
+        self._shutdown_result = self._engine.stop() and history_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped
         return self._shutdown_result
 
 
@@ -120,6 +128,7 @@ class ApplicationShell:
     lifecycle: ApplicationLifecycle
     history_queries: HistoryQueryCoordinator | None = None
     device_inventory: DeviceInventoryCoordinator | None = None
+    device_profiles: DeviceProfileCoordinator | None = None
     alert_queries: AlertQueryCoordinator | None = None
     dns_queries: DnsQueryCoordinator | None = None
 
@@ -130,6 +139,7 @@ def create_application(
     *,
     history_service_factory: HistoryServiceFactory | None = None,
     device_service_factory: DeviceServiceFactory | None = None,
+    profile_service_factory: ProfileServiceFactory | None = None,
     alert_service_factory: AlertServiceFactory | None = None,
     dns_service_factory: DnsServiceFactory | None = None,
 ) -> ApplicationShell:
@@ -156,14 +166,16 @@ def create_application(
         DeviceInventoryCoordinator(device_service_factory)
         if device_service_factory is not None else None
     )
+    device_profiles = DeviceProfileCoordinator(profile_service_factory) if profile_service_factory is not None else None
     alert_queries = AlertQueryCoordinator(alert_service_factory) if alert_service_factory is not None else None
     dns_queries = DnsQueryCoordinator(dns_service_factory) if dns_service_factory is not None else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, alert_queries, dns_queries)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
         history_queries=history_queries,
         device_inventory=device_inventory,
+        device_profiles=device_profiles,
         alert_queries=alert_queries,
         dns_queries=dns_queries,
     )
@@ -172,13 +184,15 @@ def create_application(
         history_queries.setParent(window)
     if device_inventory is not None:
         device_inventory.setParent(window)
+    if device_profiles is not None:
+        device_profiles.setParent(window)
     if alert_queries is not None:
         alert_queries.setParent(window)
     if dns_queries is not None:
         dns_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, alert_queries, dns_queries)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries)
 
 
 def run_application(
@@ -195,6 +209,7 @@ def run_application(
             create_desktop_engine,
             create_history_query_service_factory,
             create_device_inventory_service_factory,
+            create_device_profile_service_factory,
             create_alert_query_service_factory,
             create_dns_query_service_factory,
         )
@@ -202,11 +217,13 @@ def run_application(
         engine = create_desktop_engine()
         history_service_factory = create_history_query_service_factory()
         device_service_factory = create_device_inventory_service_factory()
+        profile_service_factory = create_device_profile_service_factory()
         alert_service_factory = create_alert_query_service_factory()
         dns_service_factory = create_dns_query_service_factory()
     else:
         history_service_factory = None
         device_service_factory = None
+        profile_service_factory = None
         alert_service_factory = None
         dns_service_factory = None
 
@@ -215,6 +232,7 @@ def run_application(
         argv=sys.argv if argv is None else argv,
         history_service_factory=history_service_factory,
         device_service_factory=device_service_factory,
+        profile_service_factory=profile_service_factory,
         alert_service_factory=alert_service_factory,
         dns_service_factory=dns_service_factory,
     )

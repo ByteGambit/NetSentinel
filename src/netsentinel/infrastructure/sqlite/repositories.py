@@ -979,7 +979,7 @@ class SQLiteDeviceProfileRepository:
         except (SQLiteAdapterError, sqlite3.Error, ValueError, KeyError) as error:
             raise DeviceProfileRepositoryError("Device profile snapshot could not be read.") from error
 
-    def update(self, profile: DeviceProfile) -> DeviceProfile:
+    def update(self, profile: DeviceProfile, *, expected_updated_at: datetime | None = None) -> DeviceProfile:
         if not isinstance(profile, DeviceProfile):
             raise TypeError("profile must be DeviceProfile")
         try:
@@ -988,6 +988,8 @@ class SQLiteDeviceProfileRepository:
                 if row is None:
                     raise DeviceProfileRepositoryError("Device profile does not exist.")
                 old = _row_to_profile(row)
+                if expected_updated_at is not None and old.updated_at != expected_updated_at:
+                    raise DeviceProfileMergeConflict("Stale profile update was rejected.")
                 if old.merged_into is not None or profile.merged_into is not None:
                     raise DeviceProfileMergeConflict("Merged profiles cannot be edited.")
                 if profile.network_fingerprint != old.network_fingerprint or profile.created_at != old.created_at:

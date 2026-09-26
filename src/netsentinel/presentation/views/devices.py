@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from PyQt6.QtCore import QSortFilterProxyModel, Qt
+from PyQt6.QtCore import QSortFilterProxyModel, Qt, pyqtSignal
 from PyQt6.QtWidgets import (QAbstractItemView, QComboBox, QFormLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableView, QVBoxLayout, QWidget)
 
 from netsentinel.application.services.device_inventory import DeviceInventoryProblem, DeviceInventorySnapshot
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
+from netsentinel.presentation.device_profile import DeviceProfileCoordinator
+from netsentinel.presentation.widgets.device_profile import DeviceProfileDialog
+from netsentinel.domain.devices import DeviceProfile
 from netsentinel.presentation.models.devices import DeviceRow, DevicesTableModel, ROW_ID_ROLE, SEARCH_ROLE, format_seen
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureState
@@ -68,16 +71,26 @@ class DeviceDetailsWidget(QGroupBox):
 
 
 class DevicesView(QWidget):
-    def __init__(self, parent: QWidget | None = None, *, coordinator: DeviceInventoryCoordinator | None = None) -> None:
+    profile_alerts_requested = pyqtSignal(object, str)
+
+    def __init__(self, parent: QWidget | None = None, *, coordinator: DeviceInventoryCoordinator | None = None,
+                 profiles: DeviceProfileCoordinator | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("devicesView")
         self.setAccessibleName("Devices page")
         self.coordinator = coordinator
+        self.profiles = profiles
         self.model = DevicesTableModel(self)
         self.proxy_model = DevicesFilterProxyModel(self)
         self.proxy_model.setSourceModel(self.model)
         self._selected_id: UUID | None = None
         self._snapshot: DeviceInventorySnapshot | None = None
+        self._profile_generation: int | None = None
+        self._profile: DeviceProfile | None = None
+        self._profile_loading = False
+        self._profile_busy = False
+        self._stale_notice = False
+        self._profile_load_error = False
 
         title = QLabel("Devices", self)
         title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
@@ -116,10 +129,46 @@ class DevicesView(QWidget):
         for column, width in enumerate((165, 165, 175, 175, 250)):
             self.table.setColumnWidth(column, width)
         self.details = DeviceDetailsWidget(self)
+        self.profile_panel = QGroupBox("User-saved profile", self)
+        self.profile_panel.setAccessibleName("Device profile details")
+        profile_layout = QVBoxLayout(self.profile_panel)
+        self.profile_status = QLabel("Select an observed device to view its profile.", self.profile_panel)
+        self.profile_status.setTextFormat(Qt.TextFormat.PlainText)
+        self.profile_status.setAccessibleName("Profile status")
+        self.profile_status.setWordWrap(True)
+        profile_layout.addWidget(self.profile_status)
+        self.profile_values: dict[str, QLabel] = {}
+        profile_form = QFormLayout()
+        for key, field_title in (("label", "Label"), ("trust", "User trust designation"),
+                           ("note", "Note"), ("macs", "Expected MACs"),
+                           ("ips", "Expected IPv4"), ("updated", "Last user update"),
+                           ("trust_changed", "Trust changed")):
+            value = QLabel(MISSING_VALUE, self.profile_panel)
+            value.setTextFormat(Qt.TextFormat.PlainText)
+            value.setAccessibleName(f"Profile {field_title.lower()}")
+            value.setWordWrap(True)
+            value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            self.profile_values[key] = value
+            profile_form.addRow(f"{field_title}:", value)
+        profile_layout.addLayout(profile_form)
+        self.profile_edit_button = QPushButton("Create profile", self.profile_panel)
+        self.profile_edit_button.setAccessibleName("Create or edit device profile")
+        self.profile_refresh_button = QPushButton("Reload profile", self.profile_panel)
+        self.profile_refresh_button.setAccessibleName("Reload selected device profile")
+        self.profile_alerts_button = QPushButton("Related identity alerts", self.profile_panel)
+        self.profile_alerts_button.setAccessibleName("Show related device identity alerts")
+        profile_actions = QHBoxLayout()
+        profile_actions.addWidget(self.profile_edit_button)
+        profile_actions.addWidget(self.profile_refresh_button)
+        profile_actions.addWidget(self.profile_alerts_button)
+        profile_actions.addStretch()
+        profile_layout.addLayout(profile_actions)
+        self._profile_controls()
         splitter = QSplitter(Qt.Orientation.Vertical, self)
         splitter.setChildrenCollapsible(False)
         splitter.addWidget(self.table)
         splitter.addWidget(self.details)
+        splitter.addWidget(self.profile_panel)
         layout = QVBoxLayout(self)
         layout.addWidget(title)
         layout.addWidget(subtitle)
@@ -132,9 +181,17 @@ class DevicesView(QWidget):
         self.network_selector.currentIndexChanged.connect(self._network_changed)
         self.refresh_button.clicked.connect(lambda: self._request("refresh"))
         self.capture_button.clicked.connect(self._toggle_capture)
+        self.profile_edit_button.clicked.connect(self._edit_profile)
+        self.profile_refresh_button.clicked.connect(self._load_profile)
+        self.profile_alerts_button.clicked.connect(self._show_profile_alerts)
         if coordinator is not None:
             coordinator.snapshot_ready.connect(self.set_snapshot)
             coordinator.load_failed.connect(self._load_failed)
+        if profiles is not None:
+            profiles.loaded.connect(self._profile_loaded)
+            profiles.load_failed.connect(self._profile_load_failed)
+            profiles.saved.connect(self._profile_saved)
+            profiles.save_failed.connect(self._profile_save_failed)
 
     @property
     def selected_row_id(self) -> UUID | None:
@@ -212,12 +269,141 @@ class DevicesView(QWidget):
         self.table.clearSelection()
         self._selected_id = None
         self.details.clear()
+        self._clear_profile()
 
     def _selection_changed(self, current, _previous) -> None:
+        previous_id = self._selected_id
         row_id = current.data(ROW_ID_ROLE) if current.isValid() else None
         self._selected_id = row_id if isinstance(row_id, UUID) else None
         row = self.model.row_for_id(self._selected_id) if self._selected_id else None
         self.details.clear() if row is None else self.details.set_row(row)
+        if self._selected_id != previous_id:
+            self._load_profile()
+
+    def _clear_profile(self) -> None:
+        if self.profiles is not None:
+            self.profiles.invalidate()
+        self._profile_generation = None
+        self._profile = None
+        self._profile_loading = False
+        self._profile_load_error = False
+        self.profile_status.setText("Select an observed device to view its profile.")
+        for value in self.profile_values.values():
+            value.setText(MISSING_VALUE)
+        self._profile_controls()
+
+    def _load_profile(self) -> None:
+        self._profile = None
+        for value in self.profile_values.values():
+            value.setText(MISSING_VALUE)
+        if self._selected_id is None:
+            self._clear_profile()
+            return
+        if self.profiles is None:
+            self.profile_status.setText("Saved profiles are unavailable.")
+            self._profile_controls()
+            return
+        self._profile_loading = True
+        self._profile_load_error = False
+        self.profile_status.setText("Loading user profile…")
+        self._profile_controls()
+        try:
+            self._profile_generation = self.profiles.load(self._selected_id)
+        except RuntimeError:
+            self._profile_loading = False
+            self._profile_load_error = True
+            self.profile_status.setText("Saved profiles are unavailable. Try selecting this device again.")
+            self._profile_controls()
+
+    def _profile_loaded(self, generation: int, device_id: object, profile: object) -> None:
+        if self.profiles is not None and not self.profiles.accepting:
+            return
+        if generation != self._profile_generation or device_id != self._selected_id:
+            return
+        self._profile_loading = False
+        self._profile_load_error = False
+        self._profile = profile if isinstance(profile, DeviceProfile) else None
+        if self._profile is None:
+            self.profile_status.setText("No user profile is saved for this observed device.")
+        else:
+            self.profile_status.setText("Profile changed elsewhere. Latest values loaded; review and retry."
+                                        if self._stale_notice else
+                                        "User-saved expectations; observations do not edit this profile.")
+            self.profile_values["label"].setText(self._profile.label or MISSING_VALUE)
+            self.profile_values["trust"].setText(self._profile.trust.value.title())
+            self.profile_values["note"].setText(self._profile.note or MISSING_VALUE)
+            self.profile_values["macs"].setText(", ".join(map(str, self._profile.expected_macs)) or MISSING_VALUE)
+            self.profile_values["ips"].setText(", ".join(self._profile.expected_ips) or MISSING_VALUE)
+            self.profile_values["updated"].setText(format_seen(self._profile.updated_at))
+            self.profile_values["trust_changed"].setText(format_seen(self._profile.trust_changed_at) if self._profile.trust_changed_at else MISSING_VALUE)
+        self._stale_notice = False
+        self._profile_controls()
+
+    def _profile_load_failed(self, generation: int, device_id: object) -> None:
+        if self.profiles is not None and not self.profiles.accepting:
+            return
+        if generation != self._profile_generation or device_id != self._selected_id:
+            return
+        self._profile_loading = False
+        self._profile_load_error = True
+        self.profile_status.setText("Saved profile is unavailable. Try selecting this device again.")
+        self._profile_controls()
+
+    def _profile_controls(self) -> None:
+        available = self.profiles is not None and self._selected_id is not None
+        self.profile_edit_button.setEnabled(available and not self._profile_loading and not self._profile_busy
+                                            and not self._profile_load_error)
+        self.profile_edit_button.setText("Edit profile" if self._profile else "Create profile")
+        self.profile_refresh_button.setEnabled(available and not self._profile_loading and not self._profile_busy)
+        self.profile_alerts_button.setEnabled(self._profile is not None and not self._profile_loading
+                                              and not self._profile_busy)
+
+    def _edit_profile(self) -> None:
+        row = self.model.row_for_id(self._selected_id) if self._selected_id else None
+        if row is None or self.profiles is None or self._profile_loading or self._profile_busy:
+            return
+        dialog = DeviceProfileDialog(self._profile, row.mac, row.ip_address, self)
+        result = dialog.exec()
+        draft = dialog.draft
+        dialog.deleteLater()
+        if result != DeviceProfileDialog.DialogCode.Accepted or draft is None:
+            return
+        self._profile_busy = True
+        self.profile_status.setText("Saving user profile…")
+        self._profile_controls()
+        if not self.profiles.save(row.row_id, row.network_fingerprint, self._profile, draft):
+            self._profile_save_failed(row.row_id, "unavailable")
+
+    def _profile_saved(self, device_id: object, profile: object) -> None:
+        if self.profiles is not None and not self.profiles.accepting:
+            return
+        self._profile_busy = False
+        if device_id == self._selected_id:
+            self.profile_status.setText("Profile saved. Reloading…")
+            self._load_profile()
+        self._request("refresh")
+
+    def _profile_save_failed(self, device_id: object, reason: str) -> None:
+        if self.profiles is not None and not self.profiles.accepting:
+            return
+        self._profile_busy = False
+        if device_id == self._selected_id:
+            self.profile_status.setText(
+                "Profile changed elsewhere. Latest values are loading; review and retry."
+                if reason == "stale" else
+                "Profile could not be saved. Review values and try again."
+                if reason == "invalid" else
+                "Profile storage is unavailable. Try again."
+            )
+            if reason == "stale":
+                self._stale_notice = True
+                self._load_profile()
+            else:
+                self._profile_controls()
+
+    def _show_profile_alerts(self) -> None:
+        if self._profile is not None:
+            self.profile_alerts_requested.emit(self._profile.profile_id, self._profile.network_fingerprint)
 
     def _search_changed(self, text: str) -> None:
         previous_id = self._selected_id

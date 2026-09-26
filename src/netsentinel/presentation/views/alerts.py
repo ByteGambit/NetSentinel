@@ -119,6 +119,7 @@ class AlertsView(QWidget):
         self._selected_id = None
         self._ack_pending = False
         self._network_labels: dict[str, str] = {}
+        self._linked_profile: tuple[str, str] | None = None
 
         title = QLabel("Alerts", self)
         title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
@@ -146,6 +147,12 @@ class AlertsView(QWidget):
             self.rule_filter.addItem(label, rule)
         self.refresh_button = QPushButton("Refresh", self)
         self.refresh_button.setAccessibleName("Refresh alerts")
+        self.linked_profile_label = QLabel("Showing alerts for the selected device profile and network.", self)
+        self.linked_profile_label.setAccessibleName("Related profile alert scope")
+        self.linked_profile_label.hide()
+        self.clear_profile_button = QPushButton("Show all alerts", self)
+        self.clear_profile_button.setAccessibleName("Clear related profile alert scope")
+        self.clear_profile_button.hide()
         filters = QHBoxLayout()
         for control in (self.status_filter, self.severity_filter, self.confidence_filter, self.rule_filter, self.refresh_button):
             filters.addWidget(control)
@@ -192,10 +199,16 @@ class AlertsView(QWidget):
         layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addLayout(filters)
+        link_controls = QHBoxLayout()
+        link_controls.addWidget(self.linked_profile_label)
+        link_controls.addWidget(self.clear_profile_button)
+        link_controls.addStretch()
+        layout.addLayout(link_controls)
         layout.addWidget(splitter, 1)
         for control in (self.status_filter, self.severity_filter, self.confidence_filter, self.rule_filter):
             control.currentIndexChanged.connect(self._filters_changed)
         self.refresh_button.clicked.connect(self.refresh)
+        self.clear_profile_button.clicked.connect(self._clear_profile_link)
         self.previous_button.clicked.connect(self.previous_page)
         self.next_button.clicked.connect(self.next_page)
         self.acknowledge_button.clicked.connect(self.acknowledge_selected)
@@ -235,6 +248,17 @@ class AlertsView(QWidget):
     def refresh(self) -> None:
         self._request_page()
 
+    def show_profile_identity_alerts(self, profile_id, network_fingerprint: str) -> None:
+        """Browse alerts emitted for one user profile by NS-040."""
+        self._linked_profile = (str(profile_id), network_fingerprint)
+        self._initial_requested = True
+        self.linked_profile_label.show()
+        self.clear_profile_button.show()
+        self._page_index = 0
+        self._selected_id = None
+        self.details.clear()
+        self._request_page()
+
     def next_page(self) -> None:
         if self._loading or not self._has_next:
             return
@@ -248,6 +272,18 @@ class AlertsView(QWidget):
         self._request_page()
 
     def _filters_changed(self) -> None:
+        self._linked_profile = None
+        self.linked_profile_label.hide()
+        self.clear_profile_button.hide()
+        self._page_index = 0
+        self._selected_id = None
+        self.details.clear()
+        self._request_page()
+
+    def _clear_profile_link(self) -> None:
+        self._linked_profile = None
+        self.linked_profile_label.hide()
+        self.clear_profile_button.hide()
         self._page_index = 0
         self._selected_id = None
         self.details.clear()
@@ -258,7 +294,9 @@ class AlertsView(QWidget):
             return
         query = AlertQuery(limit=ALERT_PAGE_SIZE, offset=self._page_index * ALERT_PAGE_SIZE,
                            status=self.status_filter.currentData(), severity=self.severity_filter.currentData(),
-                           confidence=self.confidence_filter.currentData(), rule_id=self.rule_filter.currentData())
+                           confidence=self.confidence_filter.currentData(), rule_id=self.rule_filter.currentData(),
+                           network_fingerprint=self._linked_profile[1] if self._linked_profile else None,
+                           entity_id=self._linked_profile[0] if self._linked_profile else None)
         self._loading = True
         self.state_label.setText("Loading alerts…")
         self.state_label.show()
@@ -290,7 +328,8 @@ class AlertsView(QWidget):
         if page.alerts:
             self.state_label.hide()
         else:
-            self.state_label.setText("No alerts match the current filters." if self._filters_active() else "No alerts yet.")
+            self.state_label.setText("No identity alerts for this profile." if self._linked_profile else
+                                     "No alerts match the current filters." if self._filters_active() else "No alerts yet.")
             self.state_label.show()
         self._update_controls()
 

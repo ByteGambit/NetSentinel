@@ -240,6 +240,12 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
   spoofing/saldırı kanıtı değildir. Alert yalnızca kısa profil etiketi/UUID,
   canonical MAC/IP, ağ bağlamı, güven gerekçesi ve UTC zamanı saklar. Kullanıcı
   notu, ham ARP paket/frame ve payload alert'e veya detector state'ine kopyalanmaz.
+- NS-041 profil arayüzü gözlenen MAC/IP'yi ancak açık kullanıcı eylemiyle
+  beklenen kimliğe ekler. `trusted`, kullanıcı tarafından verilen bir etikettir;
+  kimlik doğrulama, kriptografik güvence veya zararsızlık anlamına gelmez.
+  Save/Cancel ayrıdır; profil notu yalnızca seçili profil detayında gösterilir,
+  alert'e ve tanılama kaydına taşınmaz. İşlemler yerel SQLite worker'ında
+  yürür, pasif capture başlatmaz ve raw packet/payload saklamaz.
 - NS-023 yeni cihaz olayı yalnızca warm-up sonrasında ilk kez gözlenen network
   fingerprint + MAC kimliği için bilgi amaçlıdır. İlk envanter import'u alert
   üretmez; restart'ta bilinen cihazlar repository'den yüklenir. Pasif ARP

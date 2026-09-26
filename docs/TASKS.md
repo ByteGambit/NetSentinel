@@ -445,6 +445,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-041 — Device profile/trust yönetimi UI
 
+- **Durum:** ✅ Tamamlandı (2026-09-26)
 - **Amaç:** Kullanıcının cihazı tanımlayıp beklenen kimliği doğrulamasını ve değişiklik alert'ini bağlam içinde incelemesini sağlamak.
 - **Yapılacaklar:** Edit dialog/controller, validation, trust açıklaması, expected identity seçimi ve ilişkili alert bağlantıları ekle; destructive merge/silme davranışını kapsam dışı tut.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/presentation/views/devices.py`, `src/netsentinel/presentation/widgets/device_profile.py`, `src/netsentinel/presentation/models/devices.py`, `tests/gui/test_device_profile.py`.

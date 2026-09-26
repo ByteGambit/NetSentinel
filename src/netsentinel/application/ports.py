@@ -128,6 +128,7 @@ class AlertQuery:
     offset: int = 0
     rule_id: str | None = None
     network_fingerprint: str | None = None
+    entity_id: str | None = None
     severity: str | None = None
     confidence: str | None = None
     status: AlertStatus | None = None
@@ -147,6 +148,8 @@ class AlertQuery:
             raise ValueError("invalid rule_id")
         if self.network_fingerprint is not None and (not isinstance(self.network_fingerprint, str) or len(self.network_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in self.network_fingerprint)):
             raise ValueError("invalid network_fingerprint")
+        if self.entity_id is not None and (not isinstance(self.entity_id, str) or not 1 <= len(self.entity_id) <= 128):
+            raise ValueError("invalid entity_id")
 
 
 class AlertRepository(Protocol):
@@ -245,7 +248,7 @@ class DeviceProfileRepository(Protocol):
     def create(self, device_id: UUID, profile: DeviceProfile) -> DeviceProfile: ...
     def get(self, profile_id: UUID) -> DeviceProfile | None: ...
     def get_for_device(self, device_id: UUID) -> DeviceProfile | None: ...
-    def update(self, profile: DeviceProfile) -> DeviceProfile: ...
+    def update(self, profile: DeviceProfile, *, expected_updated_at: datetime | None = None) -> DeviceProfile: ...
     def delete(self, profile_id: UUID) -> bool: ...
     def merge_devices(self, target_device_id: UUID, source_device_id: UUID, at: datetime) -> DeviceProfile: ...
     def snapshot_for_network(self, network_fingerprint: str, since: datetime) -> tuple[tuple[DeviceProfile, tuple[UUID, ...], tuple[IdentityBinding, ...]], ...]:

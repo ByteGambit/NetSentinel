@@ -102,6 +102,10 @@ def test_scope_rules_bounded_evidence_queries_and_corruption(tmp_path):
     assert len(ids) == len(variants)
     assert len(alerts.query(AlertQuery(limit=2))) == 2
     assert len(alerts.query(AlertQuery(limit=10, network_fingerprint=OTHER_NETWORK))) == 1
+    entity = alerts.query(AlertQuery(limit=10))[0].entity_id
+    assert all(item.entity_id == entity for item in alerts.query(
+        AlertQuery(limit=10, network_fingerprint=NETWORK, entity_id=entity)))
+    assert alerts.query(AlertQuery(limit=10, entity_id="missing-profile")) == ()
     with pytest.raises(ValueError):
         AlertQuery(limit=101)
     for i in range(1, 16):

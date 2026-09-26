@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
+from netsentinel.presentation.device_profile import DeviceProfileCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
@@ -76,6 +77,7 @@ class MainWindow(QMainWindow):
         statistics: StatisticsService | None = None,
         history_queries: HistoryQueryCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
+        device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
         parent: QWidget | None = None,
@@ -136,7 +138,7 @@ class MainWindow(QMainWindow):
                 parent=self.content,
             ),
             PageId.HISTORY: HistoryView(history_queries, parent=self.content),
-            PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory),
+            PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory, profiles=device_profiles),
             PageId.DNS: DnsView(self.content, coordinator=dns_queries),
             PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries),
         }
@@ -163,6 +165,15 @@ class MainWindow(QMainWindow):
         dns = self.page_widget(PageId.DNS)
         assert isinstance(dns, DnsView)
         dns.config_alert_requested.connect(self._show_dns_config_alerts)
+        devices = self.page_widget(PageId.DEVICES)
+        assert isinstance(devices, DevicesView)
+        devices.profile_alerts_requested.connect(self._show_profile_alerts)
+
+    def _show_profile_alerts(self, profile_id: object, network_fingerprint: str) -> None:
+        alerts = self.page_widget(PageId.ALERTS)
+        assert isinstance(alerts, AlertsView)
+        alerts.show_profile_identity_alerts(profile_id, network_fingerprint)
+        self.navigate_to(PageId.ALERTS)
 
     def _show_dns_config_alerts(self) -> None:
         alerts = self.page_widget(PageId.ALERTS)
@@ -363,6 +374,9 @@ class MainWindow(QMainWindow):
         QWidget.setTabOrder(devices.search_edit, devices.refresh_button)
         QWidget.setTabOrder(devices.refresh_button, devices.capture_button)
         QWidget.setTabOrder(devices.capture_button, devices.table)
+        QWidget.setTabOrder(devices.table, devices.profile_edit_button)
+        QWidget.setTabOrder(devices.profile_edit_button, devices.profile_refresh_button)
+        QWidget.setTabOrder(devices.profile_refresh_button, devices.profile_alerts_button)
         alerts = self.page_widget(PageId.ALERTS)
         assert isinstance(alerts, AlertsView)
         QWidget.setTabOrder(self.navigation, alerts.status_filter)

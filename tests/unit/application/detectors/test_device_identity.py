@@ -84,6 +84,25 @@ def test_unknown_mac_at_expected_ip_has_bounded_evidence_and_stable_identity():
     assert detector.observe(ctx, device, binding, at) == ()
 
 
+def test_detector_never_mutates_user_profile_and_next_snapshot_uses_explicit_edit():
+    ctx = context()
+    owner = profile(ctx)
+    original_fields = (owner.label, owner.note, owner.expected_macs,
+                       owner.expected_ips, owner.trust, owner.trust_changed_at)
+    expected_device, expected_binding, _ = observed(ctx, EXPECTED, "192.168.1.20", 5)
+    changed_device, changed_binding, at = observed(ctx, OTHER, "192.168.1.20", 10)
+    detector = setup(ctx, owner, (expected_device.device_id, changed_device.device_id), (expected_binding,))
+    assert detector.observe(ctx, changed_device, changed_binding, at)[0].rule_id == MAC_RULE
+    assert (owner.label, owner.note, owner.expected_macs,
+            owner.expected_ips, owner.trust, owner.trust_changed_at) == original_fields
+    edited = replace(owner, expected_macs=(EXPECTED, OTHER), updated_at=T0 + timedelta(seconds=12))
+    detector.replace_snapshot(ctx.fingerprint,
+                              ((edited, (expected_device.device_id, changed_device.device_id), (expected_binding,)),),
+                              T0 + timedelta(seconds=13))
+    later_device, later_binding, later = observed(ctx, OTHER, "192.168.1.20", 14)
+    assert detector.observe(ctx, later_device, later_binding, later) == ()
+
+
 def test_private_mac_is_low_and_stale_binding_cannot_raise_confidence():
     ctx = context()
     owner = profile(ctx)
