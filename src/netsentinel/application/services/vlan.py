@@ -21,6 +21,10 @@ class VlanContextChanged(ValueError):
     """The observation belongs to a different network or interface."""
 
 
+class VlanBaselineNotReady(ValueError):
+    """Explicit verification requires a complete learned passive reference."""
+
+
 class VlanSummaryService:
     """Synchronous service owned by the existing passive capture consumer.
 
@@ -52,6 +56,20 @@ class VlanSummaryService:
         return self._repository.get(context.fingerprint, context.interface_id.casefold(),
                                     context.interface_index)
 
+    def verify_baseline(self, context: NetworkContext) -> VlanSummarySnapshot:
+        """Explicitly accept the frozen observed VID set for this exact scope.
+
+        Verification is a user-owned command contract, never an effect of a
+        packet. It does not assert switch configuration or traffic visibility.
+        """
+        summary = self.get(context)
+        if summary is None or summary.baseline_state is VlanBaselineState.LEARNING:
+            raise VlanBaselineNotReady("VLAN baseline has not finished passive learning")
+        if summary.overflow_count or not summary.learned_vlan_ids:
+            raise VlanBaselineNotReady("VLAN baseline is incomplete")
+        return self._repository.verify(summary.network_fingerprint, summary.interface_id,
+                                       summary.interface_index, self._now())
+
     def observe(self, context: NetworkContext,
                 observation: PacketObservation) -> VlanSummarySnapshot | None:
         if not isinstance(context, NetworkContext) or not isinstance(observation, PacketObservation):
@@ -63,10 +81,7 @@ class VlanSummaryService:
         vlan = observation.vlan
         if vlan is None:
             return None
-        now = self._clock()
-        if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() != timedelta(0):
-            raise ValueError("clock must return a UTC-aware datetime")
-        now = now.astimezone(UTC)
+        now = self._now()
         old = self.get(context)
         at = observation.observed_at
         if old is None:
@@ -111,9 +126,15 @@ class VlanSummaryService:
                           vlan_ids=tuple(entries[vid] for vid in sorted(entries)))
         return self._repository.save(summary)
 
+    def _now(self) -> datetime:
+        now = self._clock()
+        if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() != timedelta(0):
+            raise ValueError("clock must return a UTC-aware datetime")
+        return now.astimezone(UTC)
+
 
 def _increment(value: int) -> int:
     return min(value + 1, MAX_COUNT)
 
 
-__all__ = ("MAX_VLAN_IDS", "VlanContextChanged", "VlanSummaryService")
+__all__ = ("MAX_VLAN_IDS", "VlanBaselineNotReady", "VlanContextChanged", "VlanSummaryService")

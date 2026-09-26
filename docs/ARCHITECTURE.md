@@ -174,6 +174,38 @@ eksiksiz ölçümü değildir. NS-044 alert, GUI ve inner QinQ parse etmez.
 
 Ham Scapy paketleri domain/application sınırını geçmez ve varsayılan olarak kalıcılaştırılmaz.
 
+### NS-045 portable VLAN detector
+
+Inventory consumer, NS-044 `observe` kaydı başarıyla döndükten sonra aynı
+portable `PacketObservation.vlan` ve `VlanSummarySnapshot` çiftini
+`VlanAnomalyDetector`'a verir. NS-044 `learning` ve pasif `learned` durumları
+korunur; ayrı `verified` durumu yalnızca açık `verify_baseline` application
+komutuyla oluşur. Migration 009, scope için `verified_at_utc_us` ekler; 008
+değiştirilmez. Repository doğrulama geçişini tek transaction'da yapar ve sonraki
+pasif gözlemler doğrulama zamanını veya donmuş learned VID kümesini değiştirmez.
+`learning`, doğrulanmamış `learned`, normal olmayan VID kategorileri veya
+`overflow_count > 0` karar üretmez. Kabul edilmiş setteki
+normal VID bilinir; dışındaki normal VID, 120 saniye içinde farklı ileri UTC
+zamanlı iki gözlemle düşük önem/düşük güvenli sinyal olur. 60 saniyede üç ayrı
+doğrulanmış yeni VID, orta önem/düşük güvenli çeşitlilik sinyali oluşturur.
+Tek frame veya yalnızca `untagged` görünümünden saldırı çıkarımı yapılmaz.
+
+Infrastructure callback'i görülen Ethernet kaynak MAC'ini mevcut `MacAddress`
+tipine normalize edip `PacketObservation.ethernet_source_mac` alanına koyar;
+geçersiz alan `None` olur, raw frame taşınmaz. Detector geçerli unicast MAC ile
+mevcut `DeviceIdentity(network fingerprint, MAC)` UUID sözleşmesini kullanır;
+VLAN frame'inden ARP device registry tablosuna kayıt yazmaz ve packet başına
+device SQLite sorgusu yapmaz. İlk VID geçici cihaz referansıdır; aynı scope ve
+cihazın farklı VID'si iki ileri gözlemle doğrulanınca cihaz tag değişimi sinyali
+oluşur. Kaynak kimliği yoksa yalnız global kurallar değerlendirilir. Detector
+ikinci kalıcı VLAN baseline veya SQLite store tutmaz; network fingerprint +
+normalize interface ID + index + rule/VID/cihaz kapsamında toplam en fazla 512
+geçici state tutar. 600 saniye idle expiry ve eşitlikte anahtar
+sıralı deterministik tahliye kullanır. Sinyaller bounded `AlertCandidate`
+olarak inventory snapshot'ında taşınır; bu aşamada `AlertService`, alert
+persistence, GUI, yeni worker/queue veya recovery yoktur. NS-046 bu portable
+çıktının kalıcı alert ve görünüm entegrasyonunu üstlenir.
+
 ### NS-036 rolling broadcast/ARP metriği
 
 `TrafficMetricsService` mevcut tek pasif capture consumer'ında senkron çalışır.

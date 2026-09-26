@@ -12,6 +12,7 @@ from netsentinel.application.detectors.arp_identity import GatewayMacChangeDetec
 from netsentinel.application.detectors.arp_anomaly import ArpAnomalyCorrelator
 from netsentinel.application.detectors.traffic_rate import TrafficRateDetector
 from netsentinel.application.detectors.device_identity import DeviceIdentityChangeDetector
+from netsentinel.application.detectors.vlan_anomaly import VlanAnomalyDetector
 from netsentinel.application.ports import (
     DeviceRepository,
     DeviceProfileRepository,
@@ -27,7 +28,7 @@ from netsentinel.application.services.dns import DnsTrackingService
 from netsentinel.application.services.dns_history import DnsHistoryWriter
 from netsentinel.application.services.traffic_metrics import TrafficMetricsService, TrafficMetricsSnapshot
 from netsentinel.application.services.vlan import VlanSummaryService
-from netsentinel.domain.alerts import ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
+from netsentinel.domain.alerts import AlertCandidate, ArpIdentityConflictDetected, ArpRiskAssessment, NewDeviceDetected
 from netsentinel.domain.alerts import alert_id
 from netsentinel.domain.devices import DeviceIdentity, IdentityBinding, NetworkContext
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
@@ -71,6 +72,7 @@ class DeviceInventorySnapshot:
     traffic_policy: TrafficRateConfig | None = None
     traffic_alert_changed: bool = False
     identity_alert_changed: bool = False
+    vlan_events: tuple[AlertCandidate, ...] = ()
 
 
 class DeviceInventoryService:
@@ -94,6 +96,7 @@ class DeviceInventoryService:
         traffic_observed_clock: Callable[[], datetime] | None = None,
         profiles: DeviceProfileRepository | None = None,
         vlan_summary: VlanSummaryService | None = None,
+        vlan_detector: VlanAnomalyDetector | None = None,
     ) -> None:
         self._contexts = contexts
         self._registry = DeviceRegistryService(repository)
@@ -111,6 +114,7 @@ class DeviceInventoryService:
         self._traffic_observed_clock = traffic_observed_clock or (lambda: datetime.now(UTC))
         self._profiles = profiles
         self._vlan_summary = vlan_summary
+        self._vlan_detector = (vlan_detector or VlanAnomalyDetector()) if vlan_summary is not None else None
         self._identity_detector = DeviceIdentityChangeDetector() if profiles is not None else None
         if self._dns_writer is not None:
             self._dns_writer.start()
@@ -162,6 +166,7 @@ class DeviceInventoryService:
         events: list[NewDeviceDetected] = []
         identity_events: list[ArpIdentityConflictDetected] = []
         assessments: list[ArpRiskAssessment] = []
+        vlan_events: list[AlertCandidate] = []
         alert_failed = False
         identity_alert_changed = False
         profile_ready = False
@@ -189,9 +194,15 @@ class DeviceInventoryService:
                         observation_failed = True
                     if self._vlan_summary is not None and observation.vlan is not None:
                         try:
-                            self._vlan_summary.observe(context, observation)
+                            vlan_snapshot = self._vlan_summary.observe(context, observation)
                         except Exception:
                             observation_failed = True
+                        else:
+                            if vlan_snapshot is not None and self._vlan_detector is not None:
+                                try:
+                                    vlan_events.extend(self._vlan_detector.observe(vlan_snapshot, observation))
+                                except Exception:
+                                    observation_failed = True
                     if self._dns_writer is not None and observation.dns is not None:
                         try:
                             for transaction in self._dns_tracking.observe(observation):
@@ -319,6 +330,7 @@ class DeviceInventoryService:
             self._traffic_detector.config,
             traffic_alert_changed,
             identity_alert_changed,
+            tuple(vlan_events),
         )
 
     def close(self) -> bool:

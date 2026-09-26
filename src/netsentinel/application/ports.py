@@ -288,6 +288,9 @@ class VlanSummaryRepository(Protocol):
 
     def save(self, summary: VlanSummarySnapshot) -> VlanSummarySnapshot: ...
 
+    def verify(self, network_fingerprint: str, interface_id: str,
+               interface_index: int, verified_at: datetime) -> VlanSummarySnapshot: ...
+
 
 class PacketCaptureError(RuntimeError):
     """Base error for sanitized passive packet-capture failures."""

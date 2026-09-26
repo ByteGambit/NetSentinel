@@ -137,6 +137,24 @@ offload etiketi capture öncesi çıkarabilir; seçili BPF filtresi de görünü
 sınırlar. Bu yüzden `untagged` sayacı ağda VLAN olmadığını veya switch port
 modunu kanıtlamaz. Bu aşama alert veya aktif ağ işlemi üretmez.
 
+NS-045 pasif `learned` normal VID kümesini yalnızca açık application komutuyla
+kabul edilmiş `verified` durumda portable VLAN gözlemiyle karşılaştırır.
+`verified`, kullanıcının gözlenen referansı kabul ettiğini belirtir; switch
+yapılandırması, yetkilendirme veya ağdaki bütün VLAN'ların eksiksiz listesi
+değildir. Pasif gözlemler verification zamanını değiştirmez. En az iki ileri zamanlı
+gözlemden gelen yeni VID sinyali de VLAN hopping veya saldırı kanıtı değildir.
+`untagged` görünüm, NIC VLAN offload veya capture filtresinden etkilenebilir;
+tek başına tag kaybı veya switch port değişimi sayılmaz. VID 0, reserved 4095
+ve iç etiketi okunmayan QinQ normal yeni VID kuralına girmez. Özet kapasitesi
+aşıldığında eksik referanstan güçlü karar çıkmaz. Detector'ın geçici kanıtı
+yalnızca bounded kategori, VID, kapsam, sayım, UTC zaman ve görünürlük notudur;
+raw frame/payload veya kimlik bilgisi taşımaz. Infrastructure yalnızca canonical
+Ethernet kaynak MAC'ini portable gözleme kopyalar; detector mevcut ağ kapsamlı
+gözlenen cihaz UUID sözleşmesini kullanır ve MAC'i alert kanıtına yazmaz. Zero,
+broadcast ve multicast kaynak cihaz sayılmaz; locally administered unicast MAC
+pasif gözlenen kimlik olabilir. Cihaz kimliği yoksa cihaz tag değişimi atfedilmez.
+Aktif VLAN sorgulama, injection veya switch etkileşimi yoktur.
+
 NS-035 Ethernet/IPv4 broadcast sınıflandırması da aynı pasif capture callback'i
 içinde yapılır. Header türü/adresi doğrulanır; bozuk frame mevcut malformed
 sayacı ve sanitized diagnostic ile atlanır. Portable sonuç yalnızca tekil

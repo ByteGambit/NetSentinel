@@ -489,6 +489,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-045 — Şüpheli VLAN davranışı detector'ı
 
+- **Durum:** ✅ Tamamlandı (2026-09-27)
 - **Amaç:** Yeni/beklenmeyen VLAN, cihaz için tag değişimi ve kısa sürede olağandışı VLAN çeşitliliğini raporlamak.
 - **Yapılacaklar:** Rule'lar, minimum sample, confidence ve dedup fingerprint ekle; capture/offload belirsizliğini confidence'a yansıt.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/detectors/vlan_anomaly.py`, `src/netsentinel/domain/alerts.py`, `tests/unit/application/detectors/test_vlan_anomaly.py`.

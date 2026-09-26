@@ -159,7 +159,7 @@ görünümüyle M8 çıkış ölçütünü doğruladı. Kural ve yanlış poziti
 
 ## M9 — VLAN Monitoring
 
-**Durum:** NS-043 parser ve NS-044 kalıcı özet/baseline tamamlandı (2026-09-26); NS-045–NS-046 bekliyor.
+**Durum:** NS-043 parser ve NS-044 kalıcı özet/baseline tamamlandı (2026-09-26); NS-045 doğrulanmış baseline kapısı, canlı kaynak cihaz kimliği ve portable detector çıktısıyla tamamlandı (2026-09-27). NS-046 bekliyor.
 
 **Amaç:** Capture'da mevcut 802.1Q etiketlerini gözlemek ve ağ bağlamına göre şüpheli VLAN değişimlerini bildirmek.
 

@@ -122,3 +122,20 @@ def test_capture_envelope_uses_existing_context_and_drops_payload() -> None:
     assert result.observed_at == AT
     assert b"secret" not in repr(result).encode()
     assert not hasattr(result, "packet") and not hasattr(result, "payload")
+
+
+def test_capture_copies_only_canonical_ethernet_source_identity() -> None:
+    frame = tagged(10)
+    frame.src = "02:AA:BB:CC:DD:EE"
+    observation = _packet_observation(frame, context(), AT)
+    assert str(observation.ethernet_source_mac) == "02:aa:bb:cc:dd:ee"
+    assert observation.vlan.vlan_id == 10
+    assert not hasattr(observation, "raw_frame")
+    assert b"secret" not in repr(observation).encode()
+
+    malformed = BrokenPacket(0x8100, SimpleNamespace(
+        vlan=10, prio=0, dei=0, type=0x0800))
+    malformed.ether.src = "not-a-mac"
+    result = _packet_observation(malformed, context(), AT)
+    assert result.ethernet_source_mac is None
+    assert result.vlan.vlan_id == 10

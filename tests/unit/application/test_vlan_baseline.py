@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from netsentinel.application.services.vlan import VlanContextChanged, VlanSummaryService
+from netsentinel.application.services.vlan import VlanBaselineNotReady, VlanContextChanged, VlanSummaryService
 from netsentinel.domain.devices import NetworkContext, NetworkInterfaceKind
 from netsentinel.domain.observations import LinkLayerProtocol, NetworkLayerProtocol, PacketObservation
 from netsentinel.domain.vlan import VlanObservation, VlanTagKind
@@ -35,6 +35,18 @@ class MemoryRepository:
         key = (snapshot.network_fingerprint, snapshot.interface_id, snapshot.interface_index)
         self.rows[key] = snapshot
         return snapshot
+
+    def verify(self, fingerprint: str, interface: str, index: int,
+               verified_at: datetime) -> VlanSummarySnapshot:
+        key = (fingerprint, interface, index)
+        current = self.rows[key]
+        if current.baseline_state is VlanBaselineState.VERIFIED:
+            return current
+        assert current.baseline_state is VlanBaselineState.LEARNED
+        verified = replace(current, baseline_state=VlanBaselineState.VERIFIED,
+                           verified_at=verified_at)
+        self.rows[key] = verified
+        return verified
 
 
 def context(interface: str = "WiFi", index: int = 1, subnet: str = "192.0.2.0/24") -> NetworkContext:
@@ -136,3 +148,29 @@ def test_vid_capacity_is_bounded_and_excess_is_counted() -> None:
     assert result.overflow_count == 2
     assert result.tagged_count == 130
     assert result.vlan_ids[0].vlan_id == 1
+
+
+def test_explicit_verification_is_separate_from_passive_learning_and_stays_frozen() -> None:
+    clock = Clock()
+    service = VlanSummaryService(MemoryRepository(), clock=clock, warmup=timedelta(0))
+    ctx = context()
+    with pytest.raises(VlanBaselineNotReady):
+        service.verify_baseline(ctx)
+    service.observe(ctx, packet(ctx, 10, at=AT))
+    with pytest.raises(VlanBaselineNotReady):
+        service.verify_baseline(ctx)
+    learned = service.observe(ctx, packet(ctx, 10, at=AT + timedelta(seconds=1)))
+    assert learned.baseline_state is VlanBaselineState.LEARNED
+    assert learned.verified_at is None
+    clock.at += timedelta(seconds=2)
+    verified = service.verify_baseline(ctx)
+    assert verified.baseline_state is VlanBaselineState.VERIFIED
+    assert verified.verified_at == clock.at
+    clock.at += timedelta(seconds=1)
+    assert service.verify_baseline(ctx).verified_at == verified.verified_at
+    updated = service.observe(ctx, packet(ctx, 20, at=AT + timedelta(seconds=3)))
+    assert updated.baseline_state is VlanBaselineState.VERIFIED
+    assert updated.verified_at == verified.verified_at
+    assert updated.learned_vlan_ids == (10,)
+    with pytest.raises(VlanBaselineNotReady):
+        service.verify_baseline(context("Other", 2))

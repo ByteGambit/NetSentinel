@@ -10,6 +10,7 @@ from enum import Enum
 class VlanBaselineState(str, Enum):
     LEARNING = "learning"
     LEARNED = "learned"
+    VERIFIED = "verified"
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +47,7 @@ class VlanSummarySnapshot:
     stacked_count: int
     overflow_count: int
     vlan_ids: tuple[VlanIdSummary, ...]
+    verified_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if (len(self.network_fingerprint) != 64 or
@@ -59,6 +61,12 @@ class VlanSummarySnapshot:
         _times(self.learning_started_at, self.learning_started_at)
         if not isinstance(self.baseline_state, VlanBaselineState):
             raise TypeError("invalid baseline state")
+        if self.baseline_state is VlanBaselineState.VERIFIED:
+            if self.verified_at is None:
+                raise ValueError("verified baseline requires an explicit verification time")
+            _times(self.learning_started_at, self.verified_at)
+        elif self.verified_at is not None:
+            raise ValueError("unverified baseline cannot have a verification time")
         for name in ("untagged_count", "tagged_count", "priority_tagged_count",
                      "reserved_count", "stacked_count", "overflow_count"):
             value = getattr(self, name)

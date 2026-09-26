@@ -35,6 +35,7 @@ from netsentinel.domain.observations import (
     ArpObservation,
     BroadcastObservation,
     LinkLayerProtocol,
+    MacAddress,
     MAX_CAPTURED_PACKET_BYTES,
     NetworkLayerProtocol,
     PacketObservation,
@@ -830,7 +831,9 @@ def _packet_observation(
     if vlan is not None and vlan.kind is not VlanTagKind.UNTAGGED:
         # Existing ARP/DNS/broadcast parsers assume an untagged EtherType. Their
         # VLAN-aware behavior belongs to later integration work.
-        return replace(observation, vlan=vlan)
+        return replace(observation, vlan=vlan,
+                       ethernet_source_mac=(_ethernet_source_mac(packet)
+                                            if vlan.kind is VlanTagKind.TAGGED else None))
     arp = arp_parser(packet, observation)
     dns = dns_parser(packet, observation)
     broadcast = broadcast_parser(packet, observation, context)
@@ -844,6 +847,19 @@ def _has_layer(packet: object, layer_name: str) -> bool:
     if not callable(haslayer):
         return False
     return bool(haslayer(layer_name))
+
+
+def _ethernet_source_mac(packet: object) -> MacAddress | None:
+    """Copy only a valid canonical source address out of the raw Ethernet layer."""
+    try:
+        getlayer = getattr(packet, "getlayer", None)
+        if not callable(getlayer):
+            return None
+        layer = (getlayer("Ether") if _has_layer(packet, "Ether") else
+                 getlayer("Ethernet") if _has_layer(packet, "Ethernet") else None)
+        return MacAddress(getattr(layer, "src")) if layer is not None else None
+    except (TypeError, ValueError, AttributeError):
+        return None
 
 
 def _link_layer(packet: object) -> LinkLayerProtocol:

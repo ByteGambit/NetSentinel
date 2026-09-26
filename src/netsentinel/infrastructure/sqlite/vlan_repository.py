@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 
 from netsentinel.application.ports import VlanSummaryDataCorrupt, VlanSummaryRepositoryError
 from netsentinel.domain.vlan_summary import VlanBaselineState, VlanIdSummary, VlanSummarySnapshot
@@ -58,11 +59,24 @@ class SQLiteVlanSummaryRepository:
                                     network_fingerprint, interface_id, interface_index LIMIT ?)""",
                                 (count - self._max_scopes + 1,),
                             )
-                    elif (existing.baseline_state is VlanBaselineState.LEARNED and
+                    elif (existing.baseline_state is not VlanBaselineState.LEARNING and
                           summary.baseline_state is VlanBaselineState.LEARNING):
                         raise VlanSummaryRepositoryError("Learned VLAN baseline cannot regress.")
+                    if summary.baseline_state is VlanBaselineState.VERIFIED:
+                        if (existing is None or existing.baseline_state is not VlanBaselineState.VERIFIED
+                                or summary.verified_at != existing.verified_at):
+                            raise VlanSummaryRepositoryError("VLAN verification requires the explicit command.")
+                        if summary.learned_vlan_ids != existing.learned_vlan_ids:
+                            raise VlanSummaryRepositoryError("Verified VLAN reference cannot change passively.")
+                    elif existing is not None and existing.baseline_state is VlanBaselineState.VERIFIED:
+                        raise VlanSummaryRepositoryError("Verified VLAN baseline cannot regress.")
                     connection.execute(
-                        """INSERT INTO vlan_summaries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """INSERT INTO vlan_summaries (
+                           network_fingerprint, interface_id, interface_index,
+                           first_seen_utc_us, last_seen_utc_us, learning_started_utc_us,
+                           baseline_state, untagged_count, tagged_count,
+                           priority_tagged_count, reserved_count, stacked_count,
+                           overflow_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                            ON CONFLICT(network_fingerprint, interface_id, interface_index)
                            DO UPDATE SET first_seen_utc_us=excluded.first_seen_utc_us,
                            last_seen_utc_us=excluded.last_seen_utc_us,
@@ -77,7 +91,8 @@ class SQLiteVlanSummaryRepository:
                         (*key, datetime_to_epoch_microseconds(summary.first_seen),
                          datetime_to_epoch_microseconds(summary.last_seen),
                          datetime_to_epoch_microseconds(summary.learning_started_at),
-                         summary.baseline_state.value, summary.untagged_count,
+                         ("learned" if summary.baseline_state is VlanBaselineState.VERIFIED
+                          else summary.baseline_state.value), summary.untagged_count,
                          summary.tagged_count, summary.priority_tagged_count,
                          summary.reserved_count, summary.stacked_count, summary.overflow_count),
                     )
@@ -92,11 +107,43 @@ class SQLiteVlanSummaryRepository:
                           datetime_to_epoch_microseconds(item.last_seen), int(item.learned))
                          for item in summary.vlan_ids),
                     )
-                return summary
+                persisted = _read(connection, key)
+                assert persisted is not None
+                return persisted
         except VlanSummaryRepositoryError:
             raise
         except (SQLiteAdapterError, sqlite3.Error, ValueError, OverflowError) as error:
             raise VlanSummaryRepositoryError("VLAN summary could not be stored.") from error
+
+    def verify(self, network_fingerprint: str, interface_id: str,
+               interface_index: int, verified_at: datetime) -> VlanSummarySnapshot:
+        key = (network_fingerprint, interface_id, interface_index)
+        _key(*key)
+        verified_us = datetime_to_epoch_microseconds(verified_at)
+        try:
+            with self._database.connection() as connection:
+                with transaction(connection):
+                    existing = _read(connection, key)
+                    if existing is None or existing.baseline_state is VlanBaselineState.LEARNING:
+                        raise VlanSummaryRepositoryError("VLAN baseline is not learned.")
+                    if existing.baseline_state is VlanBaselineState.VERIFIED:
+                        return existing
+                    if (existing.overflow_count or not existing.learned_vlan_ids or
+                            verified_at < existing.learning_started_at):
+                        raise VlanSummaryRepositoryError("VLAN baseline is incomplete.")
+                    connection.execute(
+                        """UPDATE vlan_summaries SET verified_at_utc_us = ?
+                           WHERE network_fingerprint = ? AND interface_id = ?
+                           AND interface_index = ? AND verified_at_utc_us IS NULL""",
+                        (verified_us, *key),
+                    )
+                    result = _read(connection, key)
+                    assert result is not None
+                    return result
+        except VlanSummaryRepositoryError:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, ValueError, OverflowError) as error:
+            raise VlanSummaryRepositoryError("VLAN baseline could not be verified.") from error
 
 
 def _key(fingerprint: str, interface_id: str, interface_index: int) -> None:
@@ -120,18 +167,25 @@ def _read(connection: sqlite3.Connection, key: tuple[str, str, int]) -> VlanSumm
            AND interface_id = ? AND interface_index = ? ORDER BY vlan_id LIMIT 129""", key,
     ).fetchall()
     try:
+        verified_at = (epoch_microseconds_to_datetime(row["verified_at_utc_us"])
+                       if row["verified_at_utc_us"] is not None else None)
+        state = (VlanBaselineState.VERIFIED if verified_at is not None
+                 else VlanBaselineState(row["baseline_state"]))
+        if verified_at is not None and row["baseline_state"] != "learned":
+            raise ValueError("verified VLAN baseline must be learned")
         return VlanSummarySnapshot(
             row["network_fingerprint"], row["interface_id"], row["interface_index"],
             epoch_microseconds_to_datetime(row["first_seen_utc_us"]),
             epoch_microseconds_to_datetime(row["last_seen_utc_us"]),
             epoch_microseconds_to_datetime(row["learning_started_utc_us"]),
-            VlanBaselineState(row["baseline_state"]), row["untagged_count"],
+            state, row["untagged_count"],
             row["tagged_count"], row["priority_tagged_count"], row["reserved_count"],
             row["stacked_count"], row["overflow_count"],
             tuple(VlanIdSummary(item["vlan_id"], item["count"],
                                  epoch_microseconds_to_datetime(item["first_seen_utc_us"]),
                                  epoch_microseconds_to_datetime(item["last_seen_utc_us"]),
                                  bool(item["learned"])) for item in items),
+            verified_at,
         )
     except (TypeError, ValueError, KeyError, IndexError, OverflowError) as error:
         raise VlanSummaryDataCorrupt("Persisted VLAN summary is invalid.") from error

@@ -196,6 +196,7 @@ class PacketObservation:
     dns: DnsObservation | None = None
     broadcast: BroadcastObservation | None = None
     vlan: VlanObservation | None = None
+    ethernet_source_mac: MacAddress | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.interface_id, str):
@@ -265,6 +266,11 @@ class PacketObservation:
                 raise TypeError("vlan must be a VlanObservation or None")
             if self.link_layer is not LinkLayerProtocol.ETHERNET:
                 raise ValueError("VLAN observation requires Ethernet")
+        if self.ethernet_source_mac is not None:
+            if not isinstance(self.ethernet_source_mac, MacAddress):
+                raise TypeError("Ethernet source must be a MacAddress")
+            if self.link_layer is not LinkLayerProtocol.ETHERNET:
+                raise ValueError("Ethernet source requires Ethernet")
 
         object.__setattr__(self, "interface_id", interface_id)
         object.__setattr__(self, "network_fingerprint", fingerprint)

@@ -242,5 +242,18 @@ sayılır; normal VID 1–4094 için count ve ilk/son görülme saklanır. En az
 saniye ve iki normal etiket gözleminden sonra, en az iki kez görülen VID'ler
 pasif `learned` baseline'a alınır. Sonradan gelen VID özette görünür ama
 baseline'ı otomatik değiştirmez. Bu liste güvenilir switch konfigürasyonu
-değildir; NIC offload ve capture filtresi görünürlüğü sınırlar. NS-045 alert
-değerlendirmesi ve NS-046 GUI görünümü henüz eklenmemiştir.
+değildir; NIC offload ve capture filtresi görünürlüğü sınırlar.
+
+NS-045, pasif `learned` kümenin açık `verify_baseline` application komutuyla
+kabul edilmesini ayrı `verified` durumunda saklar. Bu kabul switch
+konfigürasyonunu veya ağdaki VLAN'ların tamamını doğrulamaz. Yalnızca bu durum
+hazırken yeni normal VID iki ayrı ileri zamanlı gözlemle 120 saniye içinde
+sinyal üretir; üç doğrulanmış yeni VID 60 saniyede çeşitlilik sinyali olur.
+Capture adapter'ı Ethernet kaynak MAC'ini canonical, payload içermeyen portable
+metadata'ya indirger. Aynı ağ/interface kapsamındaki gözlenen cihazın önceki
+normal VID'sinden farklı VID'ye iki kez geçişi düşük güvenli cihaz tag değişimi
+sinyalidir. Kaynak kimliği yoksa bu kural çalışmaz. Sonuçlar geçici portable
+adaydır; AlertService kaydı, kalıcı alert ve GUI bağlantısı NS-046'ya aittir.
+Tek `untagged`, VID 0, VID 4095 veya QinQ gözlemi yeni normal VID sayılmaz.
+NIC offload ve BPF görünürlüğü sınırlar; sinyaller VLAN hopping kanıtı değildir.
+Aktif VLAN probing/injection yoktur.
