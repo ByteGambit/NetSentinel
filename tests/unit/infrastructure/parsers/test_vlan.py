@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -17,6 +18,13 @@ from tests.unit.infrastructure.test_scapy_capture import context
 
 
 AT = datetime(2026, 9, 26, tzinfo=UTC)
+
+
+def test_vlan_fixtures_do_not_resolve_host_interfaces() -> None:
+    with patch("scapy.layers.l2.resolve_iface", side_effect=AssertionError("host interface lookup")):
+        packets = (tagged(), untagged(), stacked(), stacked(provider=True, mixed=True))
+        assert all(packet.src == "00:00:00:00:00:00" for packet in packets)
+        assert all(packet.dst == "ff:ff:ff:ff:ff:ff" for packet in packets)
 
 
 def metadata(packet: object, *, link: LinkLayerProtocol = LinkLayerProtocol.ETHERNET,
