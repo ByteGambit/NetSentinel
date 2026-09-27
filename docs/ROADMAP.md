@@ -182,7 +182,7 @@ varsayılan test suite'inde doğrulanır.
 
 ## M10 — Packaging, Hardening & Test
 
-**Durum:** NS-047–NS-050 tamamlandı; M10 devam ediyor. Yalnız NS-051 bekliyor.
+**Durum:** M10 tamamlandı (NS-047–NS-051). Tanımlı M1–M10 milestone'ları ve NS-001–NS-051 taskları tamamlandı; 1.0 release/tag oluşturulmadı.
 
 NS-047 typed config fallback, yalnızca sabit alanlı dönen log ve mevcut
 health/storage snapshot'larını birleştiren diagnostics sözleşmesini ekledi.
@@ -201,6 +201,10 @@ standart kullanıcıyla açıldı: degraded onboarding, bağımsız Connections/
 LocalAppData veri yolu, temiz kapanış ve sonraki açılış doğrulandı. Paketlenmiş
 tanı modu VM'de migration 001–009 ve 008→009 yükseltmesini geçti. Kaldırma
 sonrası kullanıcı verisinin korunması kararı paketleme rehberinde açıklanır.
+NS-051'in PR kalite kapıları, GitHub PR #1'de Windows 2022 ve 2025 offline
+test/coverage işleri ile lint/type/dependency audit işinin geçmesiyle
+doğrulandı. Varsayılan CI live/lab capture testlerini dışlar; release checklist
+güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 **Amaç:** Uygulamayı farklı Windows yetki/capture koşullarında güvenli, gözlemlenebilir ve dağıtılabilir hale getirmek.
 

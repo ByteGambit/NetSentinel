@@ -553,6 +553,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-051 — CI kalite kapıları ve release checklist
 
+- **Durum:** ✅ Tamamlandı (2026-09-28). PR #1'de Windows 2022/2025 offline test ve coverage işleri ile lint/type/dependency audit işi geçti.
 - **Amaç:** Projenin test, stil, tip, güvenlik ve release doğrulamasını tekrarlanabilir hale getirmek.
 - **Yapılacaklar:** Windows CI matrix, unit/integration/offscreen GUI testleri, lint/type check, dependency audit, coverage tabanı ve release checklist ekle; live/lab testleri CI'dan ayır.
 - **Etkilenecek muhtemel dosyalar:** `.github/workflows/ci.yml`, `pyproject.toml`, `docs/RELEASING.md`, `README.md`, `docs/ROADMAP.md`.

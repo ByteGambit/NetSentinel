@@ -1,8 +1,7 @@
 # NS-051 — Release readiness checklist
 
-Bu liste bir release veya tag oluşturmaz. `docs/TASKS.md` NS-051 kabul ölçütleri
-geçmeden M10 tamamlandı sayılmaz. Mevcut uygulama sürümü `0.1.0`; ROADMAP'teki
-`1.0`, M10'un belgeli kalite ve Windows smoke kapılarından sonraki kapsam
+Bu liste bir release veya tag oluşturmaz. NS-051 kabul ölçütleri geçti ve M10
+tamamlandı. Mevcut uygulama sürümü `0.1.0`; ROADMAP'teki `1.0` belgeli kapsam
 hedefidir, bu belgenin oluşturulması bir 1.0 yayını değildir.
 
 ## 1.0 kapsam karşılaştırması
@@ -82,17 +81,25 @@ artifact'ı Npcap'siz temiz Windows VM'de geçti; ayrıntı
   gerekli %85 tabanının üzerinde.
 - [ ] Bir PowerShell değişkenine tüm test çıktısını toplayan ayrı coverage
   denemesinde 28 failure ve 3 error görüldü; aynı suite doğrudan stdout'a
-  çalıştırılan iki koşuda 938 passed ile geçti. Nedeni doğrulanmadı. Gerçek PR
-  matrisi, bu yerel dalgalanmanın CI'da tekrarlanıp tekrarlanmadığını da
-  gösterecektir.
+  çalıştırılan iki koşuda 938 passed ile geçti. Bu ayrı çıktı yakalama
+  denemesinin nedeni doğrulanmadı; gerçek PR matrisinin üç işi bu hatayı
+  tekrarlamadan geçti. Başarısız deneme başarılı test olarak sayılmaz.
 - [x] `uv audit --locked`: 28 pakette bilinen açık veya olumsuz proje durumu yok.
 - [x] Bilinçli yanlış lint/type/test/coverage girdileri sıfır olmayan çıkış
   üretti. Workflow YAML ayrıştırıldı; PR tetikleyicisi ve Windows matrisi
   yapısal olarak doğrulandı.
 - [x] PRODUCT kapsam ve kapsam dışı listesi ile ROADMAP 1.0 hedefi dry-run'da
   karşılaştırıldı; yeni ürün yeteneği veya release/tag eklenmedi.
-- [ ] Gerçek GitHub PR'da `windows-2022` ve `windows-2025` kalite/test işleri
-  henüz çalıştırılmadı. Commit ve push kullanıcı incelemesinden sonraya
-  bırakıldığı için bu NS-051 kabul kanıtı açıktır.
+- [x] [GitHub PR #1](https://github.com/ByteGambit/NetSentinel/pull/1)'de
+  `CI / Lint, types, and dependency audit`, `CI / Offline
+  tests and coverage (windows-2022)` ve `CI / Offline tests and coverage
+  (windows-2025)` işleri geçti. Sentetik VLAN/DNS fixture'larının host interface
+  bağımlılığı giderildikten sonra son işlevsel commit `999bd394b3b0601c1fec92213919c31aa019801d`
+  üzerinde üç başarılı kontrol görüldü.
 - [ ] Gelecekteki 1.0 release candidate'ı için artifact build ve clean VM smoke
   ayrıca tekrarlanmalıdır; NS-050'nin `0.1.0` artifact sonucu ona aktarılmaz.
+
+Son yerel PR doğrulamasında DNS parser testleri 13 passed, varsayılan suite ve CI
+coverage komutu 940 passed / 5 deselected; coverage %88,65, Ruff ve mypy geçti.
+Bu kayıt NS-051 kabul kanıtıdır; gelecekteki bir 1.0 release candidate'ının
+ayrı checklist onayı değildir.

@@ -7,6 +7,7 @@ from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 from scapy.all import DNS, DNSQR, DNSRR, Ether, IP, UDP, Raw, raw
@@ -26,10 +27,22 @@ from netsentinel.domain.observations import (
 )
 from netsentinel.infrastructure.parsers.dns import DnsPacketMalformed, parse_dns_packet
 from netsentinel.infrastructure.scapy_capture import _packet_observation
-from tests.fixtures.packets.dns import dns_query, dns_response
+from tests.fixtures.packets.dns import dns_ether, dns_query, dns_response
 
 
 NOW = datetime(2026, 9, 23, 9, tzinfo=UTC)
+
+
+def test_dns_fixtures_do_not_resolve_host_interfaces() -> None:
+    with patch("scapy.layers.l2.resolve_iface", side_effect=AssertionError("host interface lookup")):
+        packets = (
+            dns_query(), dns_query(tcp=True), dns_query(mdns=True),
+            dns_query(mdns=True, ipv6=True), dns_response(), dns_response(tcp=True),
+            Ether(raw(dns_ether() / IP() / UDP(dport=53) / Raw(b"malformed"))),
+        )
+        assert all(packet.src == "02:00:00:00:00:01" for packet in packets)
+        assert packets[2].dst == "01:00:5e:00:00:fb"
+        assert packets[3].dst == "33:33:00:00:00:fb"
 
 
 def metadata(packet: object, *, ipv6: bool = False) -> PacketObservation:
@@ -101,7 +114,7 @@ def test_compressed_question_name_is_decoded_safely() -> None:
 
 def test_malformed_compression_and_incomplete_message_are_isolated() -> None:
     bad_wire = b"\x00\x2a\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\xc0\x0c\x00\x01\x00\x01"
-    packet = Ether(raw(Ether() / IP() / UDP(dport=53) / Raw(bad_wire)))
+    packet = Ether(raw(dns_ether() / IP() / UDP(dport=53) / Raw(bad_wire)))
     with pytest.raises(DnsPacketMalformed):
         parse_dns_packet(packet, metadata(packet))
     good = dns_query()
@@ -109,7 +122,7 @@ def test_malformed_compression_and_incomplete_message_are_isolated() -> None:
 
 
 def test_record_and_name_bounds_and_malformed_fields() -> None:
-    many = Ether() / IP() / UDP(dport=53) / DNS(
+    many = dns_ether() / IP() / UDP(dport=53) / DNS(
         qd=DNSQR(qname="a.example"),
         an=[DNSRR(rrname="a.example", type="A", rdata="192.0.2.1") for _ in range(17)],
     )
@@ -118,10 +131,10 @@ def test_record_and_name_bounds_and_malformed_fields() -> None:
     for value in ("a" * 64 + ".example", "a" * 254, "a..example", "a\n.example", "é.example"):
         with pytest.raises((TypeError, ValueError)):
             canonical_dns_name(value)
-    malformed = Ether() / IP() / UDP(dport=53) / DNS(qdcount=2, qd=DNSQR(qname="a.example"))
+    malformed = dns_ether() / IP() / UDP(dport=53) / DNS(qdcount=2, qd=DNSQR(qname="a.example"))
     with pytest.raises(DnsPacketMalformed):
         parse_dns_packet(malformed, metadata(malformed))
-    too_many_questions = Ether() / IP() / UDP(sport=53000, dport=53) / DNS(
+    too_many_questions = dns_ether() / IP() / UDP(sport=53000, dport=53) / DNS(
         qd=[DNSQR(qname=f"q{index}.example") for index in range(5)]
     )
     with pytest.raises(DnsPacketMalformed):
@@ -156,7 +169,7 @@ def test_parser_is_stateless_for_duplicate_out_of_order_and_context_switch() -> 
 
 
 def test_non_dns_port_and_network_layer_mismatch() -> None:
-    packet = Ether() / IP() / UDP(sport=12345, dport=1234) / DNS(qd=DNSQR(qname="example.com"))
+    packet = dns_ether() / IP() / UDP(sport=12345, dport=1234) / DNS(qd=DNSQR(qname="example.com"))
     assert parse_dns_packet(packet, metadata(packet)) is None
     query = dns_query()
     with pytest.raises(DnsPacketMalformed):
