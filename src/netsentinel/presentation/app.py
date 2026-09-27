@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from importlib import resources
 import sys
 from typing import Protocol
 
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QIcon, QPixmap
 
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.bridge import EngineEventSource, QtEngineBridge
@@ -22,6 +24,7 @@ from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFa
 from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.application.services.capabilities import CapabilityService
 from netsentinel.presentation.views.main_window import MainWindow
+from netsentinel.version import __version__
 
 
 class EngineLifecycle(Protocol):
@@ -167,6 +170,10 @@ def create_application(
 
     application.setApplicationName("NetSentinel")
     application.setOrganizationName("NetSentinel")
+    application.setApplicationVersion(__version__)
+    icon = QPixmap()
+    icon.loadFromData(resources.files("netsentinel.assets").joinpath("netsentinel.ico").read_bytes(), "ICO")
+    application.setWindowIcon(QIcon(icon))
 
     bridge = QtEngineBridge(engine)
     history_queries = (

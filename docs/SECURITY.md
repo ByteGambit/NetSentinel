@@ -418,6 +418,17 @@ Yönetici yetkili süreçte GUI, dosya açma veya geniş eklenti yüzeyi çalı�
 
 ## 8. Bağımlılık ve dağıtım güvenliği
 
+NS-050 taşınabilir Windows paketi standart kullanıcı bağlamında (`asInvoker`)
+çalışır; Npcap'i bundle etmez, indirmez veya kurmaz, otomatik UAC/elevation
+başlatmaz. Paket açılışında capture otomatik başlamaz. Capture yokken
+Diagnostics/ilk rehber kısıtlı yeteneği gösterir; kayıtlı yerel veri ve core
+bağlantı izleme mümkün olduğu ölçüde sürer. DB/config/log yalnızca
+`%LOCALAPPDATA%\NetSentinel` altında tutulur; kurulum veya geçici açma
+dizinine yazılmaz. Loglar aynı bounded ve redacted sözleşmeyi kullanır;
+raw packet/payload saklanmaz. Paket imzasızdır ve SmartScreen uyarısı çıkabilir.
+Paketin `THIRD_PARTY_NOTICES.md` envanteri ve `licenses/` içeriği dağıtım
+öncesi lisans incelemesinin yerini tutmaz.
+
 - Bağımlılıklar desteklenen sürüm aralıklarıyla sabitlenir ve düzenli taranır.
 - Paketleme çıktısı temiz ortamda ve tekrarlanabilir komutlarla oluşturulur.
 - Npcap gibi sistem sürücüleri uygulama paketine lisans ve güvenlik incelemesi olmadan gömülmez.

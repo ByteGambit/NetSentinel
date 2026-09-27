@@ -18,6 +18,7 @@ _COMPONENTS = {item.value for item in DiagnosticComponent} | {"config"}
 _CODES = {item.value for item in DiagnosticCode} | {
     "invalid_root", "unknown_field", "invalid_value", "exceeds_queue_capacity",
     "below_default_batch_size", "file_too_large", "unreadable_or_malformed",
+    "startup_failed",
 }
 
 

@@ -543,6 +543,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-050 — Windows paketleme ve temiz ortam doğrulaması
 
+- **Durum:** ✅ Tamamlandı (2026-09-28). SHA-256 doğrulanmış artefact, Npcap bulunmayan temiz Windows VM'de ilk/ikinci açılış ve degraded-mode kabul testini geçti.
 - **Amaç:** NetSentinel'i belgeli bağımlılık ve lisanslarla Windows masaüstü artefact'ı olarak üretmek.
 - **Yapılacaklar:** Paketleyici config'i, uygulama metadata/icon, data path, version bilgisi, dependency/license inventory ve temiz VM kurulum/kaldırma prosedürü ekle; Npcap'i otomatik gömmeme kararını uygula.
 - **Etkilenecek muhtemel dosyalar:** `packaging/`, `pyproject.toml`, `src/netsentinel/version.py`, `README.md`, `docs/SECURITY.md`.

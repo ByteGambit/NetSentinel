@@ -182,7 +182,7 @@ varsayılan test suite'inde doğrulanır.
 
 ## M10 — Packaging, Hardening & Test
 
-**Durum:** NS-047–NS-049 tamamlandı (2026-09-27); M10 devam ediyor. NS-050–NS-051 bekliyor.
+**Durum:** NS-047–NS-050 tamamlandı; M10 devam ediyor. Yalnız NS-051 bekliyor.
 
 NS-047 typed config fallback, yalnızca sabit alanlı dönen log ve mevcut
 health/storage snapshot'larını birleştiren diagnostics sözleşmesini ekledi.
@@ -192,6 +192,15 @@ NS-049 sentetik mixed packet burst, iki writer overload, alert/log storm,
 start/stop döngüleri ve hızlandırılmış state/heap soak kontrollerini mevcut
 `performance` marker'ıyla doğruladı; CI/default ve yerel bütçeler mimari
 belgesinde kayıtlıdır.
+NS-050 PyInstaller `onedir` Windows GUI artefact'ını, 001–009 SQL/ikon package
+resource'larını, sürüm metadata'sını, lisans envanterini ve SHA-256 zip'i
+üretti. Artefact yerel Windows'ta farklı cwd ve boşluk/Türkçe karakterli
+çıkarma yoluyla; fresh DB, 008→009, ilk/sonraki açılış ve kapanış için geçti.
+SHA-256 değeri doğrulanan aynı artefact, Npcap bulunmayan temiz Windows VM'de
+standart kullanıcıyla açıldı: degraded onboarding, bağımsız Connections/engine,
+LocalAppData veri yolu, temiz kapanış ve sonraki açılış doğrulandı. Paketlenmiş
+tanı modu VM'de migration 001–009 ve 008→009 yükseltmesini geçti. Kaldırma
+sonrası kullanıcı verisinin korunması kararı paketleme rehberinde açıklanır.
 
 **Amaç:** Uygulamayı farklı Windows yetki/capture koşullarında güvenli, gözlemlenebilir ve dağıtılabilir hale getirmek.
 

@@ -36,6 +36,36 @@ Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı ge
 
 Teknik kararlar ve task sırası için dokümantasyon kaynak kabul edilir.
 
+## Windows taşınabilir paket (NS-050)
+
+Python 3.12+ ve `uv` kurulu bir Windows x64 makinede repo kökünden:
+
+```powershell
+uv sync --extra dev --extra packaging
+.\.venv\Scripts\python.exe packaging\build_windows.py
+.\.venv\Scripts\python.exe packaging\smoke_windows.py
+```
+
+Çıktı `dist\NetSentinel\NetSentinel.exe` ve dağıtım için
+`dist\NetSentinel-<version>-windows-x64.zip` dosyasıdır. Zip'in SHA-256
+değeri yanındaki `.sha256` dosyasında bulunur. Zip klasörü bütünüyle
+çıkarılmalıdır; tek başına exe kopyalanarak çalıştırılmaz. `onedir` GUI
+uygulaması geliştirme Python'u, `.venv` veya repo çalışma dizini gerektirmez.
+İlk açılışta rehber görünür; **Finish** sonrasında tercih korunur. Paket
+smoke testi gerçek ağ yakalama/aktif tarama yapmadan farklı çalışma dizini ve
+boş kullanıcı verisiyle Qt, SQLite 001–009 migration, 008→009 yükseltme,
+ilk/sonraki açılış ve kapanışı sınar. Gerçek temiz Windows VM kontrol adımları
+[paketleme kılavuzunda](packaging/README.md) yer alır.
+
+Veri, config ve sınırlı loglar `%LOCALAPPDATA%\NetSentinel` altında kalır;
+exe/zip klasöründe oluşturulmaz. Npcap pakete dahil değildir ve otomatik
+kurulmaz. Sürücü veya izin yoksa onboarding/Diagnostics durumu açıklar;
+core bağlantı izleme ve kayıtlı veriler mümkün olduğu ölçüde kullanılabilir.
+Uygulama yönetici yetkisi istemez. Paket imzalanmamıştır; Windows SmartScreen
+uyarısı görülebilir. Bağımlılık ve lisans envanteri paket içindeki
+`THIRD_PARTY_NOTICES.md` ve `licenses\` dizinindedir. Özellikle PyQt6 ve
+Scapy lisanslarının dağıtım koşulları ayrıca incelenmelidir.
+
 ## Geliştirme ortamı
 
 NS-047 merkezi çalışma ayarları, kullanıcıya ait `%LOCALAPPDATA%\NetSentinel\config.json`

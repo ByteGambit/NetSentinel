@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netsentinel"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A Windows-focused network security monitoring application."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -19,6 +19,10 @@ dev = [
     "pytest>=8.3,<10",
     "pytest-qt>=4.4,<5",
 ]
+packaging = ["pyinstaller>=6.22,<7"]
+
+[tool.setuptools.dynamic]
+version = {attr = "netsentinel.version.__version__"}
 
 [project.scripts]
 netsentinel = "netsentinel.__main__:main"
@@ -27,7 +31,7 @@ netsentinel = "netsentinel.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-netsentinel = ["infrastructure/sqlite/schema/*.sql"]
+netsentinel = ["infrastructure/sqlite/schema/*.sql", "assets/*.ico"]
 
 [tool.pytest.ini_options]
 minversion = "8.3"
