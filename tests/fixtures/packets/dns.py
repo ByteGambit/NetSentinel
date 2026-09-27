@@ -5,13 +5,20 @@ from __future__ import annotations
 from scapy.all import DNS, DNSQR, DNSRR, Ether, IP, IPv6, TCP, UDP, raw
 
 
+def dns_ether(*, mdns: bool = False, ipv6: bool = False) -> Ether:
+    destination = ("33:33:00:00:00:fb" if ipv6 else "01:00:5e:00:00:fb") if mdns else "02:00:00:00:00:02"
+    return Ether(src="02:00:00:00:00:01", dst=destination)
+
+
 def dns_query(*, tcp: bool = False, mdns: bool = False, ipv6: bool = False) -> object:
     ip = IPv6(src="2001:db8::20", dst="ff02::fb" if mdns else "2001:db8::53") if ipv6 else IP(
         src="192.0.2.20", dst="224.0.0.251" if mdns else "198.51.100.53"
     )
     port = 5353 if mdns else 53
     transport = TCP(sport=53000, dport=port, flags="PA") if tcp else UDP(sport=53000, dport=port)
-    packet = Ether() / ip / transport / DNS(id=42, qd=DNSQR(qname="Example.COM", qtype="A"))
+    packet = dns_ether(mdns=mdns, ipv6=ipv6) / ip / transport / DNS(
+        id=42, qd=DNSQR(qname="Example.COM", qtype="A")
+    )
     return Ether(raw(packet))
 
 
@@ -24,7 +31,7 @@ def dns_response(*, tcp: bool = False, truncated: bool = False) -> object:
         DNSRR(rrname="Example.COM", type="TXT", ttl=10, rdata="private payload"),
     ]
     transport = TCP(sport=53, dport=53000, flags="PA") if tcp else UDP(sport=53, dport=53000)
-    packet = Ether() / IP(src="198.51.100.53", dst="192.0.2.20") / transport / DNS(
+    packet = dns_ether() / IP(src="198.51.100.53", dst="192.0.2.20") / transport / DNS(
         id=42, qr=1, tc=int(truncated), qd=DNSQR(qname="Example.COM"), an=answers
     )
     return Ether(raw(packet))
