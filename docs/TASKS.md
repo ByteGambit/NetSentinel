@@ -533,6 +533,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-049 — Performans, backpressure ve dayanıklılık paketi
 
+- **Durum:** ✅ Tamamlandı (2026-09-27)
 - **Amaç:** Uzun çalışma ve trafik burst'lerinde CPU/bellek/queue davranışının sınırlarını doğrulamak.
 - **Yapılacaklar:** Connection churn, packet burst, slow DB, UI burst, malformed input ve shutdown senaryoları ekle; ölçüm bütçelerini belgele; leak/tracemalloc kontrolü kur.
 - **Etkilenecek muhtemel dosyalar:** `tests/performance/`, `tests/integration/test_resilience.py`, `docs/ARCHITECTURE.md`, `pyproject.toml`.

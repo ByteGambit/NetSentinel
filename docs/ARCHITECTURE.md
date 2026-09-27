@@ -1267,6 +1267,40 @@ Baseline ağ bağlamına özgüdür. Örneğin farklı Wi-Fi ağlarındaki gatew
 
 Canlı ağ erişimi gerektiren testler varsayılan test suite'inde çalışmaz; açık marker ve kontrollü lab gerektirir.
 
+### NS-049 sentetik dayanıklılık bütçeleri
+
+`python -m pytest -m performance` mevcut NS-038 ve NS-049 işaretli testleri
+seçer. Mevcut pytest yapılandırmasında bu marker varsayılan suite'ten
+çıkarılmaz. Tüm girdiler fake capture, bellek içi sentetik frame, fake saat,
+geçici SQLite ve offscreen Qt kullanır; ağ paketi gönderilmez. Aşağıdaki
+eşikler hız skoru değil, ölçülebilir kaynak sözleşmesidir:
+
+| Ölçüm | CI/default suite için deterministik sınır | Yerel performance çalışması |
+|---|---|---|
+| Capture burst | NS-038: 2.048 frame/32 queue; NS-049: 320 geçerli + 40 bozuk frame/32 queue, tam kuyrukta 288 drop | Aynı fixture; makineye göre packets/s vaadi yok |
+| Persistence overload | History ve DNS için ayrı ayrı 8 pending; 500 ek submit'te 492 drop ve overload health | Aynı sınır; gerçek SQLite ownership/poison izolasyonu mevcut entegrasyon testleriyle kontrol edilir |
+| Uzun çalışma | 4.000 ilerletilmiş saniye + 500 ısınma iterasyonu; 24 context dolaşımında en çok 8 metric scope, scope başına 60 bucket ve en çok 16 DNS pending/recent; ayrıca 500 detector örneğinde rate/VLAN state en çok 8 | Aynı hızlandırılmış soak; gerçek saatlerce çalışma garantisi değil |
+| Python heap | Isınma sonrası `tracemalloc` farkı < 1 MB; yapısal state sınırları birincil kontrol | Ortam gürültüsü nedeniyle RSS için sabit MB sınırı yok |
+| Kapanış | Capture 1 s + DNS writer 2 s konfigüre süre; birleşik sentetik stop için 3,5 s geniş guard; yavaş writer failure-injection için 50 ms isteği | Aynı timeout sözleşmesi; in-flight blocking DB çağrısı zorla iptal edilemez |
+| UI | NS-038 sıfır aralıklı Qt heartbeat burst sırasında ilerler; NS-013/038 model güncellemesi coalesce edilir | Görsel akıcılık veya kesin frame süresi garantisi değil |
+| CPU/throughput | Sayısal ürün hedefi tanımlı değil; nonblocking producer ve bounded state doğrulanır | Donanıma bağlı throughput raporlanabilir, pass/fail eşiği yapılmaz |
+
+NS-049 testleri ayrıca aynı mantıksal alert'in 256 tekrarda tek row ve en çok
+sekiz evidence tutmasını, farklı IP kapsamının ayrı row kalmasını, log storm'da
+rotasyon/redaction sınırlarını ve beş engine start/stop döngüsünde owned worker
+kalmazlığını kontrol eder. Bunlar sentetik workload gözlemleridir; sistemin
+her ortamda sızıntısız veya sabit CPU kullanımlı olduğunu kanıtlamaz.
+
+Production queue sınırları mevcut `AppConfig` ile capture 1.024, connection
+history 2.048 ve DNS history 2.048'dir; history/DNS batch varsayılanı 64'tür.
+Qt bridge 1.024, inventory komut handoff'u 8, History/DNS query pending
+handoff'ları birer öğe ve Alerts query pending handoff'u bir öğe + en çok
+sekiz kullanıcı komutudur. NS-049 yük fixture'ları daha küçük kapasite
+vererek overflow'u deterministik üretir; production ayarlarını değiştirmez.
+Profile load/save ve capability Retry pending işleri de tek slot/generation
+ile birleştirilir. Bu presentation sınırlarının stale sonuç koruması mevcut
+offscreen GUI regresyonlarında doğrulanır.
+
 ### NS-019 Windows network context smoke testi
 
 Varsayılan suite yalnızca injected adapter fixture'larıyla active/disconnected,
