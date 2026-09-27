@@ -27,7 +27,6 @@ from netsentinel.infrastructure.sqlite import (
     SQLiteDatabase,
     SQLiteHistoryRetentionRepository,
     datetime_to_epoch_microseconds,
-    transaction,
 )
 from netsentinel.shared.config import (
     DEFAULT_CLEANUP_CHUNK_SIZE,

@@ -16,7 +16,7 @@ from netsentinel.domain.dns import (DnsAnswer, DnsHistoryRecord, DnsQuestion,
 from netsentinel.infrastructure.sqlite.database import SQLiteDatabase
 from netsentinel.infrastructure.sqlite.dns_repository import SQLiteDnsHistoryRepository
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
-from netsentinel.presentation.models.dns import (DnsTableModel, format_dns_endpoint,
+from netsentinel.presentation.models.dns import (format_dns_endpoint,
     format_latency, format_rcode, format_record_type)
 from netsentinel.presentation.views.dns import DnsView
 from netsentinel.presentation.views.main_window import MainWindow, PageId

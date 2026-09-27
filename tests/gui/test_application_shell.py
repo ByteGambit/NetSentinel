@@ -8,7 +8,7 @@ from threading import Event, Thread
 
 import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
 from netsentinel.application.events import EventDispatcher

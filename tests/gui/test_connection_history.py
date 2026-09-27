@@ -8,7 +8,6 @@ from pathlib import Path
 from threading import Event, Lock, enumerate as enumerate_threads
 from uuid import uuid4
 
-import pytest
 from PyQt6.QtCore import QDateTime, QTimer, Qt
 from PyQt6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
@@ -39,7 +38,6 @@ from netsentinel.infrastructure.sqlite import (
 from netsentinel.presentation.app import create_application
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.models.history import (
-    HistoryTableModel,
     format_local_timestamp,
     history_row_from_record,
 )

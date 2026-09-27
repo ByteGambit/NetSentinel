@@ -85,7 +85,6 @@ def test_synthetic_dns_packet_live_consumer_writer_restart_read_model(tmp_path):
         assert snapshot.capture.running
         assert "port 53" in capture.request.capture_filter
         assert "arp" in capture.request.capture_filter
-        repository = SQLiteDnsHistoryRepository(database)
         deadline = monotonic() + 3
         while monotonic() < deadline and writer.health_snapshot().persisted < 1:
             sleep(.01)

@@ -163,9 +163,12 @@ class NewDeviceDetected:
             raise TypeError("binding must be an IdentityBinding")
         if self.binding.device_id != self.device.device_id:
             raise ValueError("binding must belong to device")
-        if not isinstance(self.observed_at, datetime) or self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
+        if not isinstance(self.observed_at, datetime) or self.observed_at.tzinfo is None:
             raise ValueError("observed_at must be UTC-aware")
-        if self.observed_at.utcoffset().total_seconds() != 0:
+        offset = self.observed_at.utcoffset()
+        if offset is None:
+            raise ValueError("observed_at must be UTC-aware")
+        if offset.total_seconds() != 0:
             raise ValueError("observed_at must use UTC")
         object.__setattr__(
             self,

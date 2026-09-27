@@ -2,7 +2,6 @@
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest

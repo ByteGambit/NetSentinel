@@ -82,7 +82,7 @@ def _decode(row: sqlite3.Row) -> DnsHistoryRecord:
         if row["event_at_utc_us"] != to_us(tx.query_at or tx.response_at):
             raise ValueError("inconsistent event time")
         return DnsHistoryRecord(UUID(row["id"]), tx)
-    except (TypeError, ValueError, KeyError, IndexError, OverflowError, json.JSONDecodeError) as error:
+    except (TypeError, ValueError, KeyError, IndexError, OverflowError, json.JSONDecodeError):
         raise DnsHistoryDataCorrupt("Persisted DNS history is invalid.") from None
 
 
@@ -99,7 +99,7 @@ class SQLiteDnsHistoryRepository:
         try:
             with self._database.connection() as connection:
                 self._insert_batch(connection, records)
-        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError):
             raise DnsHistoryRepositoryError("DNS history could not be written.") from None
 
     @staticmethod

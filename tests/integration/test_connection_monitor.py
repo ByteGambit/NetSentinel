@@ -38,7 +38,7 @@ from netsentinel.domain.connections import (
 from netsentinel.infrastructure.psutil_connections import PsutilConnectionCollector
 from netsentinel.infrastructure.psutil_processes import PsutilProcessMetadataResolver
 from netsentinel.shared.diagnostics import CapabilityStatus, EngineState
-from tests.fixtures.connections import LocalTcpConnection, local_tcp_connection
+from tests.fixtures.connections import LocalTcpConnection
 
 
 T0 = datetime(2026, 9, 18, 12, 0, tzinfo=UTC)

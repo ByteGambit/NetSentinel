@@ -9,7 +9,7 @@ import textwrap
 
 import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QLabel, QWidget
+from PyQt6.QtWidgets import QApplication, QWidget
 from pytestqt.qtbot import QtBot
 
 from netsentinel.domain.connections import ConnectionOpened

@@ -12,7 +12,6 @@ import pytest
 from PyQt6.QtCore import QThread, Qt
 from pytestqt.qtbot import QtBot
 
-from netsentinel.application.detectors.new_device import NewDeviceConfig, NewDeviceDetector
 from netsentinel.application.services.device_inventory import (
     DeviceInventoryEntry, DeviceInventoryProblem, DeviceInventoryService,
     DeviceInventorySnapshot,

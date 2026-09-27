@@ -334,11 +334,8 @@ class ScapyCaptureWorker:
             current = self._resolve_current_context(request.context)
             self._backend.probe(current.interface_id)
             generation = self._next_generation_and_clear_queue()
-            callback = lambda packet: self._capture_packet(
-                packet,
-                context=current,
-                generation=generation,
-            )
+            def callback(packet: object) -> None:
+                self._capture_packet(packet, context=current, generation=generation)
             handle = self._backend.create(
                 interface_id=current.interface_id,
                 capture_filter=request.capture_filter,

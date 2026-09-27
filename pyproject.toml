@@ -16,8 +16,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "mypy>=2.3.1",
     "pytest>=8.3,<10",
+    "pytest-cov>=7.1.0",
     "pytest-qt>=4.4,<5",
+    "ruff>=0.16.9",
 ]
 packaging = ["pyinstaller>=6.22,<7"]
 
@@ -47,3 +50,23 @@ markers = [
     "lab_live: opt-in passive packet capture tests for an explicitly authorized lab network",
     "performance: deterministic offline burst and resource-bound validation",
 ]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.12"
+files = [
+    "src/netsentinel/domain",
+    "src/netsentinel/application/ports.py",
+    "src/netsentinel/shared",
+]
+follow_imports = "silent"
+ignore_missing_imports = true
+show_error_codes = true
+
+[tool.coverage.report]
+fail_under = 85

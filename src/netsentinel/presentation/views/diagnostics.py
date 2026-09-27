@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from netsentinel.application.services.capabilities import CapabilityMatrix
 from netsentinel.presentation.capability_query import CapabilityCoordinator
-from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot, CaptureState
+from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot
 
 
 _REASONS = {

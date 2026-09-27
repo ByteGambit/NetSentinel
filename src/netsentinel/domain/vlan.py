@@ -43,7 +43,7 @@ class VlanObservation:
             raise TypeError("dei must be a bool")
         if self.kind is VlanTagKind.PRIORITY_TAGGED and self.vlan_id != 0:
             raise ValueError("priority tag requires VID 0")
-        if self.kind is VlanTagKind.TAGGED and not 1 <= self.vlan_id <= 4094:
+        if self.kind is VlanTagKind.TAGGED and (self.vlan_id is None or not 1 <= self.vlan_id <= 4094):
             raise ValueError("tagged VID must be 1..4094")
         if self.kind is VlanTagKind.RESERVED and self.vlan_id != 4095:
             raise ValueError("reserved tag requires VID 4095")

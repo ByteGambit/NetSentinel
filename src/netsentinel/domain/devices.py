@@ -360,7 +360,7 @@ class GatewayBaseline:
             raise ValueError("verified_at must match verified status")
         if (self.pending_mac is None) != (self.pending_seen_at is None):
             raise ValueError("pending_mac and pending_seen_at must appear together")
-        if self.pending_mac is not None:
+        if self.pending_mac is not None and self.pending_seen_at is not None:
             if not isinstance(self.pending_mac, MacAddress) or self.pending_mac.is_zero or self.pending_mac.is_multicast or self.pending_mac == self.mac:
                 raise ValueError("pending_mac must be a distinct nonzero unicast MacAddress")
             object.__setattr__(self, "pending_seen_at", _require_utc(self.pending_seen_at, "pending_seen_at"))

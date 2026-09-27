@@ -25,7 +25,8 @@ def test_windows_snapshot_change_reaches_existing_alert_storage(tmp_path):
             ("192.168.4.1",), servers[tick[0]],
         ),)
 
-    observed = lambda: datetime(2026, 9, 23, 12, tzinfo=UTC) + timedelta(seconds=tick[0])
+    def observed():
+        return datetime(2026, 9, 23, 12, tzinfo=UTC) + timedelta(seconds=tick[0])
     provider = WindowsNetworkContextProvider(snapshot_provider=snapshots, clock=observed)
     alerts = AlertService(SQLiteAlertRepository(SQLiteDatabase(tmp_path / "alerts.sqlite3")), clock=observed)
     service = DnsConfigMonitoringService(provider, alerts,

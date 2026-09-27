@@ -39,10 +39,11 @@ def _snapshot(*, context: NetworkContext | None = None,
               broadcast_rate: float = 1.2, arp_rate: float = 0.4,
               dropped: int = 0) -> DeviceInventorySnapshot:
     context = context or _context()
-    baseline = lambda value: TrafficBaselineSnapshot(
-        BaselineState.LEARNED if learned else BaselineState.LEARNING,
-        value if learned else None, 3 if learned else 1, 12,
-    )
+    def baseline(value):
+        return TrafficBaselineSnapshot(
+            BaselineState.LEARNED if learned else BaselineState.LEARNING,
+            value if learned else None, 3 if learned else 1, 12,
+        )
     metric = TrafficMetricsSnapshot(
         context.fingerprint, context.interface_id, context.interface_index, 60, 1,
         ProtocolRateSnapshot(TrafficProtocol.ARP, 24, arp_rate, baseline(0.1)),

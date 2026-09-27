@@ -6,16 +6,16 @@ import logging
 
 import pytest
 
+from netsentinel.application.ports import HistoryStorageDiagnostics
 from netsentinel.bootstrap import collect_diagnostics, initialize_runtime
 from netsentinel.shared.config import AppConfig, load_config_file, load_config_values
 from netsentinel.shared.diagnostics import (
-    CapabilitySnapshot, CaptureCapabilityReason, CaptureCapabilitySnapshot,
+    CapabilitySnapshot, CapabilityStatus, CaptureCapabilityReason, CaptureCapabilitySnapshot,
     CaptureCounters, CaptureHealthSnapshot, CaptureState, DatabaseStatus,
     EngineCounters, EngineHealthSnapshot, EngineState, PersistenceCounters,
     PersistenceHealthSnapshot, PersistenceState,
 )
 from netsentinel.shared.logging import close_logging, configure_logging, log_event
-from netsentinel.application.ports import HistoryStorageDiagnostics
 
 
 @pytest.mark.parametrize("field,bad", [
@@ -89,9 +89,6 @@ class FakeCapture:
         )
 
 
-from netsentinel.shared.diagnostics import CapabilityStatus
-
-
 class FakeDnsWriter:
     def health_snapshot(self):
         from netsentinel.application.services.dns_history import DnsWriterHealth
@@ -99,7 +96,8 @@ class FakeDnsWriter:
 
 
 def test_diagnostics_aggregates_existing_health_and_sanitizes_db_failure():
-    probe = lambda: HistoryStorageDiagnostics(100, 20, 3, 1, 2)
+    def probe():
+        return HistoryStorageDiagnostics(100, 20, 3, 1, 2)
     snapshot = collect_diagnostics(FakeEngine(), capture=FakeCapture(), dns_writer=FakeDnsWriter(), storage_probe=probe)
     assert snapshot.engine.worker_alive
     assert snapshot.persistence.queue_depth == 2

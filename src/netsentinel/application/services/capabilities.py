@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from netsentinel.application.ports import NetworkContextPermissionDenied, NetworkContextProvider, PacketCapture
 from netsentinel.shared.diagnostics import (
-    CapabilityStatus, CaptureCapabilityReason, DatabaseStatus, DiagnosticsSnapshot,
+    CapabilityStatus, DatabaseStatus, DiagnosticsSnapshot,
 )
 
 

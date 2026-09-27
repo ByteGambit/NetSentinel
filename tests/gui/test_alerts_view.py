@@ -10,7 +10,6 @@ from threading import Event, enumerate as threads
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
 
-from netsentinel.application.ports import AlertQuery
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.domain.alerts import (AlertCandidate, AlertEvidence, AlertStatus,
@@ -18,7 +17,7 @@ from netsentinel.domain.alerts import (AlertCandidate, AlertEvidence, AlertStatu
 from netsentinel.domain.observations import MacAddress
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.app import create_application
-from netsentinel.presentation.models.alerts import AlertColumn, AlertsTableModel
+from netsentinel.presentation.models.alerts import AlertColumn
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.main_window import MainWindow, PageId
 

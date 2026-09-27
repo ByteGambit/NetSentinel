@@ -9,7 +9,6 @@ from pathlib import Path
 import runpy
 import shutil
 import subprocess
-import sys
 import zipfile
 
 

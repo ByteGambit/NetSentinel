@@ -13,12 +13,10 @@ import pytest
 
 from netsentinel.application.ports import (
     NetworkContextPermissionDenied,
-    NetworkContextProvider,
     NetworkContextUnavailable,
     PacketCapture,
     PacketCaptureDependencyUnavailable,
     PacketCaptureInterfaceUnavailable,
-    PacketCaptureNetworkChanged,
     PacketCapturePermissionDenied,
     PacketCaptureRequest,
     PacketCaptureTransientError,
