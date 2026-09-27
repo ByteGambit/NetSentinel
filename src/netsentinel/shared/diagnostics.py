@@ -321,6 +321,54 @@ class CaptureHealthSnapshot:
         return self.state is CaptureState.RUNNING
 
 
+class DatabaseStatus(str, Enum):
+    AVAILABLE = "available"
+    UNAVAILABLE = "unavailable"
+    NOT_CHECKED = "not_checked"
+
+
+@dataclass(frozen=True, slots=True)
+class DatabaseDiagnostic:
+    """Sanitized DB result. No path, SQL, or exception text."""
+
+    status: DatabaseStatus
+    database_bytes: int | None = None
+    wal_bytes: int | None = None
+    history_rows: int | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, DatabaseStatus):
+            raise TypeError("status must be DatabaseStatus")
+        for name in ("database_bytes", "wal_bytes", "history_rows"):
+            value = getattr(self, name)
+            if value is not None and (type(value) is not int or value < 0):
+                raise ValueError(f"{name} must be a nonnegative integer")
+        if self.status is not DatabaseStatus.AVAILABLE and any(
+            getattr(self, name) is not None for name in ("database_bytes", "wal_bytes", "history_rows")
+        ):
+            raise ValueError("unavailable DB must not report measurements")
+
+
+@dataclass(frozen=True, slots=True)
+class DiagnosticsSnapshot:
+    """Existing component health gathered outside the GUI main thread."""
+
+    engine: EngineHealthSnapshot
+    persistence: PersistenceHealthSnapshot | None
+    capture: CaptureHealthSnapshot | None
+    database: DatabaseDiagnostic
+    dns_writer_running: bool | None = None
+    dns_queue_depth: int | None = None
+    dns_queue_capacity: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.dns_queue_depth is not None or self.dns_queue_capacity is not None:
+            if self.dns_queue_depth is None or self.dns_queue_capacity is None:
+                raise ValueError("DNS queue depth and capacity must be paired")
+            if not 0 <= self.dns_queue_depth <= self.dns_queue_capacity:
+                raise ValueError("DNS queue depth exceeds capacity")
+
+
 __all__ = (
     "CaptureCapabilityReason",
     "CaptureCapabilitySnapshot",
@@ -337,6 +385,7 @@ __all__ = (
     "EngineHealthSnapshot",
     "EngineState",
     "PersistenceCounters",
+    "DatabaseStatus", "DatabaseDiagnostic", "DiagnosticsSnapshot",
     "PersistenceHealthSnapshot",
     "PersistenceState",
 )

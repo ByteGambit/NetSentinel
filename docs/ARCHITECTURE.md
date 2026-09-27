@@ -14,6 +14,25 @@ NetSentinel mimarisi şu nitelikleri korumalıdır:
 
 ## 2. Katmanlar ve bağımlılık yönü
 
+NS-048, `onboarding_completed` bool değerini merkezi config sözleşmesinde
+alan bazlı doğrular ve Finish sırasında atomik dosya değişimiyle saklar.
+İlk açılışta tek QApplication/MainWindow composition oluşturulur; MainWindow
+rehber bitene kadar gizlidir ve `ApplicationLifecycle.start()` yalnız Finish
+sonrası çağrılır. Tek `CapabilityCoordinator` worker'ı NS-020 salt-okunur probe,
+NS-019 context ve NS-047 diagnostics snapshot'ını toplar; Qt'ye yalnız portable
+matrix sinyali yollar. Retry istekleri generation ile birleştirilir, eski
+sonuçlar atılır. DB ölçümü GUI thread'inde yapılmaz; yeni SQLite migration
+veya otomatik capture yolu yoktur.
+
+NS-047 `shared.config` içinde immutable, bounded runtime ayarları ve alan bazlı
+yükleme sonucu sağlar. Composition root bu değerleri mevcut engine, capture,
+history ve DNS writer'larına geçirir. Log biçimleyici yalnızca izinli dört
+alanı serileştirir; serbest metin veya exception'ı hiç işlemez. Merkezi
+`DiagnosticsSnapshot`, mevcut portable sağlık snapshot'larını ve history
+storage diagnostics sonucunu birleştirir. Bu toplama eşzamanlı DB ölçümü
+içerdiğinden GUI thread'inde çağrılmaz; yeni worker, queue veya DB şeması
+oluşturmaz. Capture başlatma hâlâ kullanıcının açık eylemine bağlıdır.
+
 ```text
 presentation (PyQt6) ───────┐
                             v

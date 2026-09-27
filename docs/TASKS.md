@@ -513,6 +513,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-047 — Merkezi config, logging ve diagnostics
 
+- **Durum:** ✅ Tamamlandı (2026-09-27)
 - **Amaç:** Tüm modüllerin ayar, sağlık ve güvenli log davranışını tek bir sözleşmede toplamak.
 - **Yapılacaklar:** Typed config yükleme/validasyon, güvenli varsayılanlar, rotating structured log, redaction ve diagnostics snapshot ekle; bozuk config fallback'ini tanımla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/shared/config.py`, `src/netsentinel/shared/logging.py`, `src/netsentinel/shared/diagnostics.py`, `src/netsentinel/bootstrap.py`, `tests/unit/shared/`.
@@ -522,6 +523,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 
 ### NS-048 — Permission/capability onboarding ve degraded mode
 
+- **Durum:** ✅ Tamamlandı (2026-09-27)
 - **Amaç:** Yönetici yetkisi, capture driver ve interface durumunu kullanıcıya açıkça gösterip desteklenen özelliklerle çalışmaya devam etmek.
 - **Yapılacaklar:** Capability matrix, startup checks, first-run/onboarding UI ve yeniden dene akışı ekle; elevation talebini otomatik olmayan yönlendirme olarak tasarla.
 - **Etkilenecek muhtemel dosyalar:** `src/netsentinel/application/services/capabilities.py`, `src/netsentinel/presentation/views/diagnostics.py`, `src/netsentinel/presentation/widgets/onboarding.py`, `tests/gui/test_capabilities.py`.

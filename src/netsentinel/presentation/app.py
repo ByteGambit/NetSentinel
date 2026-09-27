@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 import sys
 from typing import Protocol
@@ -19,6 +19,8 @@ from netsentinel.presentation.history_query import (
 )
 from netsentinel.presentation.alert_query import AlertQueryCoordinator, AlertServiceFactory
 from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFactory
+from netsentinel.presentation.capability_query import CapabilityCoordinator
+from netsentinel.application.services.capabilities import CapabilityService
 from netsentinel.presentation.views.main_window import MainWindow
 
 
@@ -46,6 +48,7 @@ class ApplicationLifecycle:
         device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
+        capability_queries: CapabilityCoordinator | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
@@ -54,6 +57,7 @@ class ApplicationLifecycle:
         self._device_profiles = device_profiles
         self._alert_queries = alert_queries
         self._dns_queries = dns_queries
+        self._capability_queries = capability_queries
         self._start_requested = False
         self._shutdown_requested = False
         self._shutdown_result: bool | None = None
@@ -79,6 +83,9 @@ class ApplicationLifecycle:
             self._device_inventory.request("refresh")
         if self._device_profiles is not None:
             self._device_profiles.start()
+        if self._capability_queries is not None:
+            self._capability_queries.start()
+            self._capability_queries.request()
         self._bridge.start()
         try:
             return self._engine.start()
@@ -94,6 +101,8 @@ class ApplicationLifecycle:
                 self._device_inventory.stop()
             if self._device_profiles is not None:
                 self._device_profiles.stop()
+            if self._capability_queries is not None:
+                self._capability_queries.stop()
             raise
 
     def shutdown(self) -> bool:
@@ -113,8 +122,9 @@ class ApplicationLifecycle:
             True if self._device_inventory is None else self._device_inventory.stop()
         )
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
+        capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped
+        self._shutdown_result = self._engine.stop() and history_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -131,6 +141,7 @@ class ApplicationShell:
     device_profiles: DeviceProfileCoordinator | None = None
     alert_queries: AlertQueryCoordinator | None = None
     dns_queries: DnsQueryCoordinator | None = None
+    capability_queries: CapabilityCoordinator | None = None
 
 
 def create_application(
@@ -142,6 +153,7 @@ def create_application(
     profile_service_factory: ProfileServiceFactory | None = None,
     alert_service_factory: AlertServiceFactory | None = None,
     dns_service_factory: DnsServiceFactory | None = None,
+    capability_service_factory: Callable[[], CapabilityService] | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -169,7 +181,8 @@ def create_application(
     device_profiles = DeviceProfileCoordinator(profile_service_factory) if profile_service_factory is not None else None
     alert_queries = AlertQueryCoordinator(alert_service_factory) if alert_service_factory is not None else None
     dns_queries = DnsQueryCoordinator(dns_service_factory) if dns_service_factory is not None else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries)
+    capability_queries = CapabilityCoordinator(capability_service_factory) if capability_service_factory is not None else None
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
@@ -178,6 +191,7 @@ def create_application(
         device_profiles=device_profiles,
         alert_queries=alert_queries,
         dns_queries=dns_queries,
+        capability_queries=capability_queries,
     )
     bridge.setParent(window)
     if history_queries is not None:
@@ -190,9 +204,11 @@ def create_application(
         alert_queries.setParent(window)
     if dns_queries is not None:
         dns_queries.setParent(window)
+    if capability_queries is not None:
+        capability_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries)
 
 
 def run_application(
@@ -202,21 +218,34 @@ def run_application(
 ) -> int:
     """Compose dependencies, start monitoring, and enter the Qt event loop."""
 
+    first_run = False
+    config_path = None
+    config_issues = False
+    capability_service_factory = None
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
         from netsentinel.bootstrap import (
+            initialize_runtime,
             create_desktop_engine,
             create_history_query_service_factory,
             create_device_inventory_service_factory,
             create_device_profile_service_factory,
             create_alert_query_service_factory,
             create_dns_query_service_factory,
+            create_capability_service_factory,
+            runtime_config_path,
         )
 
-        engine = create_desktop_engine()
+        config_path = runtime_config_path()
+        loaded = initialize_runtime(config_path=config_path)
+        settings = loaded.config
+        config_issues = bool(loaded.issues)
+        first_run = not settings.onboarding_completed
+        engine = create_desktop_engine(config=settings)
+        capability_service_factory = create_capability_service_factory(engine, config=settings)
         history_service_factory = create_history_query_service_factory()
-        device_service_factory = create_device_inventory_service_factory()
+        device_service_factory = create_device_inventory_service_factory(config=settings)
         profile_service_factory = create_device_profile_service_factory()
         alert_service_factory = create_alert_query_service_factory()
         dns_service_factory = create_dns_query_service_factory()
@@ -235,15 +264,52 @@ def run_application(
         profile_service_factory=profile_service_factory,
         alert_service_factory=alert_service_factory,
         dns_service_factory=dns_service_factory,
+        capability_service_factory=capability_service_factory,
     )
-    shell.lifecycle.start()
-    shell.window.show()
+    onboarding = None
+    if first_run:
+        from netsentinel.presentation.widgets.onboarding import OnboardingDialog
+        from netsentinel.shared.config import complete_onboarding
+
+        assert shell.capability_queries is not None and config_path is not None
+        shell.capability_queries.start()
+
+        def finish() -> bool:
+            try:
+                complete_onboarding(config_path, settings)
+            except OSError:
+                return False
+            try:
+                shell.lifecycle.start()
+            except Exception:
+                # Completion is a user preference. A failed core worker must
+                # not turn the first-run explanation into an application gate.
+                shell.capability_queries.start()
+                shell.capability_queries.request()
+            shell.window.show()
+            return True
+
+        onboarding = OnboardingDialog(shell.capability_queries, finish)
+        if config_issues:
+            onboarding.error.setText("Configuration invalid; safe defaults are being used.")
+        onboarding.rejected.connect(shell.application.quit)
+        onboarding.show()
+    else:
+        shell.lifecycle.start()
+        shell.window.show()
     try:
         return shell.application.exec()
     finally:
         # closeEvent and aboutToQuit also use this path. The lifecycle guard
         # ensures the engine receives one bounded stop request only.
         shell.lifecycle.shutdown()
+        if onboarding is not None:
+            onboarding.close()
+        if engine is not None and 'settings' in locals():
+            import logging
+            from netsentinel.shared.logging import close_logging
+
+            close_logging(logging.getLogger("netsentinel"))
 
 
 def main() -> int:

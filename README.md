@@ -4,7 +4,7 @@ NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağ
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
 
-> Durum: NS-001–NS-046 tamamlandı; M8 ve M9 tamamlandı. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History ekranı kalıcı kayıtları filtreli, sayfalı ve GUI thread'ini bloklamayan ayrı bir query worker üzerinden gösterir. NS-019, aktif Windows IPv4 interface/subnet/gateway/DNS bağlamını read-only IP Helper API üzerinden normalize eder. NS-020, açıkça seçilen güncel context ve zorunlu capture filtresiyle çalışan, otomatik başlamayan güvenli Scapy sınırını sağlar. NS-021, bu capture callback'i içinde Ethernet/IPv4 ARP request ve reply alanlarını doğrular; canonical MAC/IP değerlerini payload taşımayan immutable observation'a dönüştürür. NS-024, pasif gözlemleri kalıcı Devices ekranında gösterir.
+> Durum: NS-001–NS-048 tamamlandı; M8 ve M9 tamamlandı, M10 sürüyor. TCP/UDP connection pipeline'ı ve PyQt6 canlı görünümüne ek olarak connection lifecycle metadata'sı bounded tek-writer hattıyla yerel SQLite'a kaydedilir. Manuel retention servisi varsayılan olarak 30 günden eski tamamlanmış kayıtları ve toplam 100.000 satır sınırını aşan en eski tamamlanmış kayıtları 500 satırlık transaction chunk'larıyla temizler; aktif kayıtları silmez. History ekranı kalıcı kayıtları filtreli, sayfalı ve GUI thread'ini bloklamayan ayrı bir query worker üzerinden gösterir. NS-019, aktif Windows IPv4 interface/subnet/gateway/DNS bağlamını read-only IP Helper API üzerinden normalize eder. NS-020, açıkça seçilen güncel context ve zorunlu capture filtresiyle çalışan, otomatik başlamayan güvenli Scapy sınırını sağlar. NS-021, bu capture callback'i içinde Ethernet/IPv4 ARP request ve reply alanlarını doğrular; canonical MAC/IP değerlerini payload taşımayan immutable observation'a dönüştürür. NS-024, pasif gözlemleri kalıcı Devices ekranında gösterir.
 
 ## Tasarım ilkeleri
 
@@ -38,7 +38,26 @@ Teknik kararlar ve task sırası için dokümantasyon kaynak kabul edilir.
 
 ## Geliştirme ortamı
 
+NS-047 merkezi çalışma ayarları, kullanıcıya ait `%LOCALAPPDATA%\NetSentinel\config.json`
+dosyasından isteğe bağlı okunur. Eksik veya bozuk dosya güvenli varsayılanlara
+döner; geçersiz alanlar ayrı kodlarla raporlanır ve diğer geçerli alanlar
+korunur. Pasif capture ayarla otomatik başlamaz. Yapılandırılmış, dönen log
+`%LOCALAPPDATA%\NetSentinel\netsentinel.log` dosyasına yalnızca UTC zaman,
+seviye, bileşen ve sabit olay kodu yazar. Paket/payload, kullanıcı girdisi,
+exception metni, SQL ve DB yolu loglanmaz. Diagnostics snapshot'ı mevcut engine,
+history writer, capture ve DNS writer sağlık değerleriyle yerel DB durumunu
+birleştirir; DB kontrolü çağıranın worker thread'inde yapılmalıdır.
+
 Python 3.12 veya daha yeni bir sürümle, repository kökünde:
+
+İlk GUI açılışında NS-048 rehberi pasif gözlem ve yerel veri sınırlarını açıklar.
+Kullanıcı **Finish** demeden tamamlanma yazılmaz. Bu tercih merkezi
+`config.json` içindeki `onboarding_completed` alanında saklanır; bozuk config
+güvenli varsayılanla rehberi yeniden gösterir. Diagnostics sayfasındaki
+**Retry check** capability durumunu worker'da yeniler. Kontrol capture socket'i
+açmaz; paket yakalama yalnız Devices ekranındaki açık eylemle başlar. Npcap
+veya interface erişimi eksikse kayıtlı görünümler ve çekirdek bağlantı izleme
+mümkün olduğu ölçüde çalışır. Capability/health bir güvenlik hükmü değildir.
 
 ```powershell
 python -m venv .venv

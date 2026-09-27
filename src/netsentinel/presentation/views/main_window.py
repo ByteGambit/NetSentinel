@@ -27,6 +27,7 @@ from netsentinel.presentation.device_profile import DeviceProfileCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
+from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.presentation.views.connections import ConnectionsView
@@ -34,6 +35,7 @@ from netsentinel.presentation.views.dashboard import DashboardView
 from netsentinel.presentation.views.devices import DevicesView
 from netsentinel.presentation.views.dns import DnsView
 from netsentinel.presentation.views.history import HistoryView
+from netsentinel.presentation.views.diagnostics import DiagnosticsView
 
 
 class PageId(str, Enum):
@@ -45,6 +47,7 @@ class PageId(str, Enum):
     DEVICES = "devices"
     DNS = "dns"
     ALERTS = "alerts"
+    DIAGNOSTICS = "diagnostics"
 
 
 PAGE_ORDER: tuple[PageId, ...] = (
@@ -54,6 +57,7 @@ PAGE_ORDER: tuple[PageId, ...] = (
     PageId.DEVICES,
     PageId.DNS,
     PageId.ALERTS,
+    PageId.DIAGNOSTICS,
 )
 
 PAGE_LABELS: dict[PageId, str] = {
@@ -63,6 +67,7 @@ PAGE_LABELS: dict[PageId, str] = {
     PageId.DEVICES: "Devices",
     PageId.DNS: "DNS",
     PageId.ALERTS: "Alerts",
+    PageId.DIAGNOSTICS: "Diagnostics",
 }
 
 
@@ -80,6 +85,7 @@ class MainWindow(QMainWindow):
         device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
+        capability_queries: CapabilityCoordinator | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -141,6 +147,7 @@ class MainWindow(QMainWindow):
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory, profiles=device_profiles),
             PageId.DNS: DnsView(self.content, coordinator=dns_queries),
             PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries),
+            PageId.DIAGNOSTICS: DiagnosticsView(capability_queries, self.content),
         }
 
         for page_id in PAGE_ORDER:
@@ -191,6 +198,9 @@ class MainWindow(QMainWindow):
         assert isinstance(dashboard, DashboardView)
         dashboard.view_model.set_traffic_snapshot(snapshot)
         dashboard.set_vlan_snapshot(snapshot)
+        diagnostics = self.page_widget(PageId.DIAGNOSTICS)
+        assert isinstance(diagnostics, DiagnosticsView)
+        diagnostics.set_live_capture(snapshot.capture)
         alerts = self.page_widget(PageId.ALERTS)
         assert isinstance(alerts, AlertsView)
         alerts.set_network_contexts(snapshot.contexts)

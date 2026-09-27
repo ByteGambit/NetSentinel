@@ -2,9 +2,29 @@
 
 ## 1. Güvenlik yaklaşımı
 
+NS-047 yerel config dosyasını en çok 16 KiB olarak okur. Geçersiz alanlar
+güvenli varsayılana döner; okuma/parsing hatası tüm varsayılanları kullanır.
+Config, pasif capture'ı veya yetki yükseltmeyi otomatik başlatamaz. Dönen log
+dosyası varsayılan olarak 1 MiB ve üç yedekle sınırlıdır. Log kaydı yalnızca
+UTC zaman, seviye, sabit bileşen ve olay kodu içerir; free-form mesaj,
+exception/traceback, secret, payload, SQL, DB yolu veya kullanıcı notu
+serileştirilmez. Diagnostics DB yolu veya raw hata taşımaz; DB hatası yalnızca
+`unavailable` olarak görünür. Log yazma hatası monitoring akışını durdurmaz.
+
 NetSentinel savunma, görünürlük ve eğitim amacıyla tasarlanır. Uygulama mümkün olan en düşük yetkiyle çalışmalı; ek yetenek gerektiren her işlem için kullanıcıya nedenini ve kapsamını açıkça göstermelidir.
 
 Uygulama bir güvenlik sınırı veya kesin saldırı tespit sistemi değildir. Uyarılar incelenmesi gereken belirtilerdir; yanlış pozitif ve eksik görünürlük mümkündür.
+
+NS-048 onboarding tamamlanmadan capture başlatmaz, aktif paket göndermez ve
+yetki yükseltmez. Capability kontrolü uygun bir interface için NS-020 probe
+kullanır; bu işlem driver/interface varlığını inceleyebilir ancak capture
+socket'i açmadığı için erişim iznini kesin doğrulamaz. Gerçek izin reddi ancak
+kullanıcı Devices ekranında açıkça capture başlattığında görülebilir. Eksik
+Npcap/Scapy, interface veya izin ayrı sanitized nedenler olarak gösterilir;
+otomatik driver kurulumu ya da elevation yoktur. İlk açılış metni yerel bounded
+connection/device/DNS/alert metadata saklanabileceğini, kullanıcı notunun
+yalnız açık Save ile yazıldığını, raw packet payload ve credential
+saklanmadığını anlatır. Capability veya diagnostics bir güvenlik hükmü değildir.
 
 ## 2. Yetki modeli
 

@@ -83,6 +83,14 @@ Uygulama broadcast/ARP yoğunluğunu zaman pencereleri içinde ölçer; yakalana
 
 ## Ürün ilkeleri ve sınırlar
 
+NS-048 ilk açılış rehberi bağlantı görünürlüğünün kapsamını, pasif capture'ın
+yalnızca Devices ekranından açıkça başlatıldığını ve yerel metadata saklama
+kurallarını anlatır. Packet capture dependency/driver veya interface erişimi
+eksikse ilgili canlı özellikler sınırlı görünür; kaydedilmiş History, DNS,
+Devices ve Alerts verisi yerel veritabanı erişilebildiği ölçüde okunabilir.
+Diagnostics ekranındaki `available/degraded/unavailable` bir güvenlik skoru
+değil, özellik kullanılabilirliğidir. Çalışan worker sağlığı ayrıca gösterilir.
+
 - **Yerel ve savunma odaklı:** Veriler varsayılan olarak yerelde kalır.
 - **Açıklanabilir:** Her alert; zaman, kaynak, önem seviyesi ve kanıt içerir.
 - **Kademeli yetenek:** Yönetici yetkisi olmadan mümkün olan özellikler çalışmaya devam eder.
