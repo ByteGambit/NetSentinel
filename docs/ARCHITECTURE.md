@@ -427,7 +427,7 @@ PyQt view
 - **Connection poller:** Yapılandırılabilir aralıkla psutil snapshot'ı alır. Önceki tur bitmeden yeni tur başlatmaz.
 - **Capture worker:** Seçili interface'te Scapy capture çalıştırır ve yalnızca normalize edilmiş gözlemleri kuyruğa yollar.
 - **Analysis worker:** Packet observation kuyruğunu tüketir ve detector'ları çalıştırır. Başlangıçta tek consumer deterministik sıralama sağlar.
-- **SQLite writer:** Tek yazıcı bağlantısıyla batch transaction işler. GUI/read tarafı ayrı read-only bağlantı kullanır.
+- **SQLite writer (M3 history tasarımı):** History kuyruğunun kendi worker-owned yazıcı bağlantısı batch transaction işler. Bu, tüm uygulamada tek global writer olduğu anlamına gelmez; NS-033 DNS history ayrı writer bağlantısına, diğer kısa repository write işlemleri ilgili worker bağlantılarına sahiptir. GUI/read tarafı ayrı bağlantıyla worker üzerinde sorgular.
 
 ### Güvenli iletişim
 
@@ -630,7 +630,7 @@ SQLite tek yerel veri deposudur. İlk planlanan tablolar:
 İlkeler:
 
 - Şema yalnızca sıralı migration'larla değişir.
-- WAL modu ve busy timeout kullanılır; tek writer modeli korunur.
+- WAL modu ve busy timeout kullanılır; her asenkron writer kendi bağlantısının tek sahibi olur. SQLite kısa transaction ile eşzamanlı writer girişlerini serileştirir; uygulama genelinde tek writer thread yoktur.
 - Repository'ler SQL satırlarını domain/read model tiplerine map eder.
 - Ham paket payload'ı saklanmaz.
 - Liste ekranlarında zaman aralığı, limit ve pagination zorunludur.
@@ -1489,3 +1489,45 @@ test kontrollü skip olur; bu ortam kısıtı yönetici yetkisini test önkoşul
 - Şifreli DNS (DoH/DoT) klasik DNS parser'ıyla içerik düzeyinde görünmez.
 
 Bu sınırlamalar UI ve kullanıcı dokümantasyonunda saklanmaz; yanlış güven hissi yaratmamak ürün gereksinimidir.
+
+## 18. Yeni faz mimari sözleşmesi — M11–M17 planlandı, M18 conditional
+
+Bu bölüm mevcut M1–M10 implementasyonunu tarif eden bölümlere eklenen ileriye dönük tasarımdır. Aşağıdaki yeni model, servis, tablo ve adapter'lar henüz implement edilmedi. Eski bölüm 3'ün erken taslak tablo isimleri ile bugünkü 001–009 schema eşit kabul edilmez: bugün connection_history, devices/bindings, gateway baselines/changes, alerts, dns_history, device_profiles/members ve vlan summaries/verification tabloları vardır. Yeni şema yalnız 009 sonrasına append-only migration ile eklenir; legacy kayıtlar okunabilir kalır.
+
+### 18.1 Kimlik, gözlem ve kapsam
+
+Mevcut `ProcessIdentity(pid, create_time)` process **instance** identity olarak kalır. PID tek başına kalıcı değildir; executable path, hash ve signer bu key'e eklenmez. M13 cross-run **application identity** ayrı typed kavramdır: canonical executable path biliniyorsa kullanılabilir; yalnız process name ile farklı executable'lar merge edilmez; path yoksa conservative unknown kalır. Artifact/hash/signature sonucu uygulama kimliği için revision/context olabilir, process instance yerine geçmez.
+
+M11, `ProcessInfo`/resolver portunu executable path ve best-effort parent için alan bazlı availability ile genişletir. Name/create-time/path/parent birbirinden bağımsız restricted, unavailable veya observed olabilir. Parent PID gözlemi tarihsel yaratılış kaydı değildir; parent kapanması ve PID reuse yanlış lineage üretmemelidir. Hash/signature hesaplaması poller ve GUI thread dışında bounded worker ile yapılır.
+
+Bugünkü `ConnectionKey` tuple + optional `ProcessIdentity` içerir; `ConnectionOpened` polling snapshot'ında görünme demektir, TCP connect event'i değildir. History UUID repository'de üretilir ve dispatcher'ın ortak event ID'si değildir. M11, session, observation ve lifecycle reference'ları application sınırında typed/immutable biçimde tanımlar. İlk poll'da zaten açık olan bağlantılar, eksik/overflow snapshot ve monitoring gap gerçek open/close/frequency kanıtı gibi sayılmaz. Aynı tuple daha sonra yeni lifecycle olabilir; metadata quality upgrade sahte churn üretmemelidir. Aktif tracker ve yeni event/state bütçeleri açık hard cap, loss/gap diagnostic'i ve conservative degradation taşır.
+
+Network attribution, local endpoint ile mevcut `NetworkContext` arasında **unique evidence** varsa yapılır. Wildcard, IPv6-only context, VPN, aynı subnet veya birden çok uygun interface durumunda scope `unknown`/`ambiguous` kalır; sahte network fingerprint üretilmez. Mevcut fingerprint interface/subnet/gateway türetimidir, fiziksel ağ veya Windows Firewall profile kimliği değildir. Eski network-fingerprint-zorunlu alert sözleşmesi additive/versioned migration ile korunur.
+
+### 18.2 DNS association ve destination enrichment
+
+Bugünkü klasik DNS parser/tracker network-scoped observation sağlar; PID ya da connection sebebi sağlamaz. M12 DNS result ID'sini event origin'den writer ve association consumer'a aynı şekilde taşır. Directly observed DNS domain → answer IP evidence ile process → connection → remote IP gözlemi ayrı tutulur. Bounded `DomainAssociation` multi-to-multi adayları network/client/time/TTL ve source reference üzerinden ilişkilendirir. Directly observed DNS evidence, correlated association, ambiguous association ve unknown UI/modelde ayrılır; shared IP/CDN/multiple-domain adayları kaybolmaz. PTR sonucu tek başına forward causality değildir. DNS-process attribution yalnız NS-060 spike sonucuna göre ayrı planning pass'te düşünülür.
+
+Destination IP/domain canonical value object'leri ile local ASN/country enrichment source, dataset version, lookup subject, freshness ve unknown taşır. Ülke/ASN maliciousness verdict değildir. Executable hash local, on-demand, bounded file I/O'dur. Signer adapter NS-067 offline spike sonucunda uygunsa NS-068'de eklenir; signed=trusted veya unsigned=malicious kuralı kurulmaz. Cloud reputation M15'te ayrıca user-controlled port/adapter sınırıdır; hiçbir yerel path, raw history veya payload bu sınırdan kendiliğinden çıkmaz.
+
+### 18.3 Baseline, risk ve incident
+
+M13 baseline process instance yerine cross-run application identity ve açık network/unknown scope ile çalışır. İlk feature'lar destination IP, destination port, protocol, **observed connection appearance** frequency ve destination diversity'dir; ASN varsa ek context olabilir. State/entity/window caps, monotonic runtime windows, UTC-aware persisted checkpoints, sample coverage, learning/warm-up, eviction ve restart-gap semantiği gerekir. Başlangıç snapshot'ı ve telemetry loss novelty/beacon alarmını şişiremez. ML/AI, time-of-day alert ve byte-derived behavior ilk sürümde yoktur.
+
+M14'te detector typed, bounded `RiskEvidence` üretir; pure domain scoring policy contributor'ları normalize edip versioned `RiskAssessment` hesaplar. Risk score malware probability değildir. Assessment evidence, confidence, measurement quality, source/freshness ve policy version'la yeniden açıklanabilir olmalıdır. Eksik kanıt “normal” değildir. ARP'ye özgü mevcut score/evidence ve legacy alerts korunur. Assessment recalculation yeni revision üretir: eski revision overwrite edilmez, alert occurrence artırılmaz, original observation time değişmez. Alert persistence ve lifecycle yalnız `AlertService` üzerinden gider; detector SQL yazmaz. Alert severity ve risk score ayrı policy alanlarıdır; score değişimi fingerprint/dedup kimliğine girmez. Reputation evidence bir contributor olabilir, tek başına malware veya blocking sonucu vermez.
+
+M16 `Incident` ile observation/assessment/alert references arasındaki ilişkiyi açıklar; `Alert`in yerine geçmez. Correlation window, process/lifecycle/destination identity ve relation reason typed/bounded olur. Aynı remote IP tek başına merge sebebi değildir. Open/ack/resolved/reopen ve evidence append idempotent, restart-safe ve retention-aware olmalıdır. GUI timeline observation time ile assessment time'ı ayırır. Mevcut process creation telemetry yoktur: yalnız `process observed` gibi gözleme uygun dil kullanılabilir.
+
+### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
+
+Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.
+
+Bugünkü uygulamada history writer bounded batch queue ve kendi SQLite bağlantısını kullanır; DNS history writer ayrı queue/bağlantıya sahiptir. Device/gateway/VLAN/alert gibi kısa repository işlemleri ilgili worker'da transaction açar. Global tek writer thread yoktur. Yeni high-volume servisler kendi açık owner/queue/batch/backpressure bütçesini belirler; SQLite WAL/busy timeout altında contention, shutdown ve retention testleri gerekir. GUI thread DB, network, hash, signer veya OS event session I/O yapmaz. Typed dispatcher synchronous/in-process'tir, durable bus değildir; subscriber'lar ağır işi bounded queue'ya devreder. Qt bridge drop/coalescing baseline truth source olamaz. Persisted times UTC-aware, rolling runtime windows monotonic olur. Yeni tablolar için row/byte/age quotas, paginated query, source-reference expiry ve local purge contract gerekir. SQLite SQL parameterized; schema migration append-only.
+
+Diagnostics yeni process field coverage, association ambiguity, baseline learning/loss, TI offline/cache ve ileride OS source health'ini sanitized gösterecek; readiness, actual permission ve running health karıştırılmayacak. Config consent/capacity/retention'ı typed default ve bounded dosya kuralları içinde saklayacak; API key ayrı secret port ile yönetilecek.
+
+### 18.5 Windows adapter karar kapıları
+
+NS-059 TCP EStats/ETW/WFP per-flow bytes; NS-060 DNS-process attribution; NS-061 process/connection event sources için ölçümlü research/spike'tır. Belgelenmiş GO da NO-GO da başarılı task çıktısıdır. Production ETW/WFP collector, privileged helper, flow-byte model veya UI ancak spike sonrası **ayrı planning pass ve yeni task** ile eklenebilir. M11 per-flow bytes gerektirmez. psutil per-connection upload/download sağlamaz: interface counter'ı flow counter gibi gösterilmez, ölçüm yoksa `unknown` gösterilir, `0` değil.
+
+M18 response ancak M17/NS-099 tamamlanıp explicit response GO kararı verilince başlar. İlk akış explicit action → preview → confirmation → narrow NetSentinel-owned firewall rule → audit → undo/expiry'dir. Automatic blocking/elevation ve unrelated rule değişimi yoktur.

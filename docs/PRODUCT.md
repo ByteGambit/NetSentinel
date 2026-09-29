@@ -15,6 +15,24 @@ NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel 
 
 NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve güvenlik uyarısını birbirinden ayırır. Uyarıların açıklaması ve dayanak verisi kullanıcıya sunulur; tek başına “kötü niyetli” hükmü verilmez.
 
+## Yeni fazın ürün yönü (M11–M17, planlandı)
+
+Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?”**
+
+Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
+
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. Executable path, parent context, genel process baseline/risk, domain–connection attribution, incident timeline, reputation request, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+
+Ürün ilkeleri:
+
+- **Local-first:** Connection/DNS/IP/process history varsayılan olarak yerel kalır. **NetSentinel does not upload your network history by default.** Reputation sorgusu başlangıçta kapalıdır; provider, subject type ve gönderilen veri için açık kullanıcı tercihi gerekir.
+- **Belirsizlik görünür:** Directly observed DNS evidence, correlated association, ambiguous association ve unknown ayrılır. DNS domain → IP gözlemi, process'in o domain'e bağlandığının kesin kanıtı değildir.
+- **Açıklanabilir risk:** Gelecekteki assessment contributor, evidence, confidence, measurement quality, source/freshness ve policy version gösterir. Sayısal risk malware probability değildir; eksik evidence “normal” sonucu değildir.
+- **False-positive control:** Observed telemetry, baseline, user feedback, trust, suppression ve notification eligibility ayrı kalır; dar selector ve açık expiration tercih edilir.
+- **Aşamalı response:** Önce detection ve M17 public beta. M18 ancak NS-099 sonrası açık response GO kararıyla başlar; automatic blocking ve automatic elevation kapsam dışıdır.
+
+Aşağıdaki kullanım senaryoları mevcut M1–M10 ürününü anlatır; bu yeni faz bölümü uygulanmış feature listesi değildir.
+
 ## Hedef kullanıcılar
 
 - Networking ve cybersecurity öğrenen geliştiriciler
@@ -30,11 +48,11 @@ Kullanıcı aktif TCP/UDP bağlantılarını; durum, local/remote endpoint, PID,
 
 ### 2. Geçmiş inceleme
 
-Kullanıcı daha önce açılmış bağlantıları zaman, process veya endpoint üzerinden inceler. Uygulamanın yeniden başlatılmasından sonra geçmiş korunur ve yapılandırılmış saklama süresine göre temizlenir.
+Kullanıcı daha önce açılmış bağlantıları zaman, process veya endpoint üzerinden inceler. Uygulamanın yeniden başlatılmasından sonra geçmiş korunur; mevcut retention servisi temizliği manuel komutla uygular, otomatik zamanlanmış temizleme henüz yoktur.
 
 ### 3. Yerel ağ envanteri
 
-Uygulama pasif ARP gözlemleriyle cihazları, IP-MAC eşleşmelerini ve son görülme zamanlarını kaydeder. Kullanıcı isterse yalnızca sahibi olduğu veya açıkça izinli bir ağda sınırlı aktif keşfi ayrıca etkinleştirir.
+Uygulama pasif ARP gözlemleriyle cihazları, IP-MAC eşleşmelerini ve son görülme zamanlarını kaydeder. Sınırlı aktif keşif mevcut uygulamada yoktur; gelecekte ancak sahibi olunan veya açıkça izinli ağ için ayrı ürün kararıyla değerlendirilebilir.
 
 ### 4. MITM/ARP şüphesi inceleme
 
@@ -48,7 +66,7 @@ Kullanıcı DNS sorgu ve cevaplarını, mümkün olduğunda sorgu-cevap korelasy
 
 Uygulama broadcast/ARP yoğunluğunu zaman pencereleri içinde ölçer; yakalanan trafikteki 802.1Q etiketlerini gösterir ve öğrenilmiş tabana göre şüpheli değişiklikleri raporlar.
 
-## Planlanan özellikler
+## Mevcut M1–M10 yetenekleri
 
 ### Bağlantılar
 

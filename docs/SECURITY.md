@@ -449,3 +449,33 @@ yürütülür. Bir özelliğin teknik olarak mümkün olması yetkilendirme anla
 ## 10. Güvenlik açığı bildirme
 
 Genel bir issue açmadan önce repository sahibiyle özel iletişim kanalı belirlenmelidir. Repository public hale geldiğinde bu bölüm güvenlik bildirim adresi, desteklenen sürümler ve koordineli açıklama süreciyle güncellenecektir. Gerçek capture içeriği, kişisel IP/DNS verisi veya secret içeren örnekler issue'lara eklenmemelidir.
+
+## 11. Yeni faz threat/privacy modeli — planlanan özellikler
+
+Bu bölüm M11–M17 tasarım gereksinimleridir; executable path/hash/signer enrichment, reputation provider, incident veya firewall bugün implement edilmiş değildir. Mevcut paket otomatik elevation yapmaz; bu kural gelecek fazlarda da korunur.
+
+### Yerel metadata ve veri minimizasyonu
+
+Process path kullanıcı adı/kurulum düzeni içerebilir; DNS/IP/connection history ve incident timeline kişisel davranış gösterebilir. Hash dosyanın içeriği değildir ama executable kimliğini ifşa edebilir. Bu veriler, device trust, baseline, user preference, suppression ve reputation cache varsayılan olarak yerel kalır. **NetSentinel does not upload your network history by default.** Yerel DB'nin adli bütünlük garantisi yoktur; saklama süresi, bounded disk kullanımı, açık export/purge ve evidence-reference expiry tanımlanır. Diagnostics/feedback/export yalnız kullanıcıya önizletilmiş, seçilmiş sanitized metadata taşır; path, domain, IP, hash, provider key, raw exception, payload ve notların redaction sınırları test edilir. Otomatik crash/history upload yoktur.
+
+Executable hashing on-demand bounded worker'da yapılır; dosya çalıştırılmaz, değişen dosyanın sonucu yeniden kullanılmaz, UNC/network path varsayılan olarak okunmaz. Hash diskteki dosyayı tanımlar, process'in yüklenmiş image bütünlüğünü kanıtlamaz. Signer lookup NS-067 spike'ında offline network/revocation/catalog/timestamp davranışıyla doğrulanır; varsa adapter network retrieval'ı kapatır. Signed olmak güvenli, unsigned olmak zararlı anlamına gelmez.
+
+### Threat intelligence ve dış sınır
+
+M15 reputation özelliği **default DISABLED**; temiz başlangıçta hiçbir reputation request yoktur. Consent provider, subject type (public IP/domain/SHA-256) ve gönderilen veri bazında ayrı açık eylemdir. Tüm IP/domain/hash history topluca gönderilmez; file bytes, executable path, command line, raw packet, user note veya secret gönderilmez. Private/local adresler varsayılan dışlanır. Provider'ın kendi log/retention politikasının güvenilir olduğu varsayılmaz; seçim öncesi terms/privacy ve rate-limit incelenir. Provider verdict destekleyici evidence'dır; tek başına malware veya automatic blocking kararı üretmez. No-hit, offline, stale, timeout, 429 ve provider failure ayrı durumlar olarak görünür.
+
+API key normal config, DB evidence, log, diagnostics, export veya UI error text'ine girmez; ayrı secret-storage port gerekir. Adapter yalnız sabit/allowlisted provider endpoints'e bağlanır. Evidence içindeki URL/host keyfi fetch tetikleyemez; response body, redirect, concurrency, timeout, retry ve queue boyutları bounded olur. Consent geri alındığında henüz başlamamış sorgular durur; cache purge ayrı kullanıcı kontrolüdür. DNS/IP reputation network isteği provider'a konu veriyi ve bağlantının source IP'sini gösterebilir; kullanıcı bunu önceden görür.
+
+### Windows telemetry privilege ve güven sınırı
+
+NS-059–061 kontrollü spike'ları Windows EStats/ETW privilege, session ownership, buffer/loss, rate ve shutdown etkilerini ölçer. Kernel ETW veya TCP EStats enable işlemleri yüksek yetki gerektirebilir; read-only oldukları varsayılmaz. Uygulama otomatik admin elevation, service/driver installation veya kullanıcı grup üyeliği değişikliği yapmaz. ETW event'lerinin command line/UserSID gibi gereksiz alanları portable boundary'ye taşınmaz. WFP custom callout varsayılan çözüm değildir. Spike GO sonucu production izin veya implementasyon yetkisi sayılmaz; ayrı plan ve threat model gerekir. Per-flow ölçüm yoksa `unknown` gösterilir, sıfır veya interface toplamı connection'a atfedilmez.
+
+### M18 conditional response ve rollback
+
+M18, **M17 tamamlanmadan, NS-099 gate geçmeden ve explicit response GO kararı verilmeden başlatılamaz.** Automatic blocking ve automatic elevation yasaktır. Gelecekte ilk model explicit user action → target/scope/profile/expiry preview → confirmation → dar NetSentinel-owned Windows Firewall rule → audit → undo/expiry'dir. Program path kuralı PID veya hash engeliymiş gibi; destination IP kuralı domain/CDN engeliymiş gibi gösterilmez. Yetki yoksa degraded sonuç açıkça görünür; supported local monitoring/trust devam eder.
+
+NetSentinel yalnız kendi oluşturduğu rule ID/manifest üzerinde ownership iddia eder. Duplicate, stale, externally edited ve partial failure durumları reconcile edilir; rollback yalnız owned rules'a uygulanır. Uninstall sırasında yetki yoksa kural kaldırıldı varsayılmaz: kalan owned rules kullanıcıya açıkça listelenir. Unrelated user/system rules hiçbir durumda değiştirilmez. Response audit gizli veri veya raw history yüklemez. Gerçek rule etkisi ancak explicit isolated Windows lab/VM testleriyle doğrulanır.
+
+### Public beta ve güncelleme
+
+M17, standard user ve Npcap missing koşullarında temiz install/upgrade/uninstall, VPN, sleep/wake, normal browser/updater, notification/false-positive burden ve storage/privacy davranışını doğrular. Signing/update kararı ayrı spike'tır; otomatik update check veya download varsayılan olarak başlamaz. Gelecekteki update mekanizması artefact bütünlüğünü/imzasını ve downgrade/rollback politikasını doğrulamadan çalıştırmaz; ağ isteği ve gönderilen version/channel bilgisi kullanıcıya açıklanır.

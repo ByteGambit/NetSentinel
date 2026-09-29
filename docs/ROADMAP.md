@@ -228,3 +228,74 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 - **1.0:** M10 tamamlanmış, belgelenmiş ve Windows smoke testleri geçen sürüm
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
+
+## Yeni faz: M11–M17 planlandı; M18 conditional
+
+**Durum:** M1–M10 tamamlandı. M11–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
+
+Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
+
+### M11 — Process & Connection Telemetry Foundations
+
+- **Durum:** ⬜ Planlandı (NS-052–NS-061).
+- **Amaç:** Connection'ı yapan process'i ve gözlemin sınırlarını daha güvenilir göstermek.
+- **Ana teslimatlar:** Executable path, best-effort parent context, field-level availability; observation/lifecycle identity, telemetry quality, conservative network scope, history freshness/restart gap semantics. NS-059 per-flow bytes, NS-060 DNS-process attribution, NS-061 process/connection event-source ölçümlü spike'ları.
+- **Açık kapsam dışı:** Per-flow bytes release requirement değildir; production ETW/WFP collector, byte UI, genel risk ve firewall yoktur. Spike sonucu production taskını otomatik eklemez.
+- **Çıkış ölçütü:** PID-reuse/connection davranışı korunur; eksik alanlar ve gap görünür; bounded quality/state ve restart testleri geçer. Üç spike'ın her biri kontrollü ölçüm, sınırlama ve explicit GO/NO-GO kararıyla tamamlanır; belgelenmiş NO-GO başarılı sonuçtur.
+
+### M12 — Local Destination Context & Attribution
+
+- **Durum:** ⬜ Planlandı (NS-062–NS-068); NS-068 signer adapter spike'a bağlı, zorunlu çıkış kapısı değil.
+- **Amaç:** Destination hakkında yerel kanıt sağlarken belirsizliği korumak.
+- **Ana teslimatlar:** Bounded DNS/domain association, canonical reference; UI'da directly observed/correlated/ambiguous/unknown; source/version içeren yerel ASN/country context; bounded on-demand executable hash; offline signer spike ve olumluysa conditional adapter.
+- **Açık kapsam dışı:** Kesin DNS→process→connection nedenselliği, cloud reputation, otomatik dataset download, TLS inspection.
+- **Çıkış ölçütü:** Shared IP/CDN, multiple domain, TTL, restart ve ambiguity testleri geçer; UI kesin hostname iddiasında bulunmaz; local source/version görünür.
+
+### M13 — Deterministic Behavioral Baseline
+
+- **Durum:** ⬜ Planlandı (NS-069–NS-075).
+- **Amaç:** Uygulama davranışındaki yeniliği measurement quality ile açıklamak.
+- **Ana teslimatlar:** Instance'dan ayrı cross-run application identity; destination IP/port, protocol, observed appearance frequency ve destination diversity için bounded deterministic baseline; ASN varsa ek context; novelty/frequency/diversity/periodicity evidence; learning/quality UI.
+- **Açık kapsam dışı:** ML/AI anomaly model, ilk sürümde time-of-day alert, byte-derived behavior, kesin beacon hükmü.
+- **Çıkış ölçütü:** Warm-up/gap/eviction/restart testleri geçer; eksik gözlem high-confidence anomali üretmez; memory/disk bounds belgelenir.
+
+### M14 — Explainable Risk & User Feedback
+
+- **Durum:** ⬜ Planlandı (NS-076–NS-083).
+- **Amaç:** Riskin nedenini ve feedback etkisini gösterip yanlış pozitifleri azaltmak.
+- **Ana teslimatlar:** Generic typed risk evidence, pure/versioned scoring policy, assessment revisions, AlertService entegrasyonu, dar/expiring suppression, mark-normal ve explanation UI.
+- **Açık kapsam dışı:** Malware probability iddiası, cloud bağımlılığı, automatic response, process name/PID ile kalıcı suppression.
+- **Çıkış ölçütü:** Contributor/evidence/confidence/measurement quality/source-freshness/policy version görünür; recalculation occurrence veya original observation time'ı değiştirmez, önceki assessment'ı overwrite etmez; legacy alert dedup korunur.
+
+### M15 — Optional Threat Intelligence Evidence
+
+- **Durum:** ⬜ Planlandı (NS-084–NS-088); kullanıcı için varsayılan kapalı.
+- **Amaç:** Kullanıcı onayıyla destekleyici destination reputation evidence sağlamak.
+- **Ana teslimatlar:** Provider port/adapter, provider/subject/data consent, local TTL/stale cache, bounded rate-limited/offline scheduler ve risk revision/UI entegrasyonu.
+- **Açık kapsam dışı:** Varsayılan reputation request, toplu IP/domain/hash history upload, provider verdict'inden malware hükmü veya automatic blocking.
+- **Çıkış ölçütü:** Yeni kurulumda sıfır request; fake provider ve offline/timeout/429/stale testleri; no-hit/failure ayrımı; TI kapalıyken local detection çalışır.
+
+### M16 — Incident Correlation & Timeline
+
+- **Durum:** ⬜ Planlandı (NS-089–NS-092).
+- **Amaç:** Ayrı observation, assessment ve alert'ler arasındaki sınırlı olay hikayesini göstermek.
+- **Ana teslimatlar:** Typed references, bounded correlation window, incident lifecycle/persistence, timeline GUI ve offline acceptance/soak.
+- **Açık kapsam dışı:** Alert'in yerine geçme, aynı IP'den otomatik incident merge, olmayan process creation event'i, forensic integrity garantisi.
+- **Çıkış ölçütü:** Dedup/reopen/restart/retention testleri geçer; process creation telemetry yoksa “process observed” denir; ilişki nedenleri/unknown görünür.
+
+### M17 — Public Beta & Product Usability
+
+- **Durum:** ⬜ Planlandı (NS-093–NS-099).
+- **Amaç:** Günlük kullanım ve gerçek kullanıcı geri bildirimi için hazır olmak.
+- **Ana teslimatlar:** Tray, privacy-aware desktop notification, storage/privacy controls, installer/upgrade/uninstall, signing/update kararı, first-run/feedback ve NS-099 beta gate.
+- **Açık kapsam dışı:** Automatic blocking/elevation, otomatik crash/history upload, custom WFP driver.
+- **Çıkış ölçütü:** NS-099 normal browser/updater, VPN, sleep/wake, restart, Npcap missing, standard user, notification/false-positive burden, clean install, upgrade, uninstall ve privacy/storage senaryolarını doğrular; client Windows VM ve offline kalite kapıları geçer.
+
+### M18 — Manual Response & Firewall Integration — CONDITIONAL
+
+- **Durum:** ◇ Conditional plan (NS-100–NS-104); committed next work değildir.
+- **Başlatma kapısı:** **M17 tamamlanmış, NS-099 geçmiş ve explicit response GO kararı verilmiş olmalıdır. Bu üç koşuldan önce NS-100–NS-104 başlatılmaz.**
+- **Amaç:** İncelenmiş davranış için dar, geri alınabilir manuel Windows Firewall eylemleri.
+- **Ana teslimatlar:** Explicit user action → preview → confirmation → yalnız NetSentinel-owned narrow firewall rule → audit → undo/expiry; permission UX ve uninstall reconciliation.
+- **Açık kapsam dışı:** Automatic blocking, automatic elevation, process termination, unrelated user/system rules'a müdahale, custom WFP driver.
+- **Çıkış ölçütü:** Ownership/idempotency/rollback/izin reddi testleri geçer; unrelated rules korunur; kaldırılamayan owned rules açıkça bildirilir.

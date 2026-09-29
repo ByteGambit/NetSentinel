@@ -578,3 +578,627 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 | M9 VLAN Monitoring | NS-043–NS-046 | 4 |
 | M10 Packaging, Hardening & Test | NS-047–NS-051 | 5 |
 | **Toplam** | **NS-001–NS-051** | **51** |
+
+## Yeni faz taskları — M11–M17 planlandı, M18 conditional
+
+NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni taskların hepsi başlangıçta ⬜ Planlandı durumundadır. Bütün yeni işlerde domain framework bağımsız, application ports/adapters ayrımı korunur; queue/state/storage bounded, persisted zaman UTC-aware, runtime rolling window monotonic, SQL parameterized, GUI thread blocking I/O içermez. Davranış testleri default offline/deterministic; gerçek Windows/capture/admin testleri yalnız explicit marker ve yetkili ortamla çalışır. Yeni migration 009 sonrasına append-only eklenir.
+
+## M11 — Process & Connection Telemetry Foundations
+
+### NS-052 — Executable path ve alan bazlı availability
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Bağlantıyı yapan executable'ı best-effort tanımlamak.
+- **Yapılacaklar:** ProcessInfo, resolver portu ve psutil adapter'ına optional executable path ile alan bazlı availability ekle; mevcut ProcessIdentity key'ini koru.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/ports.py, src/netsentinel/application/services/processes.py, src/netsentinel/infrastructure/psutil_processes.py, tests/unit/.
+- **Bağımlılıklar:** NS-004.
+- **Acceptance criteria:** Path reddi name/create-time bilgisini kaybettirmez; key değişmez; path bounded/validated; raw exception sızmaz.
+- **Test yöntemi:** Fake process success, access denied, exit race, empty/invalid path ve mevcut resolver regression testleri.
+- **Kapsam dışı:** DB, UI, parent, hash, signer, ETW.
+
+### NS-053 — Best-effort parent metadata
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Connection process'inin elde edilebilen parent context'ini sağlamak.
+- **Yapılacaklar:** Parent PID, optional parent instance/name, observed-at ve availability durumlarını typed resolver sonucuna ekle; PID reuse ve kapanmış parent için conservative sonuç ver.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/psutil_processes.py, tests/unit/.
+- **Bağımlılıklar:** NS-052.
+- **Acceptance criteria:** Parent bulunamadı/reused/denied açık ayrılır; tam tarihsel lineage iddiası yok; lookup bounded.
+- **Test yöntemi:** Fake parent exit, PID reuse, denied ve mismatched identity testleri.
+- **Kapsam dışı:** Process creation event'leri, sınırsız ancestry.
+
+### NS-054 — Process metadata persistence
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Process context'ini geçmiş kayıtlarında güvenle korumak.
+- **Yapılacaklar:** Connection history mapping'ini veya küçük metadata snapshot'ını additive migration ile genişlet; eski kayıtları okunur bırak.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/application/services/history.py, tests/integration/sqlite/.
+- **Bağımlılıklar:** NS-052, NS-053.
+- **Acceptance criteria:** Legacy kayıt okunur; path/parent/availability round-trip geçer; yeni metadata eski gözlemi yanlış göstermez; 001–009 değişmez.
+- **Test yöntemi:** Fresh DB, 009→new upgrade, null/corrupt/legacy ve idempotency testleri.
+- **Kapsam dışı:** Genel process inventory veya event store.
+
+### NS-055 — Process context detail UI
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Path, parent ve eksik alanların nedenini kullanıcıya göstermek.
+- **Yapılacaklar:** Connections/History detail read model ve worker query sınırını genişlet; plain-text rendering uygula.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/history_query.py, tests/gui/.
+- **Bağımlılıklar:** NS-054.
+- **Acceptance criteria:** Identity/selection stabil; unavailable açık; GUI thread DB/file I/O yapmaz; path dış servise gönderilmez.
+- **Test yöntemi:** Offscreen full/partial/denied/history ve selection testleri.
+- **Kapsam dışı:** Risk, reputation veya signer UI.
+
+### NS-056 — Typed observation identity ve quality
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Baseline/incident için örnekleme olaylarının anlamını korumak.
+- **Yapılacaklar:** Session/lifecycle reference, initial snapshot, incomplete/gap/quality sözleşmesi ve bounded round state'i tracker/engine/typed events'e ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/services/connections.py, src/netsentinel/application/engine.py, src/netsentinel/application/events.py, src/netsentinel/shared/diagnostics.py, tests/unit/.
+- **Bağımlılıklar:** NS-052.
+- **Acceptance criteria:** İlk snapshot gerçek connect sayılmaz; capacity loss görünür; eksik round sahte close üretmez; PID reuse korunur.
+- **Test yöntemi:** Duplicate, metadata upgrade, overflow, collector failure, gap ve fake-clock testleri.
+- **Kapsam dışı:** Durable bütün-event journal veya ETW replacement.
+
+### NS-057 — Connection network scope
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Connection'ın ait olduğu network context'i ancak yeterli kanıtla belirtmek.
+- **Yapılacaklar:** Local endpoint/current context eşleştirmesi ve typed unique/unknown/ambiguous scope ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/services/, src/netsentinel/infrastructure/windows_network.py, tests/unit/.
+- **Bağımlılıklar:** NS-056.
+- **Acceptance criteria:** Unique match ayrılır; wildcard, IPv6, VPN ve multiple-match sahte fingerprint üretmez; fiziksel ağ kesinliği iddia edilmez.
+- **Test yöntemi:** Multi-interface, same-subnet, wildcard, loopback ve context-switch fixtures.
+- **Kapsam dışı:** Kesin route tracing veya legacy fingerprint rewrite.
+
+### NS-058 — History freshness ve restart gaps
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Uzun yaşayan bağlantının güncelliğini ve gözlem boşluğunu doğru anlatmak.
+- **Yapılacaklar:** Coalesced last-seen checkpoint, monitoring-session gap ve startup reconciliation'ı history worker/repository/read model'e ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/history.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/presentation/views/history.py, src/netsentinel/shared/diagnostics.py, tests/integration/.
+- **Bağımlılıklar:** NS-054, NS-056, NS-057.
+- **Acceptance criteria:** Unchanged connection last-seen bounded write hızıyla güncellenir; eski açık kayıt gap olarak açıklanır; gerçek close zamanı uydurulmaz.
+- **Test yöntemi:** Restart/crash gap, long-lived connection, slow DB ve checkpoint coalescing testleri.
+- **Kapsam dışı:** Her poll'u kalıcı journal'a yazmak; FIN/RST garantisi.
+
+### NS-059 — Per-flow byte telemetry spike
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** TCP/UDP flow-byte ölçümünün privilege, doğruluk ve maliyetini karara bağlamak.
+- **Yapılacaklar:** TCP EStats, ETW ve WFP seçeneklerini kontrollü PoC/matrisle değerlendir; ölçüm anlamını ve GO/NO-GO kararını belgele.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, tests/fixtures/, docs/ARCHITECTURE.md, docs/SECURITY.md.
+- **Bağımlılıklar:** NS-003.
+- **Acceptance criteria:** TCP/UDP, IPv4/IPv6, loopback, late attach, loss/retransmission, overhead ve shutdown ölçülür; limitations ve explicit decision vardır. A documented NO-GO is a valid successful spike outcome.
+- **Test yöntemi:** Offline decoder fixtures; yalnız explicit Windows standard/admin kontrollü testler.
+- **Kapsam dışı:** Production collector, Connections byte UI veya driver kurulumu; olumlu sonuç otomatik production taskı değildir.
+
+### NS-060 — DNS-process attribution spike
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** DNS event PID'sinin caller/process ilişkisindeki gerçek anlamını ölçmek.
+- **Yapılacaklar:** Windows provider/schema, cache hit, resolver service, custom resolver ve DoH/DoT kapsamını araştır; typed unknown sınırı öner.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, tests/fixtures/, docs/ARCHITECTURE.md, docs/SECURITY.md.
+- **Bağımlılıklar:** NS-030–NS-034.
+- **Acceptance criteria:** Kontrollü ölçüm, PID semantiği, eksikler ve explicit decision belgelenir; desteklenmeyen ilişki unknown kalır. A documented NO-GO is a valid successful spike outcome.
+- **Test yöntemi:** Fake/recorded metadata fixtures ve explicit Windows doğrulama.
+- **Kapsam dışı:** Kesin DNS→connection sebebi veya production ETW; olumlu sonuç otomatik production taskı değildir.
+
+### NS-061 — Process/connection event-source spike
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Polling dışı lifecycle kaynağının maliyet ve doğruluğunu belirlemek.
+- **Yapılacaklar:** Process ETW start/end/rundown ile network event schema/permission/loss/session ownership incele; production boundary kararı üret.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, src/netsentinel/domain/ contract proposal, tests/fixtures/, docs/ARCHITECTURE.md.
+- **Bağımlılıklar:** NS-056.
+- **Acceptance criteria:** Provider/version/privilege, PID reuse, loss/recovery, startup rundown ve session ownership ölçülür; limitations ve explicit decision vardır. A documented NO-GO is a valid successful spike outcome.
+- **Test yöntemi:** Offline event sequences; explicit bounded Windows testleri.
+- **Kapsam dışı:** Service, command-line collection veya production event collector; olumlu sonuç otomatik production taskı değildir.
+
+## M12 — Local Destination Context & Attribution
+
+### NS-062 — Bounded DNS association service
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Domain/IP ilişkisini connection'a belirsizliği koruyarak bağlamak.
+- **Yapılacaklar:** Many-to-many TTL associations, source/time/network/client evidence ve bounded state için application service/port tanımla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/application/ports.py, tests/unit/.
+- **Bağımlılıklar:** NS-056, NS-057.
+- **Acceptance criteria:** Aynı IP'nin birden fazla domain adayı korunur; directly observed DNS ile correlated/ambiguous/unknown ayrılır; bounds/expiry vardır.
+- **Test yöntemi:** CDN/shared-IP, CNAME, TTL=0, stale, multiple clients ve loss testleri.
+- **Kapsam dışı:** Kesin process-domain attribution veya PTR causality.
+
+### NS-063 — Association persistence ve canonical DNS IDs
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Association reference'larını restart sonrası izlenebilir tutmak.
+- **Yapılacaklar:** DNS result ID'sini origin'den writer/consumer'a taşı; bounded SQLite repository ve retention/ref semantics ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/dns.py, src/netsentinel/application/services/dns_history.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/bootstrap.py, tests/integration/.
+- **Bağımlılıklar:** NS-058, NS-062.
+- **Acceptance criteria:** Aynı result bütün tüketicilerde aynı ID; idempotent writes, restart ve legacy/expired source açıklaması.
+- **Test yöntemi:** DNS→association→DB, restart, duplicate, expiry ve migration testleri.
+- **Kapsam dışı:** Genel packet/event store.
+
+### NS-064 — Destination context UI
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Belirsiz domain association'ı kullanıcıya açıklamak.
+- **Yapılacaklar:** Connections/History detail'e candidate/source/TTL/age ve local enrichment read model'i ekle; worker sorgusu kullan.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/history_query.py, tests/gui/.
+- **Bağımlılıklar:** NS-055, NS-063, NS-065.
+- **Acceptance criteria:** Multiple candidates ve unknown görünür; DNS observation connection hostname'i gibi kesin sunulmaz; GUI bloke olmaz.
+- **Test yöntemi:** Offscreen ambiguous/stale/no-data/selection testleri.
+- **Kapsam dışı:** Kesin hostname ya da cloud lookup.
+
+### NS-065 — Local ASN/country enrichment
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Cloud kullanmadan destination hakkında ek context vermek.
+- **Yapılacaklar:** Source/version/lisans bilgili local dataset port/adapter ve bounded cache tanımla; public/private/unknown ayrımı yap.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/, src/netsentinel/shared/diagnostics.py, tests/unit/.
+- **Bağımlılıklar:** NS-057.
+- **Acceptance criteria:** IPv4/IPv6 prefix lookup versioned ve bounded; country yalnız context; local/private unknown; lisans kararı kayıtlı.
+- **Test yöntemi:** Synthetic prefix dataset, malformed/version mismatch, overlap ve offline testleri.
+- **Kapsam dışı:** Otomatik dataset download veya ülkeye göre maliciousness.
+
+### NS-066 — Bounded executable hashing
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Dosya kimliğini local/on-demand zenginleştirmek.
+- **Yapılacaklar:** Ayrı worker/port, SHA-256 ve file-identity keyed cache ekle; path race/UNC policy uygula.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/ports.py, src/netsentinel/application/services/, src/netsentinel/infrastructure/, src/netsentinel/shared/diagnostics.py, tests/unit/.
+- **Bağımlılıklar:** NS-052, NS-056.
+- **Acceptance criteria:** Polling/GUI bloke olmaz; değişen dosya cache'i geçersiz kılar; size/time/queue bounded; UNC varsayılan kapsam dışı.
+- **Test yöntemi:** Temporary files, mutation, denied, duplicate job ve cancellation testleri.
+- **Kapsam dışı:** File upload, loaded memory doğrulaması veya bütün executable'ları tarama.
+
+### NS-067 — Offline Authenticode spike
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Signer lookup'ın offline ve izin davranışını belirlemek.
+- **Yapılacaklar:** WinTrust/catalog/revocation/timestamp/caching/timeout matrix'i kontrollü Windows harness ile ölç.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, tests/fixtures/, docs/SECURITY.md.
+- **Bağımlılıklar:** NS-052.
+- **Acceptance criteria:** Embedded/catalog/unsigned/unknown ve network retrieval kapatma doğrulanır; limitations ve explicit GO/NO-GO kararı kayıtlıdır.
+- **Test yöntemi:** Fake API outcomes ve explicit Windows fixture binaries.
+- **Kapsam dışı:** Production signer veya signed=trusted kuralı.
+
+### NS-068 — Signer adapter — conditional
+
+- **Durum:** ⬜ Conditional plan; NS-067 GO bekleniyor.
+- **Amaç:** Olumlu spike sonrası offline signer context sağlamak.
+- **Yapılacaklar:** Yalnız NS-067 GO ile typed WinTrust adapter/worker/cache ve detail UI ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/, src/netsentinel/application/ports.py, src/netsentinel/presentation/, tests/unit/, tests/gui/.
+- **Bağımlılıklar:** NS-066, NS-067 GO kararı.
+- **Acceptance criteria:** Offline/network retrieval kapalı; unknown korunur; bounded cache/job; imza safety hükmü değildir. NO-GO halinde adapter uygulanmaz ve M12 exit bloke olmaz.
+- **Test yöntemi:** Adapter fixtures, cancellation, partial status ve offline integration.
+- **Kapsam dışı:** Online revocation veya cloud lookup; zorunlu milestone gate değil.
+
+## M13 — Deterministic Behavioral Baseline
+
+### NS-069 — Stable application identity policy
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Process instance'dan farklı cross-run baseline scope'u tanımlamak.
+- **Yapılacaklar:** Canonical path-known application key, unknown/revision policy ve typed identity comparison oluştur.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, tests/unit/.
+- **Bağımlılıklar:** NS-052, NS-056.
+- **Acceptance criteria:** PID/name tek başına farklı executable'ları merge etmez; path unavailable conservative unknown; instance key değişmez.
+- **Test yöntemi:** Same-name/different-path, restart, path denial ve revision testleri.
+- **Kapsam dışı:** Global software inventory veya signer trust.
+
+### NS-070 — Bounded behavior feature accumulator
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Process behavior için ölçüm kalitesine bağlı deterministic özet toplamak.
+- **Yapılacaklar:** Destination IP/port, protocol, observed appearance frequency ve diversity için monotonic bucket/capacity accumulator ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/shared/diagnostics.py, tests/unit/.
+- **Bağımlılıklar:** NS-056, NS-057, NS-069.
+- **Acceptance criteria:** Scope/entity/feature hard caps; overflow other/unknown; initial snapshot/gap counts şişirmez; monitored-time denominator açıktır.
+- **Test yöntemi:** Fake monotonic/UTC clocks, churn, burst, eviction, sleep/gap sequences.
+- **Kapsam dışı:** ML, byte-derived features veya time-of-day alert.
+
+### NS-071 — Baseline persistence/lifecycle
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Learning state'i restart sonrasında bounded korumak.
+- **Yapılacaklar:** Versioned aggregate repository, warm-up/minimum samples, expiry/reset ve disk limitleri ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.
+- **Bağımlılıklar:** NS-058, NS-070.
+- **Acceptance criteria:** Restart gap'ten window uydurulmaz; corrupt/version mismatch typed; bounded storage; migration append-only.
+- **Test yöntemi:** Restart/stale/corrupt version, retention ve clock-change tests.
+- **Kapsam dışı:** Raw tüm event'leri kalıcı saklama.
+
+### NS-072 — Novelty/rarity rules
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** İlk görülen/seyrek destination için açıklanabilir sinyal üretmek.
+- **Yapılacaklar:** Typed evidence veren küçük detector'lar ve minimum sample/quality policy ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/detectors/, src/netsentinel/domain/alerts.py, tests/unit/application/detectors/.
+- **Bağımlılıklar:** NS-071.
+- **Acceptance criteria:** Yetersiz/evicted state yüksek risk sayılmaz; sample/baseline nedeni görünür; CDN değişimi conservative.
+- **Test yöntemi:** Cold start, known/rare/new, eviction ve shared destination matrix.
+- **Kapsam dışı:** Malware verdict veya genel risk score.
+
+### NS-073 — Frequency/diversity rules
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Observed appearance rate ve destination diversity sapmasını açıklamak.
+- **Yapılacaklar:** Confirmation, quality gate, bounded scope/cooldown ile iki ilgili detector kuralı ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/detectors/, src/netsentinel/domain/alerts.py, tests/unit/application/detectors/.
+- **Bağımlılıklar:** NS-071.
+- **Acceptance criteria:** Polling appearance gerçek connect sayısı gibi sunulmaz; minimum sample/confirmation ve measurement quality gerekir.
+- **Test yöntemi:** Stable/burst/normal browser-updater/missing-round testleri.
+- **Kapsam dışı:** Packet bytes veya bütün baseline detector'larını tek taska toplama.
+
+### NS-074 — Periodicity evidence detector
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Düzenli observed connection appearances için interval/jitter kanıtı üretmek.
+- **Yapılacaklar:** Minimum interval ve bounded sequence kullanan detector ekle; gap/reset davranışını tanımla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/detectors/, src/netsentinel/domain/alerts.py, tests/unit/application/detectors/.
+- **Bağımlılıklar:** NS-058, NS-070.
+- **Acceptance criteria:** Monitoring gap state'i sıfırlar; updater örnekleri düşük güvenli; “beacon confirmed” hükmü yok.
+- **Test yöntemi:** Fake clock periodic/jitter/random, aliasing ve missing sample testleri.
+- **Kapsam dışı:** Payload/C2 tespiti veya uzun yaşayan socket'i tekrar connect sayma.
+
+### NS-075 — Baseline detail ve reset UI
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Öğrenme/coverage/features'i kullanıcıya göstermek ve reset sağlamak.
+- **Yapılacaklar:** Worker-backed read model, scoped explicit reset command ve learning/ready/insufficient UI ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.
+- **Bağımlılıklar:** NS-071–NS-074.
+- **Acceptance criteria:** Warm-up/quality/overflow görünür; reset yalnız seçili scope ve onayla; gözlem ve tercih karışmaz.
+- **Test yöntemi:** Offscreen warm-up/ready/overflow/reset/Cancel testleri.
+- **Kapsam dışı:** Risk score UI veya otomatik mark-normal.
+
+## M14 — Explainable Risk & User Feedback
+
+### NS-076 — Generic risk evidence contract
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Process/IPv6/generic kaynaklar için bounded typed kanıt tanımlamak.
+- **Yapılacaklar:** Legacy ARP adapter, source/quality/reference ve explicit host/network/unknown scope için additive modeller ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/alerts.py, src/netsentinel/domain/, src/netsentinel/application/ports.py, tests/unit/domain/.
+- **Bağımlılıklar:** NS-056.
+- **Acceptance criteria:** Legacy ARP evidence/fingerprint semantiği korunur; IPv6/unknown scope; bounded contributors/references; arbitrary details dump yok.
+- **Test yöntemi:** Legacy/new validation, IPv6, scope, limits ve sensitive-field testleri.
+- **Kapsam dışı:** Scoring weights, SQL veya TI adapter.
+
+### NS-077 — Pure explainable scoring policy
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Deterministic contributor ve severity mapping oluşturmak.
+- **Yapılacaklar:** Versioned pure domain policy; correlated facts, negative contributor ve quality rules tanımla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, tests/unit/domain/.
+- **Bağımlılıklar:** NS-076.
+- **Acceptance criteria:** Her assessment contributor'larıyla açıklanır; same fact çift sayılmaz; missing/stale unknown; trust güçlü kanıtı sınırsız silemez; score malware probability değildir.
+- **Test yöntemi:** Table-driven monotonicity, caps, conflicting sources ve negative contributors.
+- **Kapsam dışı:** I/O, UI, ML veya malware probability.
+
+### NS-078 — Versioned assessment persistence
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Risk assessment'ı original gözlemden ayrı revision olarak tutmak.
+- **Yapılacaklar:** Assessment/revision repository, minimum bounded evidence snapshot ve legacy read mapping ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.
+- **Bağımlılıklar:** NS-058, NS-076.
+- **Acceptance criteria:** Recalculation occurrence artırmaz/original observation time değiştirmez; eski revision overwrite edilmez; evidence source expiry açıklanır.
+- **Test yöntemi:** Duplicate revision, expired source, migration, restart/corrupt data testleri.
+- **Kapsam dışı:** İkinci alert repository veya lifecycle.
+
+### NS-079 — Risk-to-AlertService integration
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Baseline evidence'ı mevcut alert yaşam döngüsüne bağlamak.
+- **Yapılacaklar:** Normalized candidate/assessment orchestration ve persisted sonrası notification intent event'i ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/alerts.py, src/netsentinel/application/events.py, src/netsentinel/bootstrap.py, tests/integration/.
+- **Bağımlılıklar:** NS-072–NS-074, NS-077, NS-078.
+- **Acceptance criteria:** Detector SQL yazmaz; stable fingerprint; ack/reopen/dedup korunur; typed failure; eligibility delivery proof değildir.
+- **Test yöntemi:** Signal→assessment→AlertService→DB, duplicate/retry/legacy alert pipeline.
+- **Kapsam dışı:** Desktop delivery veya response.
+
+### NS-080 — Scoped preference/suppression storage
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Kullanıcı tercihini gözlemden ayrı saklamak.
+- **Yapılacaklar:** Application/destination/network/rule selector, expiry, reason, origin ve audit repository oluştur.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.
+- **Bağımlılıklar:** NS-069, NS-076.
+- **Acceptance criteria:** Dar selector'lar; permanent yalnız explicit tercih; legacy device trust ayrı; edit/revoke auditable; PID/name kalıcı key değil.
+- **Test yöntemi:** Scope matching, migration, expiry ve malformed selector testleri.
+- **Kapsam dışı:** GUI, automatic trust veya evaluation.
+
+### NS-081 — Suppression evaluation integration
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Risk/alert notification eligibility'yi kullanıcı policy'siyle değerlendirmek.
+- **Yapılacaklar:** Application service policy evaluation ve assessment'ta suppression explanation ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/domain/, tests/unit/application/.
+- **Bağımlılıklar:** NS-079, NS-080.
+- **Acceptance criteria:** Evidence silinmez; expiry/revoke etkili; notification suppression ile risk sonucu ayrı; bounded suppressed summary.
+- **Test yöntemi:** Rule/app/destination/network, precedence, expiry ve cooldown testleri.
+- **Kapsam dışı:** Device detector trust semantiğini değiştirme.
+
+### NS-082 — Trust/mark-normal commands ve UI
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Dar davranış feedback'i için kullanıcı akışı sağlamak.
+- **Yapılacaklar:** Preview/expiry/revoke ile scoped application/destination/behavior command ve offscreen UI ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.
+- **Bağımlılıklar:** NS-075, NS-081.
+- **Acceptance criteria:** PID/name permanent key olmaz; seçili behavior scope açık; Cancel write yapmaz; restart persistence var.
+- **Test yöntemi:** Offscreen save/cancel/revoke, permission ve restart tests.
+- **Kapsam dışı:** Firewall veya global “everything normal”.
+
+### NS-083 — Risk explanation UI
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Assessment'ın nedenini ve preference etkisini göstermek.
+- **Yapılacaklar:** Alerts/Connections detail read model'ine contributors, freshness, quality, version, revision ve suppression ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/views/alerts.py, src/netsentinel/presentation/views/connections.py, src/netsentinel/presentation/models/, tests/gui/.
+- **Bağımlılıklar:** NS-055, NS-079, NS-081.
+- **Acceptance criteria:** Skor tek başına/probability gibi gösterilmez; legacy ARP details korunur; unknown/stale açık.
+- **Test yöntemi:** Offscreen mixed evidence, legacy, unknown, stale, suppressed ve revision tests.
+- **Kapsam dışı:** Incident timeline veya cloud consent UI.
+
+## M15 — Optional Threat Intelligence Evidence
+
+### NS-084 — TI port ve consent policy
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Provider-independent reputation query ve açık veri iznini tanımlamak.
+- **Yapılacaklar:** IP/domain/SHA-256 subject, result, provider ve sent-data sözleşmesini; default-disabled config/consent UI'ı kur.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/shared/config.py, src/netsentinel/presentation/, tests/unit/.
+- **Bağımlılıklar:** NS-076.
+- **Acceptance criteria:** Temiz kurulumda sıfır request; provider/subject/data type açık; no-hit/error ayrı; private/local address varsayılan dışı; secret ayrı port.
+- **Test yöntemi:** Consent matrix, no-request default, invalid subject ve fake two-provider contract testleri.
+- **Kapsam dışı:** Gerçek HTTP veya toplu network history upload.
+
+### NS-085 — Reputation cache ve freshness
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Reputation sonucunu local ve kaynak/güncellik sınırıyla tutmak.
+- **Yapılacaklar:** Provider/subject/version keyed TTL/stale/negative cache, bounded repository ve purge ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/infrastructure/sqlite/, src/netsentinel/shared/diagnostics.py, tests/integration/sqlite/.
+- **Bağımlılıklar:** NS-084.
+- **Acceptance criteria:** Bounded memory/disk; stale/no-hit/failure farklı; timeout temiz verdict sayılmaz; provider isolation ve purge var.
+- **Test yöntemi:** Fake clock TTL/stale/restart/corrupt/eviction tests.
+- **Kapsam dışı:** Provider networking veya aggregate malware vote.
+
+### NS-086 — İlk provider adapter
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Seçilen provider'ı typed reputation portuna bağlamak.
+- **Yapılacaklar:** Terms/privacy review sonrası sabit endpoint, bounded HTTP ve normalized response adapter'ı ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/, src/netsentinel/application/ports.py, tests/unit/infrastructure/.
+- **Bağımlılıklar:** NS-084 ve açık provider seçimi.
+- **Acceptance criteria:** Timeout/body/redirect bounds, 429/error/no-hit ayrımı, redacted secrets; yalnız izin verilen subject gönderilir.
+- **Test yöntemi:** Fake transport/response fixtures; live provider test default dışı.
+- **Kapsam dışı:** Multiple production adapters veya file upload.
+
+### NS-087 — Bounded lookup scheduler
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Opt-in network sorgularını monitoring/GUI'den ayırmak.
+- **Yapılacaklar:** Dedup, concurrency, rate limit, bounded retry/backoff, offline ve consent revoke için application worker kur.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/shared/diagnostics.py, src/netsentinel/bootstrap.py, tests/unit/application/.
+- **Bağımlılıklar:** NS-085, NS-086.
+- **Acceptance criteria:** Provider budget ve Retry-After; revoke pending jobs'u durdurur; engine/GUI beklemez; shutdown bounded.
+- **Test yöntemi:** Fake clock/network, duplicate/storm/429/offline/shutdown testleri.
+- **Kapsam dışı:** Tüm history'yi batch sorgulama.
+
+### NS-088 — TI evidence ve assessment/UI integration
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Reputation sonucunu yalnız destekleyici risk evidence yapmak.
+- **Yapılacaklar:** Provider source/freshness bilgisini assessment revision ve detail UI'a bağla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/domain/, src/netsentinel/presentation/, tests/integration/, tests/gui/.
+- **Bağımlılıklar:** NS-078, NS-083, NS-087.
+- **Acceptance criteria:** Blacklist→malware yok; stale/no-hit açık; occurrence değişmez; provider unavailable local detection'ı durdurmaz.
+- **Test yöntemi:** Fake TI→revision→GUI, conflicting/stale providers ve offline tests.
+- **Kapsam dışı:** Automatic blocking veya provider verdict tek başına saldırı hükmü.
+
+## M16 — Incident Correlation & Timeline
+
+### NS-089 — Bounded incident correlator
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Observation/assessment/alert arasındaki ilişkiyi typed reason ile kurmak.
+- **Yapılacaklar:** Process/lifecycle/destination identity, correlation window ve bounded relation graph service tanımla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/application/events.py, tests/unit/.
+- **Bağımlılıklar:** NS-056, NS-063, NS-076, NS-079.
+- **Acceptance criteria:** Same IP farklı process'leri merge etmez; unknown conservative; bounded window/entities; process creation çıkarımı yok.
+- **Test yöntemi:** PID reuse, shared IP, scope/gap, duplicate/out-of-order testleri.
+- **Kapsam dışı:** Persistence veya forensic graph.
+
+### NS-090 — Incident persistence/lifecycle
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Incident open/ack/resolved/reopen ve evidence append'i saklamak.
+- **Yapılacaklar:** Typed repository, stable incident ID, horizon ve retention-safe reference ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.
+- **Bağımlılıklar:** NS-078, NS-089.
+- **Acceptance criteria:** Append idempotent; reopen horizon explicit; restart-safe; bounded evidence/revisions; expired source görünür.
+- **Test yöntemi:** Restart, duplicate append, expiry/reopen, migration tests.
+- **Kapsam dışı:** Alert lifecycle'ını incident ile birebir eşitleme.
+
+### NS-091 — Incident timeline GUI
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** İlişkili olayları kaynak/zaman belirsizliğiyle okunur göstermek.
+- **Yapılacaklar:** Paginated worker query, observation/assessment time ayrımı ve relation reason'lı timeline model/view ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.
+- **Bağımlılıklar:** NS-083, NS-090.
+- **Acceptance criteria:** Deterministic ordering; unknown links ve expired reference açık; GUI DB/network bloklamaz; process creation yoksa “process observed” dili.
+- **Test yöntemi:** Offscreen long timeline, equal timestamp, expired reference, cancellation tests.
+- **Kapsam dışı:** Olmayan process creation event'i göstermek.
+
+### NS-092 — Incident acceptance/soak
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Incident zincirini bounded uçtan uca doğrulamak.
+- **Yapılacaklar:** Sentetik connection+DNS+baseline+risk+optional fake TI story, restart/dedup/loss/retention acceptance ve resource budget ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** tests/integration/, tests/performance/, tests/gui/, docs/ARCHITECTURE.md.
+- **Bağımlılıklar:** NS-091; NS-088 entegreyse onun fake evidence yolu.
+- **Acceptance criteria:** Olay hikayesi ve limitation görünür; bounded CPU/memory/storage; no live attack traffic.
+- **Test yöntemi:** Offline end-to-end, accelerated soak ve offscreen GUI.
+- **Kapsam dışı:** Canlı C2/attack trafiği veya cloud provider önkoşulu.
+
+## M17 — Public Beta & Product Usability
+
+### NS-093 — Tray ve application lifecycle
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Günlük background kullanımda görünür start/stop ve quit davranışı sağlamak.
+- **Yapılacaklar:** PyQt tray, show/hide/quit ve close preference'ı mevcut lifecycle'a bağla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/app.py, src/netsentinel/presentation/views/main_window.py, src/netsentinel/shared/config.py, tests/gui/.
+- **Bağımlılıklar:** NS-055.
+- **Acceptance criteria:** Hide monitoring'i yanlışlıkla durdurmaz; Quit bounded shutdown; tray unavailable fallback; startup policy explicit.
+- **Test yöntemi:** Offscreen/fake tray lifecycle ve Windows manual smoke.
+- **Kapsam dışı:** Windows service veya default autostart.
+
+### NS-094 — Desktop notifications
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Persisted alert intent'ini privacy-aware desktop bildirime çevirmek.
+- **Yapılacaklar:** Delivery adapter/port, dedup/cooldown/hysteresis ve click navigation kur.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/infrastructure/, src/netsentinel/presentation/, tests/gui/.
+- **Bağımlılıklar:** NS-079, NS-081, NS-093.
+- **Acceptance criteria:** Eligibility delivery proof sayılmaz; sensitive preview sınırlı; escalation/duplicate yönetilir; click doğru alert'i açar.
+- **Test yöntemi:** Fake notification sink, restart/storm/failure ve offscreen navigation.
+- **Kapsam dışı:** Raw payload/path'i varsayılan preview yapmak.
+
+### NS-095 — Storage/privacy controls
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Yerel veri yaşam döngüsünü kullanıcı kontrolüne almak.
+- **Yapılacaklar:** Bounded retention scheduling, store quota, scoped purge ve sanitized export preview ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/retention.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/shared/config.py, src/netsentinel/presentation/, tests/integration/.
+- **Bağımlılıklar:** NS-071, NS-078, NS-090.
+- **Acceptance criteria:** Chunk cleanup bounded; active/reference veri açıklanır; yeni store'lar quota taşır; destructive purge confirmed; export preview redacted.
+- **Test yöntemi:** Time/size/busy DB, source expiry, Cancel ve restart tests.
+- **Kapsam dışı:** Silent purge veya automatic upload.
+
+### NS-096 — Installer/upgrade/uninstall
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Portable paketi kontrollü dağıtım akışına taşımak.
+- **Yapılacaklar:** Installer build, data-path/preserve/delete kararı ve clean upgrade/uninstall kılavuzu ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging/, docs/RELEASING.md, README.md, tests/integration/.
+- **Bağımlılıklar:** NS-093, NS-095.
+- **Acceptance criteria:** Standard-user policy; Unicode path, fresh/upgrade DB; Npcap/elevation otomatik yok; user data kararı açık.
+- **Test yöntemi:** Clean Windows client VM install/repair/upgrade/uninstall smoke.
+- **Kapsam dışı:** Npcap bundling, updater veya firewall cleanup henüz yok.
+
+### NS-097 — Signing/update distribution spike
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Beta artefact trust ve update politikasını karara bağlamak.
+- **Yapılacaklar:** Certificate/key/cost/channel, manual update ve verification/downgrade/rollback matrisi üret.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging/, docs/RELEASING.md, docs/SECURITY.md, tests/integration/.
+- **Bağımlılıklar:** NS-050, NS-051.
+- **Acceptance criteria:** Signed workflow veya açık pilot policy; key ownership ve network disclosure; explicit decision ve tamper sonucunun fail-closed olması.
+- **Test yöntemi:** Artefact verification dry-run ve tamper fixtures.
+- **Kapsam dışı:** Automatic updater implementation veya certificate satın alma.
+
+### NS-098 — First-run/feedback polish
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Yeni privacy/detection sınırlarını kullanıcıya anlatmak.
+- **Yapılacaklar:** Onboarding, sanitized user-controlled feedback export, detection docs, screenshot/release-note hazırlığı.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/widgets/onboarding.py, src/netsentinel/presentation/views/diagnostics.py, docs/, README.md, tests/gui/.
+- **Bağımlılıklar:** NS-083, NS-084, NS-091, NS-095.
+- **Acceptance criteria:** Capture/TI ayrı consent; raw history default export yok; feedback preview; limitation açık; release docs tutarlı.
+- **Test yöntemi:** Offscreen onboarding/consent states, redaction/export fixtures, usability walkthrough.
+- **Kapsam dışı:** Automatic crash upload veya public issue'ya gerçek telemetry.
+
+### NS-099 — Public beta acceptance gate
+
+- **Durum:** ⬜ Planlandı.
+- **Amaç:** Gerçek kullanıcı koşullarında release ve response öncesi kaliteyi değerlendirmek.
+- **Yapılacaklar:** Client Windows VM, offline kalite ve manuel beta senaryo/FP/notification burden checklist'i çalıştır.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** tests/, docs/RELEASING.md, docs/PRODUCT.md, docs/SECURITY.md.
+- **Bağımlılıklar:** NS-092–NS-098 ve zorunlu M11–M15 exit kriterleri; NS-068 conditional.
+- **Acceptance criteria:** Normal browser, updater, VPN, sleep/wake, restart, Npcap missing, standard user, notification/FP burden, clean install, upgrade, uninstall ve privacy/storage sonuçları belgelenir; gate açıkça pass/fail.
+- **Test yöntemi:** Offline suite + explicit clean client VM/manual beta acceptance.
+- **Kapsam dışı:** Automatic response veya conditional signer/bytes özelliğini zorunlu kılma.
+
+## M18 — Manual Response & Firewall Integration — CONDITIONAL
+
+**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** NS-100–NS-104 committed next work değildir. Automatic blocking ve automatic elevation kapsam dışıdır.
+
+### NS-100 — Response command/privilege contract
+
+- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Amaç:** Manuel blocking için dar, geri alınabilir sözleşmeyi ve yetki UX'ini tasarlamak.
+- **Yapılacaklar:** Destination/program rule scope, user preview/confirmation, privilege-denied, ownership ve rollback threat model tanımla.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, docs/SECURITY.md, tests/unit/.
+- **Bağımlılıklar:** NS-082, NS-099 ve explicit response GO kararı.
+- **Acceptance criteria:** Target/profile/expiry açık; automatic elevation yok; denied/degraded sonuç typed; rule ownership sınırı kayıtlı.
+- **Test yöntemi:** Validation, fake privilege denial, scope/command serialization.
+- **Kapsam dışı:** Gerçek rule yazma veya automatic response.
+- **Başlatma kapısı:** Do not start before NS-099 and explicit response GO decision; M17 de tamamlanmış olmalıdır.
+
+### NS-101 — Windows Firewall adapter
+
+- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Amaç:** Dar owned firewall kuralını Windows'ta yönetmek.
+- **Yapılacaklar:** Structured COM/typed Windows API ile add/read/remove adapter ve sanitized permission errors ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/, src/netsentinel/application/ports.py, tests/unit/infrastructure/.
+- **Bağımlılıklar:** NS-100.
+- **Acceptance criteria:** Program/IP/port/profile bounded; shell injection yok; unrelated rule'a dokunmaz; mevcut akışı hemen kesme garantisi verilmez.
+- **Test yöntemi:** Fake API ve explicit isolated Windows rule tests.
+- **Kapsam dışı:** Custom WFP driver veya process termination.
+- **Başlatma kapısı:** Do not start before NS-099 and explicit response GO decision; M17 de tamamlanmış olmalıdır.
+
+### NS-102 — Owned rules/audit/reconciliation
+
+- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Amaç:** Oluşturulan kuralların sahipliğini, expiry ve rollback'i sürdürmek.
+- **Yapılacaklar:** UUID manifest, idempotent command, short transaction audit ve OS/DB partial failure reconciliation ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/infrastructure/sqlite/, src/netsentinel/shared/diagnostics.py, tests/integration/.
+- **Bağımlılıklar:** NS-095, NS-101.
+- **Acceptance criteria:** Duplicate/stale/external edit açıklanır; yalnız NetSentinel-owned rules kaldırılır; partial failure recoverable; audit bounded.
+- **Test yöntemi:** Fake OS/DB failure, restart, external edit ve expiry testleri.
+- **Kapsam dışı:** Başka uygulama/kullanıcı kurallarını değiştirme.
+- **Başlatma kapısı:** Do not start before NS-099 and explicit response GO decision; M17 de tamamlanmış olmalıdır.
+
+### NS-103 — Manual response UI
+
+- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Amaç:** Kullanıcıya firewall etkisini görüp onaylama ve undo akışı vermek.
+- **Yapılacaklar:** Target/profile/expiry/rollback preview, explicit confirm/Cancel, permission sonucunu ve audit'i UI'da göster.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.
+- **Bağımlılıklar:** NS-082, NS-102.
+- **Acceptance criteria:** Cancel write yapmaz; admin yokken local trust çalışır; undo accessible; partial result açık.
+- **Test yöntemi:** Offscreen denied/success/partial/rollback/Cancel.
+- **Kapsam dışı:** Automatic blocking veya silent elevated helper.
+- **Başlatma kapısı:** Do not start before NS-099 and explicit response GO decision; M17 de tamamlanmış olmalıdır.
+
+### NS-104 — Firewall/uninstall acceptance
+
+- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Amaç:** Gerçek Windows rule ve uninstall davranışını doğrulamak.
+- **Yapılacaklar:** Owned rule lifecycle, rollback ve installer cleanup için explicit VM acceptance ve doküman ekle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging/, docs/RELEASING.md, docs/SECURITY.md, tests/integration/.
+- **Bağımlılıklar:** NS-096, NS-103.
+- **Acceptance criteria:** Unrelated rules untouched; owned cleanup doğrulanır; yetki yoksa kalan kurallar açık listelenir; automatic elevation yok.
+- **Test yöntemi:** Isolated VM rule lifecycle, upgrade/uninstall ve interrupted-action tests.
+- **Kapsam dışı:** Üretim ağında riskli test veya driver geliştirme.
+- **Başlatma kapısı:** Do not start before NS-099 and explicit response GO decision; M17 de tamamlanmış olmalıdır.
+
+## Yeni faz task özeti
+
+| Milestone | Task aralığı | Sayı | Durum |
+|---|---:|---:|---|
+| M11 Process & Connection Telemetry Foundations | NS-052–NS-061 | 10 | Planlandı |
+| M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | Planlandı; NS-068 conditional adapter |
+| M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | Planlandı |
+| M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | Planlandı |
+| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Planlandı; kullanıcı için default disabled |
+| M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
+| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
+| **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

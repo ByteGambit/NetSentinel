@@ -10,10 +10,18 @@ Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı ge
 
 - Monitoring engine, PyQt6 arayüzünden bağımsız çalışır.
 - Domain kuralları; PyQt6, psutil, Scapy ve SQLite ayrıntılarını bilmez.
-- Pasif gözlem varsayılandır; aktif keşif açık kullanıcı onayı ve tanımlı kapsam gerektirir.
+- Pasif gözlem varsayılandır; aktif keşif mevcut uygulamada yoktur ve gelecekte ancak açık kullanıcı onayı/tanımlı kapsam ile düşünülebilir.
 - Uyarılar tek bir pakete değil, kanıt ve bağlama dayanır.
 - Windows'ta sınırlı yetkiyle çalışmak desteklenir; eksik yetenekler arayüzde açıkça gösterilir.
 - Her milestone küçük, bağımsız ve test edilebilir tasklara bölünür.
+
+## Next phase — planned, not implemented
+
+M1–M10 ve NS-001–NS-051 tamamlandı; M11–M17 planlandı. Ürün sorusu “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context ve explainable detection.
+
+Planlanan dilimler richer process context, belirsizliği açık gösteren destination attribution, deterministic behavioral baseline, explainable risk ve incident timeline'dır. Per-flow bytes ve ETW önce spike ile değerlendirilecek; mevcut Connections ekranında per-flow upload/download yoktur. Threat intelligence varsayılan kapalı destekleyici evidence'dır. Manual response yalnız M17/NS-099 sonrası explicit GO ile başlayabilecek conditional M18'dir. Ayrıntılar [yol haritasında](docs/ROADMAP.md) ve [task listesinde](docs/TASKS.md) bulunur.
+
+**NetSentinel does not upload your network history by default.** Mevcut yerel history ve pasif capture davranışı [ürün](docs/PRODUCT.md) ve [güvenlik](docs/SECURITY.md) belgelerinde açıklanır.
 
 ## Dokümantasyon
 
@@ -22,7 +30,7 @@ Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı ge
 | [Ürün tanımı](docs/PRODUCT.md) | Amaç, kullanıcı senaryoları, özellikler ve kapsam dışı konular |
 | [Mimari](docs/ARCHITECTURE.md) | Katmanlar, modüller, veri akışı, concurrency ve klasör planı |
 | [Güvenlik](docs/SECURITY.md) | Yetkiler, packet capture riskleri, veri güvenliği ve güvenli kullanım |
-| [Yol haritası](docs/ROADMAP.md) | M1-M10 milestone'ları ve tamamlanma koşulları |
+| [Yol haritası](docs/ROADMAP.md) | Tamamlanmış M1–M10, planlanan M11–M17 ve conditional M18 |
 | [Task listesi](docs/TASKS.md) | NS-001'den başlayan uygulanabilir işler, bağımlılıklar ve test yöntemleri |
 | [Release readiness](docs/RELEASING.md) | NS-051 PR kalite kapıları, 1.0 kapsam karşılaştırması ve release checklist |
 
