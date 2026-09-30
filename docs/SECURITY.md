@@ -259,7 +259,7 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Veriler varsayılan olarak yalnızca yerel makinede tutulur.
 - Telemetry veya bulut aktarımı varsayılan değildir; ilk kapsamda yoktur.
 - Ham paket payload'ı ve DNS cevap payload'ının gereksiz bölümleri saklanmaz.
-- Process command line varsayılan olarak toplanmaz; executable path ancak ürün için gerekliyse ve açıkça belgelenerek eklenir.
+- Process command line toplanmaz; NS-052 executable path'i yalnız yerel, best-effort process metadata olarak okur. Path log/diagnostics'e veya dış servise gönderilmez ve bu taskta kalıcılaştırılmaz.
 - Network context yalnızca interface kimliği/görünen adı ve türü, IPv4 adres/subnet,
   isteğe bağlı gateway/DNS adresleri, UTC gözlem zamanı ve türetilmiş fingerprint
   taşır. MAC, packet payload, hostname veya kullanıcı verisi NS-019'da toplanmaz
@@ -452,7 +452,7 @@ Genel bir issue açmadan önce repository sahibiyle özel iletişim kanalı beli
 
 ## 11. Yeni faz threat/privacy modeli — planlanan özellikler
 
-Bu bölüm M11–M17 tasarım gereksinimleridir; executable path/hash/signer enrichment, reputation provider, incident veya firewall bugün implement edilmiş değildir. Mevcut paket otomatik elevation yapmaz; bu kural gelecek fazlarda da korunur.
+Bu bölüm M11–M17 tasarım gereksinimleridir; NS-052 executable path metadata'sı dışında hash/signer enrichment, reputation provider, incident veya firewall bugün implement edilmiş değildir. Mevcut paket otomatik elevation yapmaz; bu kural gelecek fazlarda da korunur.
 
 ### Yerel metadata ve veri minimizasyonu
 

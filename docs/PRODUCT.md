@@ -21,7 +21,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. Executable path, parent context, genel process baseline/risk, domain–connection attribution, incident timeline, reputation request, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path best-effort process metadata olarak okunur; henüz history'ye yazılmaz veya UI'da gösterilmez. Parent context, genel process baseline/risk, domain–connection attribution, incident timeline, reputation request, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 

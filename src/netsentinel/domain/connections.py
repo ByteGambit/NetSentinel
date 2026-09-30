@@ -7,7 +7,7 @@ into these domain concepts.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from ipaddress import ip_address
@@ -41,12 +41,15 @@ class ConnectionState(str, Enum):
 
 
 class ProcessInfoStatus(str, Enum):
-    """Describes why process metadata is or is not available."""
+    """Describes why process metadata or an individual field is unavailable."""
 
     AVAILABLE = "available"
     ACCESS_DENIED = "access_denied"
     NOT_FOUND = "not_found"
     UNAVAILABLE = "unavailable"
+
+
+MAX_EXECUTABLE_PATH_LENGTH = 4096
 
 
 class ConnectionClosureReason(str, Enum):
@@ -121,11 +124,19 @@ class ProcessIdentity:
 
 @dataclass(frozen=True, slots=True)
 class ProcessInfo:
-    """Process identity plus explicitly modelled metadata availability."""
+    """Process identity and independent availability of its metadata fields.
+
+    ``status`` retains the legacy name availability contract. A missing path
+    defaults to unavailable so older callers and stored records stay valid.
+    """
 
     status: ProcessInfoStatus
     identity: ProcessIdentity | None = None
     name: str | None = None
+    executable_path: str | None = field(default=None, repr=False)
+    name_status: ProcessInfoStatus | None = None
+    create_time_status: ProcessInfoStatus | None = None
+    executable_path_status: ProcessInfoStatus | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.status, ProcessInfoStatus):
@@ -138,6 +149,15 @@ class ProcessInfo:
             raise TypeError("name must be a string or None")
         if self.name is not None and not self.name.strip():
             raise ValueError("name must not be empty")
+        if self.executable_path is not None:
+            if not isinstance(self.executable_path, str):
+                raise TypeError("executable_path must be a string or None")
+            if (
+                not self.executable_path.strip()
+                or len(self.executable_path) > MAX_EXECUTABLE_PATH_LENGTH
+                or any(ord(char) < 32 for char in self.executable_path)
+            ):
+                raise ValueError("executable_path is invalid or exceeds the limit")
 
         if self.status is ProcessInfoStatus.AVAILABLE:
             if self.identity is None or self.name is None:
@@ -153,6 +173,40 @@ class ProcessInfo:
             and self.identity is None
         ):
             raise ValueError(f"{self.status.value} process info requires an identity")
+
+        create_time = self.identity.create_time if self.identity is not None else None
+        default_create_status = (
+            ProcessInfoStatus.AVAILABLE
+            if create_time is not None
+            else ProcessInfoStatus.UNAVAILABLE
+        )
+        default_path_status = (
+            ProcessInfoStatus.AVAILABLE
+            if self.executable_path is not None
+            else ProcessInfoStatus.UNAVAILABLE
+        )
+        if self.name_status is None:
+            object.__setattr__(self, "name_status", self.status)
+        if self.create_time_status is None:
+            object.__setattr__(self, "create_time_status", default_create_status)
+        if self.executable_path_status is None:
+            object.__setattr__(self, "executable_path_status", default_path_status)
+
+        for field_name, field_status, has_value in (
+            ("name_status", self.name_status, self.name is not None),
+            ("create_time_status", self.create_time_status, create_time is not None),
+            (
+                "executable_path_status",
+                self.executable_path_status,
+                self.executable_path is not None,
+            ),
+        ):
+            if not isinstance(field_status, ProcessInfoStatus):
+                raise TypeError(f"{field_name} must be a ProcessInfoStatus")
+            if (field_status is ProcessInfoStatus.AVAILABLE) != has_value:
+                raise ValueError(f"{field_name} does not match its value")
+        if self.executable_path is not None and self.identity is None:
+            raise ValueError("executable_path requires a process identity")
 
     @classmethod
     def unavailable(cls) -> ProcessInfo:

@@ -180,7 +180,7 @@ class ConnectionCollector(Protocol):
 
 
 class ProcessMetadataResolver(Protocol):
-    """Port for resolving portable metadata for one process identifier."""
+    """Port for resolving portable, field-available process metadata by PID."""
 
     def resolve(self, pid: int) -> ProcessInfo:
         """Return process metadata without leaking provider-specific types."""

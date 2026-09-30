@@ -16,6 +16,7 @@ from netsentinel.domain.connections import (
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
+    MAX_EXECUTABLE_PATH_LENGTH,
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
@@ -170,6 +171,62 @@ def test_process_info_explicitly_represents_unavailable_metadata() -> None:
     assert unavailable.name is None
     assert denied.identity == ProcessIdentity(pid=4)
     assert denied.name is None
+
+
+def test_process_info_legacy_constructor_defaults_field_availability() -> None:
+    process = available_process()
+
+    assert process.name_status is ProcessInfoStatus.AVAILABLE
+    assert process.create_time_status is ProcessInfoStatus.AVAILABLE
+    assert process.executable_path is None
+    assert process.executable_path_status is ProcessInfoStatus.UNAVAILABLE
+
+
+def test_process_info_accepts_independent_path_denial() -> None:
+    process = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=ProcessIdentity(42, PROCESS_STARTED_AT),
+        name="visible.exe",
+        executable_path_status=ProcessInfoStatus.ACCESS_DENIED,
+    )
+
+    assert process.identity == ProcessIdentity(42, PROCESS_STARTED_AT)
+    assert process.name_status is ProcessInfoStatus.AVAILABLE
+    assert process.create_time_status is ProcessInfoStatus.AVAILABLE
+    assert process.executable_path_status is ProcessInfoStatus.ACCESS_DENIED
+
+
+def test_executable_path_is_omitted_from_process_repr() -> None:
+    process = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=ProcessIdentity(42),
+        name="visible.exe",
+        executable_path="C:\\Users\\private\\visible.exe",
+    )
+
+    assert "C:\\Users\\private" not in repr(process)
+
+
+@pytest.mark.parametrize("path", ["", " ", "x\x00y", "x" * (MAX_EXECUTABLE_PATH_LENGTH + 1)])
+def test_process_info_rejects_invalid_executable_path(path: str) -> None:
+    with pytest.raises(ValueError, match="executable_path"):
+        ProcessInfo(
+            status=ProcessInfoStatus.AVAILABLE,
+            identity=ProcessIdentity(42),
+            name="visible.exe",
+            executable_path=path,
+        )
+
+
+def test_process_info_rejects_inconsistent_path_availability() -> None:
+    with pytest.raises(ValueError, match="executable_path_status"):
+        ProcessInfo(
+            status=ProcessInfoStatus.AVAILABLE,
+            identity=ProcessIdentity(42),
+            name="visible.exe",
+            executable_path="C:\\Apps\\visible.exe",
+            executable_path_status=ProcessInfoStatus.ACCESS_DENIED,
+        )
 
 
 @pytest.mark.parametrize(

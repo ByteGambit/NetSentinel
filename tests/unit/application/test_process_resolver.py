@@ -19,6 +19,7 @@ from netsentinel.domain.connections import (
     ProcessInfoStatus,
     TransportProtocol,
 )
+from netsentinel.infrastructure.psutil_processes import PsutilProcessMetadataResolver
 
 
 OBSERVED_AT = datetime(2026, 9, 18, 9, 30, tzinfo=UTC)
@@ -80,6 +81,30 @@ def test_pass_local_cache_resolves_repeated_pid_only_once() -> None:
 
     assert resolver.calls == [42]
     assert [item.process for item in result] == [available(42), available(42)]
+
+
+def test_pass_local_cache_reads_executable_path_only_once() -> None:
+    class CountingProcess:
+        exe_calls = 0
+
+        def create_time(self) -> float:
+            return STARTED_AT.timestamp()
+
+        def name(self) -> str:
+            return "browser.exe"
+
+        def exe(self) -> str:
+            self.exe_calls += 1
+            return "C:\\Apps\\browser.exe"
+
+    process = CountingProcess()
+    resolver = PsutilProcessMetadataResolver(process_factory=lambda pid: process)
+    source = [snapshot(pid=42), snapshot(pid=42, port=50_001)]
+
+    result = ProcessMetadataEnricher(resolver).enrich(source)
+
+    assert process.exe_calls == 1
+    assert all(item.process.executable_path == "C:\\Apps\\browser.exe" for item in result)
 
 
 def test_cache_does_not_cross_snapshot_passes_and_exposes_pid_reuse() -> None:
@@ -149,4 +174,3 @@ def test_domain_and_application_layers_do_not_import_psutil() -> None:
         source = inspect.getsource(module)
         assert "import psutil" not in source
         assert "from psutil" not in source
-

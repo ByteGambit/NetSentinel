@@ -587,7 +587,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-052 — Executable path ve alan bazlı availability
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Bağlantıyı yapan executable'ı best-effort tanımlamak.
 - **Yapılacaklar:** ProcessInfo, resolver portu ve psutil adapter'ına optional executable path ile alan bazlı availability ekle; mevcut ProcessIdentity key'ini koru.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/ports.py, src/netsentinel/application/services/processes.py, src/netsentinel/infrastructure/psutil_processes.py, tests/unit/.

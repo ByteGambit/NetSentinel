@@ -150,6 +150,26 @@ def test_process_metadata_change_with_same_identity_emits_updated(
     assert events == (ConnectionUpdated(previous=first, current=second),)
 
 
+def test_executable_path_enrichment_updates_without_connection_churn() -> None:
+    tracker = ConnectionTrackingService()
+    original = process()
+    enriched = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=original.identity,
+        name=original.name,
+        executable_path="C:\\Apps\\browser.exe",
+    )
+    first = connection(observed_at=T0, process_info=original)
+    second = connection(observed_at=T1, process_info=enriched)
+
+    assert first.key == second.key
+    tracker.track((first,))
+
+    assert tracker.track((second,)) == (
+        ConnectionUpdated(previous=first, current=second),
+    )
+
+
 def test_different_remote_endpoint_is_a_different_connection() -> None:
     tracker = ConnectionTrackingService()
     first = connection(observed_at=T0, remote_address="203.0.113.20")

@@ -10,6 +10,7 @@ import pytest
 
 from netsentinel.application.ports import ProcessMetadataResolver
 from netsentinel.domain.connections import (
+    MAX_EXECUTABLE_PATH_LENGTH,
     ProcessIdentity,
     ProcessInfoStatus,
 )
@@ -22,11 +23,19 @@ STARTED_AT = datetime(2026, 9, 18, 8, 0, tzinfo=UTC)
 
 
 class FakeProcess:
-    def __init__(self, *, name: Any = "browser.exe", create_time: Any = None) -> None:
+    def __init__(
+        self,
+        *,
+        name: Any = "browser.exe",
+        create_time: Any = None,
+        executable_path: Any = "C:\\Apps\\browser.exe",
+    ) -> None:
         self._name = name
         self._create_time = (
             STARTED_AT.timestamp() if create_time is None else create_time
         )
+        self._executable_path = executable_path
+        self.exe_calls = 0
 
     def name(self) -> Any:
         if isinstance(self._name, BaseException):
@@ -37,6 +46,12 @@ class FakeProcess:
         if isinstance(self._create_time, BaseException):
             raise self._create_time
         return self._create_time
+
+    def exe(self) -> Any:
+        self.exe_calls += 1
+        if isinstance(self._executable_path, BaseException):
+            raise self._executable_path
+        return self._executable_path
 
 
 def resolver_for(process: FakeProcess) -> PsutilProcessMetadataResolver:
@@ -51,6 +66,10 @@ def test_resolver_satisfies_port_and_returns_portable_metadata() -> None:
     assert result.status is ProcessInfoStatus.AVAILABLE
     assert result.identity == ProcessIdentity(42, STARTED_AT)
     assert result.name == "browser.exe"
+    assert result.executable_path == "C:\\Apps\\browser.exe"
+    assert result.name_status is ProcessInfoStatus.AVAILABLE
+    assert result.create_time_status is ProcessInfoStatus.AVAILABLE
+    assert result.executable_path_status is ProcessInfoStatus.AVAILABLE
     assert type(result).__module__ == "netsentinel.domain.connections"
 
 
@@ -153,6 +172,58 @@ def test_partial_metadata_keeps_create_time_when_name_is_denied() -> None:
     assert result.status is ProcessInfoStatus.ACCESS_DENIED
     assert result.identity == ProcessIdentity(42, STARTED_AT)
     assert result.name is None
+    assert result.name_status is ProcessInfoStatus.ACCESS_DENIED
+    assert result.create_time_status is ProcessInfoStatus.AVAILABLE
+    assert result.executable_path == "C:\\Apps\\browser.exe"
+    assert result.executable_path_status is ProcessInfoStatus.AVAILABLE
+
+
+def test_path_denial_keeps_name_create_time_and_identity() -> None:
+    result = resolver_for(
+        FakeProcess(executable_path=psutil.AccessDenied(pid=42))
+    ).resolve(42)
+
+    assert result.status is ProcessInfoStatus.AVAILABLE
+    assert result.name == "browser.exe"
+    assert result.identity == ProcessIdentity(42, STARTED_AT)
+    assert result.name_status is ProcessInfoStatus.AVAILABLE
+    assert result.create_time_status is ProcessInfoStatus.AVAILABLE
+    assert result.executable_path is None
+    assert result.executable_path_status is ProcessInfoStatus.ACCESS_DENIED
+
+
+def test_path_exit_race_preserves_earlier_metadata() -> None:
+    result = resolver_for(
+        FakeProcess(executable_path=psutil.NoSuchProcess(pid=42))
+    ).resolve(42)
+
+    assert result.status is ProcessInfoStatus.AVAILABLE
+    assert result.name == "browser.exe"
+    assert result.identity == ProcessIdentity(42, STARTED_AT)
+    assert result.executable_path is None
+    assert result.executable_path_status is ProcessInfoStatus.NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["", "   ", object(), "C:\\bad\x00path", "x" * (MAX_EXECUTABLE_PATH_LENGTH + 1)],
+)
+def test_empty_invalid_or_oversized_path_is_typed_unavailable(path: Any) -> None:
+    result = resolver_for(FakeProcess(executable_path=path)).resolve(42)
+
+    assert result.name == "browser.exe"
+    assert result.identity == ProcessIdentity(42, STARTED_AT)
+    assert result.executable_path is None
+    assert result.executable_path_status is ProcessInfoStatus.UNAVAILABLE
+
+
+def test_unexpected_path_api_failure_is_sanitized() -> None:
+    result = resolver_for(
+        FakeProcess(executable_path=RuntimeError("sensitive local path"))
+    ).resolve(42)
+
+    assert result.name == "browser.exe"
+    assert result.executable_path_status is ProcessInfoStatus.UNAVAILABLE
 
 
 @pytest.mark.parametrize(
@@ -177,4 +248,3 @@ def test_malformed_or_unavailable_partial_fields_are_safe(
         ProcessInfoStatus.AVAILABLE,
         ProcessInfoStatus.UNAVAILABLE,
     }
-
