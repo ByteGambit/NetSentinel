@@ -17,7 +17,9 @@ from netsentinel.application.ports import (
     ConnectionCollectionTransientError,
     ConnectionCollector,
     ConnectionCollectionRound,
+    NetworkContextProvider,
 )
+from netsentinel.application.services.connection_network_scope import ConnectionNetworkScopeResolver
 from netsentinel.domain.connections import (
     ConnectionLifecycleEvent,
     ConnectionSnapshot,
@@ -96,6 +98,7 @@ class MonitoringEngine:
         thread_name: str = "netsentinel-connection-poller",
         persistence: PersistencePipeline | None = None,
         dns_config_poller: DnsConfigPoller | None = None,
+        network_context_provider: NetworkContextProvider | None = None,
     ) -> None:
         if (
             isinstance(polling_interval, bool)
@@ -127,6 +130,10 @@ class MonitoringEngine:
         self._thread_name = thread_name
         self._persistence = persistence
         self._dns_config_poller = dns_config_poller
+        self._network_scope_resolver = (
+            ConnectionNetworkScopeResolver(network_context_provider)
+            if network_context_provider is not None else None
+        )
 
         self._lock = RLock()
         self._cancel = Event()
@@ -375,6 +382,9 @@ class MonitoringEngine:
             and snapshot.process.status is not ProcessInfoStatus.AVAILABLE
         )
         self._record_process_metadata_result(unavailable)
+
+        if self._network_scope_resolver is not None:
+            enriched = self._network_scope_resolver.attribute(enriched)
 
         if self._cancel.is_set():
             return

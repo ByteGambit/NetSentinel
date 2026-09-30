@@ -72,6 +72,7 @@ def create_monitoring_engine(
         collector=PsutilConnectionCollector(),
         enricher=ProcessMetadataEnricher(PsutilProcessMetadataResolver()),
         tracker=ConnectionTrackingService(),
+        network_context_provider=create_network_context_provider(),
         dispatcher=EventDispatcher(),
         polling_interval=settings.polling_interval if polling_interval is None else polling_interval,
         shutdown_timeout=settings.shutdown_timeout if shutdown_timeout is None else shutdown_timeout,
@@ -109,14 +110,16 @@ def create_desktop_engine(
     )
     persistence = ConnectionHistoryPersistence(dispatcher, writer)
     database = SQLiteDatabase(database_path)
+    network_context_provider = create_network_context_provider()
     dns_config = DnsConfigMonitoringService(
-        create_network_context_provider(),
+        network_context_provider,
         AlertService(SQLiteAlertRepository(database)),
     )
     return MonitoringEngine(
         collector=PsutilConnectionCollector(),
         enricher=ProcessMetadataEnricher(PsutilProcessMetadataResolver()),
         tracker=ConnectionTrackingService(),
+        network_context_provider=network_context_provider,
         dispatcher=dispatcher,
         polling_interval=polling_interval,
         shutdown_timeout=shutdown_timeout,

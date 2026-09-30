@@ -311,6 +311,10 @@ def _duplicate_preference(snapshot: ConnectionSnapshot) -> tuple[object, ...]:
         parent.name if parent is not None and parent.name is not None else "",
         parent.observed_at.isoformat() if parent is not None else "",
         snapshot.state.value,
+        snapshot.network_scope.status.value,
+        snapshot.network_scope.fingerprint or "",
+        snapshot.network_scope.interface_id or "",
+        snapshot.network_scope.interface_index if snapshot.network_scope.interface_index is not None else -1,
     )
 
 
@@ -325,7 +329,11 @@ def _observable_metadata_changed(
             old_process,
             parent=replace(old_process.parent, observed_at=new_parent.observed_at),
         )
-    return previous.state != current.state or old_process != current.process
+    return (
+        previous.state != current.state
+        or old_process != current.process
+        or previous.network_scope != current.network_scope
+    )
 
 
 def _connection_key_sort_key(key: ConnectionKey) -> tuple[object, ...]:

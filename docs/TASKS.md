@@ -642,7 +642,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-057 — Connection network scope
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Connection'ın ait olduğu network context'i ancak yeterli kanıtla belirtmek.
 - **Yapılacaklar:** Local endpoint/current context eşleştirmesi ve typed unique/unknown/ambiguous scope ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/services/, src/netsentinel/infrastructure/windows_network.py, tests/unit/.

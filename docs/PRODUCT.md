@@ -75,6 +75,7 @@ Uygulama broadcast/ARP yoğunluğunu zaman pencereleri içinde ölçer; yakalana
 - Local/remote IP ve portları gösterme
 - Yeni, güncellenen ve kapanan bağlantıları gerçek zamanlı algılama
 - Connection history ve basit trafik/olay istatistikleri
+- Connection gözleminde, local IPv4 adresi güncel tek bir interface context'iyle tam eşleşiyorsa yerel network scope; eşleşme belirsizse `unknown` veya `ambiguous`. Bu kapsam fiziksel ağ ya da gerçek route kimliği değildir ve henüz history'ye kaydedilmez.
 
 ### Yerel ağ ve cihazlar
 

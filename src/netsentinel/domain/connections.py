@@ -85,6 +85,58 @@ class ObservationQuality(str, Enum):
     FAILED = "failed"
 
 
+class NetworkScopeStatus(str, Enum):
+    """Certainty of local-address attribution to a current context."""
+
+    RESOLVED = "resolved"
+    UNKNOWN = "unknown"
+    AMBIGUOUS = "ambiguous"
+
+
+class NetworkAttributionMethod(str, Enum):
+    """Evidence used for an attributed context, without claiming a route."""
+
+    LOCAL_ADDRESS_MATCH = "local_address_match"
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionNetworkScope:
+    """A local interface/subnet/gateway context, not a physical network ID."""
+
+    status: NetworkScopeStatus
+    fingerprint: str | None = None
+    interface_id: str | None = None
+    interface_index: int | None = None
+    method: NetworkAttributionMethod | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, NetworkScopeStatus):
+            raise TypeError("status must be a NetworkScopeStatus")
+        details = (self.fingerprint, self.interface_id, self.interface_index, self.method)
+        if self.status is not NetworkScopeStatus.RESOLVED:
+            if any(value is not None for value in details):
+                raise ValueError("unresolved scope cannot carry a context")
+            return
+        if not isinstance(self.fingerprint, str) or len(self.fingerprint) != 64 or any(
+            character not in "0123456789abcdef" for character in self.fingerprint
+        ):
+            raise ValueError("resolved scope requires a network fingerprint")
+        if not isinstance(self.interface_id, str) or not self.interface_id or len(self.interface_id) > 512:
+            raise ValueError("resolved scope requires an interface ID")
+        if isinstance(self.interface_index, bool) or not isinstance(self.interface_index, int) or self.interface_index < 0:
+            raise ValueError("resolved scope requires a non-negative interface index")
+        if self.method is not NetworkAttributionMethod.LOCAL_ADDRESS_MATCH:
+            raise ValueError("resolved scope requires local-address evidence")
+
+    @classmethod
+    def unknown(cls) -> ConnectionNetworkScope:
+        return cls(NetworkScopeStatus.UNKNOWN)
+
+    @classmethod
+    def ambiguous(cls) -> ConnectionNetworkScope:
+        return cls(NetworkScopeStatus.AMBIGUOUS)
+
+
 def _require_utc(value: datetime, field_name: str) -> datetime:
     if not isinstance(value, datetime):
         raise TypeError(f"{field_name} must be a datetime")
@@ -356,6 +408,7 @@ class ConnectionSnapshot:
     state: ConnectionState
     process: ProcessInfo
     observed_at: datetime
+    network_scope: ConnectionNetworkScope = field(default_factory=ConnectionNetworkScope.unknown)
 
     def __post_init__(self) -> None:
         if not isinstance(self.protocol, TransportProtocol):
@@ -370,6 +423,8 @@ class ConnectionSnapshot:
             raise TypeError("state must be a ConnectionState")
         if not isinstance(self.process, ProcessInfo):
             raise TypeError("process must be a ProcessInfo")
+        if not isinstance(self.network_scope, ConnectionNetworkScope):
+            raise TypeError("network_scope must be a ConnectionNetworkScope")
         if (
             self.remote_endpoint is not None
             and self.local_endpoint.ip_version != self.remote_endpoint.ip_version
@@ -632,6 +687,9 @@ def _validate_observation_identity(session_id: UUID, lifecycle_id: UUID) -> None
 
 
 __all__ = (
+    "ConnectionNetworkScope",
+    "NetworkAttributionMethod",
+    "NetworkScopeStatus",
     "ConnectionClosed",
     "ConnectionClosureReason",
     "ConnectionHistoryRecord",
