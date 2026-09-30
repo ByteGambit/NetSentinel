@@ -12,6 +12,7 @@ from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from netsentinel.domain.connections import (
     ConnectionClosureReason,
     ConnectionHistoryRecord,
+    ProcessInfo,
 )
 from netsentinel.presentation.viewmodels import (
     MISSING_VALUE,
@@ -63,6 +64,7 @@ class HistoryRow:
     duration_display: str
     process_create_time_display: str
     close_reason_display: str
+    process_info: ProcessInfo
 
 
 def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
@@ -97,6 +99,7 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
             else MISSING_VALUE
         ),
         close_reason_display=format_close_reason(record.close_reason),
+        process_info=snapshot.process,
     )
 
 

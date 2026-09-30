@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import QModelIndex, Qt
-from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QScrollArea, QVBoxLayout, QWidget
 
+from netsentinel.domain.connections import ProcessInfo
 from netsentinel.presentation.models.connections import (
     ConnectionColumn,
     ConnectionRole,
+)
+from netsentinel.presentation.process_context import (
+    PROCESS_CONTEXT_FIELDS,
+    process_context_text,
 )
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 
@@ -15,6 +20,7 @@ from netsentinel.presentation.viewmodels import MISSING_VALUE
 _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
     ("process", "Process name"),
     ("pid", "PID"),
+    *PROCESS_CONTEXT_FIELDS,
     ("protocol", "Protocol"),
     ("state", "State"),
     ("local_address", "Local address"),
@@ -38,7 +44,8 @@ class ConnectionDetailsWidget(QGroupBox):
         self.status_label.setStyleSheet("color: #627d98;")
 
         self.value_labels: dict[str, QLabel] = {}
-        form = QFormLayout()
+        content = QWidget(self)
+        form = QFormLayout(content)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         form.setHorizontalSpacing(18)
         form.setVerticalSpacing(5)
@@ -48,7 +55,8 @@ class ConnectionDetailsWidget(QGroupBox):
             value.setTextInteractionFlags(
                 Qt.TextInteractionFlag.TextSelectableByMouse
             )
-            value.setWordWrap(key.endswith("address"))
+            value.setTextFormat(Qt.TextFormat.PlainText)
+            value.setWordWrap(key.endswith("address") or key == "executable")
             value.setAccessibleName(f"{title} value")
             self.value_labels[key] = value
             form.addRow(f"{title}:", value)
@@ -57,7 +65,11 @@ class ConnectionDetailsWidget(QGroupBox):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
         layout.addWidget(self.status_label)
-        layout.addLayout(form)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setWidget(content)
+        layout.addWidget(scroll)
         self.clear()
 
     def value_text(self, field: str) -> str:
@@ -109,6 +121,10 @@ class ConnectionDetailsWidget(QGroupBox):
         self.value_labels["duration"].setText(
             _safe_display(model.data(model.index(row, int(ConnectionColumn.DURATION))))
         )
+        process = model.data(first, int(ConnectionRole.PROCESS_INFO))
+        if isinstance(process, ProcessInfo):
+            for key, value in process_context_text(process).items():
+                self.value_labels[key].setText(value)
 
 
 def _safe_raw(value: object | None) -> str:

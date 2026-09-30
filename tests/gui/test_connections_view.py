@@ -401,8 +401,8 @@ def test_ipv4_ipv6_missing_remote_and_process_metadata_are_safe(
         if _proxy_raw(view, row, ConnectionRole.RAW_LOCAL_PORT) == 9000
     )
     _select(view, unavailable_row)
-    assert view.details.value_text("process") == MISSING_VALUE
-    assert view.details.value_text("pid") == MISSING_VALUE
+    assert view.details.value_text("process") == "Not available"
+    assert view.details.value_text("pid") == "Not available"
     assert view.details.value_text("remote_address") == MISSING_VALUE
     assert view.details.value_text("remote_port") == MISSING_VALUE
 

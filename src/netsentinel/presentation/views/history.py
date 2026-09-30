@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 from PyQt6.QtCore import QDateTime, QModelIndex, QTimer, Qt
 from PyQt6.QtWidgets import (
@@ -19,6 +20,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSizePolicy,
+    QScrollArea,
     QSplitter,
     QTableView,
     QVBoxLayout,
@@ -30,6 +32,10 @@ from netsentinel.application.services.history_query import ConnectionHistoryPage
 from netsentinel.domain.connections import TransportProtocol
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.models.history import HistoryRow, HistoryTableModel
+from netsentinel.presentation.process_context import (
+    PROCESS_CONTEXT_FIELDS,
+    process_context_text,
+)
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 
 
@@ -43,7 +49,7 @@ class HistoryDetailsWidget(QGroupBox):
     _FIELDS = (
         ("process", "Process name"),
         ("pid", "PID"),
-        ("process_create_time", "Process created"),
+        *PROCESS_CONTEXT_FIELDS,
         ("protocol", "Protocol"),
         ("state", "State"),
         ("local", "Local endpoint"),
@@ -62,17 +68,24 @@ class HistoryDetailsWidget(QGroupBox):
         self.status_label = QLabel(self)
         self.status_label.setAccessibleName("History details status")
         self.values: dict[str, QLabel] = {}
-        form = QFormLayout()
+        content = QWidget(self)
+        form = QFormLayout(content)
         for key, title in self._FIELDS:
             label = QLabel(MISSING_VALUE, self)
             label.setObjectName(f"historyDetail_{key}")
             label.setAccessibleName(f"{title} value")
+            label.setTextFormat(Qt.TextFormat.PlainText)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            label.setWordWrap(key == "executable")
             self.values[key] = label
             form.addRow(f"{title}:", label)
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
-        layout.addLayout(form)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
+        layout.addWidget(scroll)
         self.clear()
 
     def clear(self) -> None:
@@ -84,9 +97,7 @@ class HistoryDetailsWidget(QGroupBox):
     def set_row(self, row: HistoryRow) -> None:
         self.status_label.hide()
         values = {
-            "process": row.process_display,
-            "pid": row.pid_display,
-            "process_create_time": row.process_create_time_display,
+            **process_context_text(row.process_info),
             "protocol": row.protocol_display,
             "state": row.state_display,
             "local": row.local_display,
@@ -121,6 +132,7 @@ class HistoryView(QWidget):
         self._loading = False
         self._has_next = False
         self._initial_requested = False
+        self._restore_record_id: UUID | None = None
 
         title = QLabel("History", self)
         title.setObjectName("historyTitle")
@@ -332,6 +344,12 @@ class HistoryView(QWidget):
             self.validation_label.show()
             return
         self.validation_label.hide()
+        current = (
+            self.model.row_at(self.table.currentIndex().row())
+            if self.table.selectionModel().hasSelection()
+            else None
+        )
+        self._restore_record_id = current.record_id if current is not None else None
         self.details.clear()
         self.table.clearSelection()
         self._loading = True
@@ -386,6 +404,12 @@ class HistoryView(QWidget):
         self._has_next = page.has_next
         self.model.replace_records(page.records)
         self.details.clear()
+        if self._restore_record_id is not None:
+            for index, row in enumerate(self.model.rows):
+                if row.record_id == self._restore_record_id:
+                    self.table.selectRow(index)
+                    break
+        self._restore_record_id = None
         if page.records:
             self.state_label.hide()
         elif self._filters_active():
@@ -402,6 +426,7 @@ class HistoryView(QWidget):
         self._loading = False
         self._has_next = False
         self.model.clear()
+        self._restore_record_id = None
         self.details.clear()
         self.state_label.setText("Unable to load connection history.")
         self.state_label.show()

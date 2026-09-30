@@ -620,7 +620,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-055 — Process context detail UI
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Path, parent ve eksik alanların nedenini kullanıcıya göstermek.
 - **Yapılacaklar:** Connections/History detail read model ve worker query sınırını genişlet; plain-text rendering uygula.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/history_query.py, tests/gui/.

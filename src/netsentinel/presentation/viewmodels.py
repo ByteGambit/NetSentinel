@@ -15,6 +15,7 @@ from netsentinel.domain.connections import (
     ConnectionSnapshot,
     ConnectionState,
     Endpoint,
+    ProcessInfo,
 )
 
 
@@ -61,6 +62,7 @@ class ConnectionRow:
     duration_seconds: float
     first_seen: datetime
     observed_at: datetime
+    process_info: ProcessInfo
 
 
 def connection_row_id(key: ConnectionKey) -> ConnectionRowId:
@@ -122,6 +124,7 @@ def connection_row_from_snapshot(
         duration_seconds=duration_seconds,
         first_seen=started_at,
         observed_at=snapshot.observed_at,
+        process_info=snapshot.process,
     )
 
 
