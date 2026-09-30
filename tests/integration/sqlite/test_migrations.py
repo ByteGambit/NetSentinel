@@ -46,6 +46,10 @@ EXPECTED_HISTORY_COLUMNS = {
     "last_seen_utc_us",
     "closed_at_utc_us",
     "close_reason",
+    "executable_path", "process_name_status", "process_create_time_status",
+    "executable_path_status", "parent_status", "parent_observed_at_utc_us",
+    "parent_pid", "parent_create_time_utc_us", "parent_name",
+    "parent_pid_status", "parent_create_time_status", "parent_name_status",
 }
 
 
@@ -188,7 +192,7 @@ def test_migration_rerun_is_idempotent(database_path: Path) -> None:
     runner = MigrationRunner(builtin_migrations(), clock=lambda: APPLIED_AT)
     connection = _connect_raw(database_path)
     try:
-        assert runner.migrate(connection) == 9
+        assert runner.migrate(connection) == 10
         before = connection.execute(
             "SELECT version, name, applied_at_utc_us FROM schema_migrations"
         ).fetchall()
@@ -196,7 +200,7 @@ def test_migration_rerun_is_idempotent(database_path: Path) -> None:
             "SELECT type, name, sql FROM sqlite_master ORDER BY type, name"
         ).fetchall()
 
-        assert runner.migrate(connection) == 9
+        assert runner.migrate(connection) == 10
 
         after = connection.execute(
             "SELECT version, name, applied_at_utc_us FROM schema_migrations"
@@ -218,7 +222,7 @@ def test_reopened_database_reports_the_persisted_schema_version(
 
     reopened = _connect_raw(database_path)
     try:
-        assert default_migration_runner().current_version(reopened) == 9
+        assert default_migration_runner().current_version(reopened) == 10
     finally:
         reopened.close()
 
@@ -233,7 +237,7 @@ def test_existing_version_one_database_upgrades_to_retention_indexes(
     connection = _connect_raw(database_path)
     try:
         assert version_one_runner.migrate(connection) == 1
-        assert default_migration_runner().migrate(connection) == 9
+        assert default_migration_runner().migrate(connection) == 10
         indexes = {
             row[1]
             for row in connection.execute("PRAGMA index_list(connection_history)")
@@ -254,7 +258,7 @@ def test_existing_version_two_database_upgrades_to_device_tables(database_path: 
     connection = _connect_raw(database_path)
     try:
         assert old_runner.migrate(connection) == 2
-        assert default_migration_runner().migrate(connection) == 9
+        assert default_migration_runner().migrate(connection) == 10
         assert {row[0] for row in connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         )} >= {"devices", "device_bindings"}
@@ -262,38 +266,64 @@ def test_existing_version_two_database_upgrades_to_device_tables(database_path: 
         connection.close()
 
 
+def test_version_nine_history_upgrades_without_rewriting_legacy_rows(
+    database_path: Path,
+) -> None:
+    connection = _connect_raw(database_path)
+    try:
+        assert MigrationRunner(builtin_migrations()[:9]).migrate(connection) == 9
+        connection.execute(
+            """INSERT INTO connection_history (
+                id, protocol, local_address, local_port, pid,
+                process_create_time_utc_us, process_name, process_status,
+                connection_state, first_seen_utc_us, last_seen_utc_us
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("12345678-1234-1234-1234-123456789abc", "tcp", "127.0.0.1",
+             5000, 42, 1_000_000, "old.exe", "available", "listen", 2_000_000,
+             2_000_000),
+        )
+        assert default_migration_runner().migrate(connection) == 10
+        row = connection.execute(
+            "SELECT process_name, executable_path, parent_status FROM connection_history"
+        ).fetchone()
+        assert tuple(row) == ("old.exe", None, None)
+        assert default_migration_runner().migrate(connection) == 10
+    finally:
+        connection.close()
+
+
 def test_incremental_migrations_are_applied_in_deterministic_version_order(
     database_path: Path,
 ) -> None:
-    version_ten = Migration(
-        10,
+    version_eleven = Migration(
+        11,
         "ordered_probe",
         """
         CREATE TABLE migration_order_probe (position INTEGER NOT NULL);
-        INSERT INTO migration_order_probe (position) VALUES (10);
+        INSERT INTO migration_order_probe (position) VALUES (11);
         """,
     )
     initial_runner = MigrationRunner(builtin_migrations(), clock=lambda: APPLIED_AT)
     connection = _connect_raw(database_path)
     try:
-        assert initial_runner.migrate(connection) == 9
+        assert initial_runner.migrate(connection) == 10
         runner = MigrationRunner(
-            (version_ten, *builtin_migrations()),
+            (version_eleven, *builtin_migrations()),
             clock=lambda: APPLIED_AT,
         )
 
-        assert [item.version for item in runner.migrations] == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        assert runner.migrate(connection) == 10
-        assert runner.current_version(connection) == 10
+        assert [item.version for item in runner.migrations] == list(range(1, 12))
+        assert runner.migrate(connection) == 11
+        assert runner.current_version(connection) == 11
         assert connection.execute(
             "SELECT position FROM migration_order_probe"
-        ).fetchone()[0] == 10
+        ).fetchone()[0] == 11
         assert [
             row[0]
             for row in connection.execute(
                 "SELECT version FROM schema_migrations ORDER BY version"
             )
-        ] == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        ] == list(range(1, 12))
     finally:
         connection.close()
 
@@ -302,7 +332,7 @@ def test_failed_migration_rolls_back_ddl_and_does_not_advance_version(
     database_path: Path,
 ) -> None:
     failing = Migration(
-        10,
+        11,
         "deliberate_failure",
         """
         CREATE TABLE must_be_rolled_back (id INTEGER PRIMARY KEY);
@@ -316,9 +346,9 @@ def test_failed_migration_rolls_back_ddl_and_does_not_advance_version(
         with pytest.raises(DatabaseMigrationError) as captured:
             _extended_runner(failing).migrate(connection)
 
-        assert captured.value.version == 10
+        assert captured.value.version == 11
         assert "malformed_migration_statement" not in str(captured.value)
-        assert default_migration_runner().current_version(connection) == 9
+        assert default_migration_runner().current_version(connection) == 10
         assert connection.execute(
             "SELECT 1 FROM sqlite_master WHERE name = 'must_be_rolled_back'"
         ).fetchone() is None
@@ -335,7 +365,7 @@ def test_future_schema_is_rejected_without_mutation_and_connection_is_closed(
     connection.execute(
         """
         INSERT INTO schema_migrations (version, name, applied_at_utc_us)
-        VALUES (10, 'future_schema', 1)
+        VALUES (11, 'future_schema', 1)
         """
     )
     before = connection.execute(
@@ -354,8 +384,8 @@ def test_future_schema_is_rejected_without_mutation_and_connection_is_closed(
     with pytest.raises(DatabaseSchemaTooNew) as captured:
         SQLiteDatabase(database_path, migration_runner=runner).connect()
 
-    assert captured.value.found_version == 10
-    assert captured.value.supported_version == 9
+    assert captured.value.found_version == 11
+    assert captured.value.supported_version == 10
     assert runner.captured_connection is not None
     with pytest.raises(sqlite3.ProgrammingError):
         runner.captured_connection.execute("SELECT 1")
@@ -367,7 +397,7 @@ def test_future_schema_is_rejected_without_mutation_and_connection_is_closed(
         ).fetchall() == before
         assert verification.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 10
+        ).fetchone()[0] == 11
     finally:
         verification.close()
 

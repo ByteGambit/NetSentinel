@@ -18,6 +18,8 @@ from netsentinel.domain.connections import (
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
+    ParentProcessInfo,
+    ParentProcessStatus,
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
@@ -53,6 +55,11 @@ def _events() -> tuple[ConnectionOpened, ConnectionUpdated, ConnectionClosed]:
         status=ProcessInfoStatus.AVAILABLE,
         identity=ProcessIdentity(5150, FIRST - timedelta(hours=1)),
         name="browser.exe",
+        executable_path=r"C:\Apps\browser.exe",
+        parent=ParentProcessInfo(
+            status=ParentProcessStatus.ABSENT,
+            observed_at=FIRST,
+        ),
     )
     opened_snapshot = ConnectionSnapshot(
         protocol=TransportProtocol.TCP,
@@ -140,6 +147,9 @@ def test_writer_drains_open_update_close_to_real_temporary_sqlite(
     assert records[0].last_seen == FIRST + timedelta(seconds=1)
     assert records[0].closed_at == FIRST + timedelta(seconds=2)
     assert records[0].snapshot.state is ConnectionState.CLOSE_WAIT
+    assert records[0].snapshot.process.executable_path == r"C:\Apps\browser.exe"
+    assert records[0].snapshot.process.parent is not None
+    assert records[0].snapshot.process.parent.status is ParentProcessStatus.ABSENT
     assert writer.health.counters.accepted_events == 3
     assert writer.health.counters.persisted_events == 3
     assert writer.health.queue_depth == 0

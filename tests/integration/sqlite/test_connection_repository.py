@@ -26,6 +26,8 @@ from netsentinel.domain.connections import (
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
+    ParentProcessInfo,
+    ParentProcessStatus,
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
@@ -119,7 +121,7 @@ def test_repository_uses_fresh_migrated_temporary_database(
     with database.connection() as connection:
         assert connection.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 9
+        ).fetchone()[0] == 10
 
 
 def test_open_insert_and_lookup_round_trip_ipv4_process_and_timestamps(
@@ -181,6 +183,185 @@ def test_known_pid_with_unknown_create_time_and_name_none_round_trip(
 
     assert record.snapshot.process.identity == ProcessIdentity(4100, None)
     assert record.snapshot.process.name is None
+
+
+def test_process_and_parent_metadata_round_trip_and_lifecycle_snapshot(
+    repository: SQLiteConnectionHistoryRepository,
+) -> None:
+    parent = ParentProcessInfo(
+        status=ParentProcessStatus.OBSERVED,
+        observed_at=FIRST,
+        parent_pid=100,
+        identity=ProcessIdentity(100, CREATE_TIME - timedelta(hours=1)),
+        name="shell.exe",
+        pid_status=ProcessInfoStatus.AVAILABLE,
+        create_time_status=ProcessInfoStatus.AVAILABLE,
+        name_status=ProcessInfoStatus.AVAILABLE,
+    )
+    process = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=ProcessIdentity(4100, CREATE_TIME),
+        name="browser.exe",
+        executable_path=r"C:\Users\someone\browser.exe",
+        name_status=ProcessInfoStatus.AVAILABLE,
+        create_time_status=ProcessInfoStatus.AVAILABLE,
+        executable_path_status=ProcessInfoStatus.AVAILABLE,
+        parent=parent,
+    )
+    opened = _open(repository, process=process)
+    assert repository.get(opened.record_id).snapshot.process == process  # type: ignore[union-attr]
+    assert opened.snapshot.process.parent == parent
+    assert opened.key == _snapshot(process=_process()).key
+
+    changed = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=process.identity,
+        name=process.name,
+        executable_path_status=ProcessInfoStatus.ACCESS_DENIED,
+        parent=ParentProcessInfo(
+            status=ParentProcessStatus.ABSENT,
+            observed_at=SECOND,
+        ),
+    )
+    current = _snapshot(observed_at=SECOND, process=changed)
+    updated = repository.record_updated(ConnectionUpdated(_snapshot(process=process), current))
+    assert updated.snapshot.process == changed
+    assert updated.key == opened.key
+    closed = repository.record_closed(ConnectionClosed(current, CLOSED))
+    assert closed.snapshot.process == changed
+    assert repository.get(closed.record_id) == closed
+
+
+@pytest.mark.parametrize(
+    "status", (ParentProcessStatus.NOT_FOUND, ParentProcessStatus.ACCESS_DENIED,
+               ParentProcessStatus.REUSED, ParentProcessStatus.UNAVAILABLE),
+)
+def test_parent_failure_and_partial_field_availability_survive_restart(
+    repository: SQLiteConnectionHistoryRepository,
+    status: ParentProcessStatus,
+) -> None:
+    parent = ParentProcessInfo(
+        status=status, observed_at=FIRST, parent_pid=100,
+        pid_status=ProcessInfoStatus.AVAILABLE,
+        create_time_status=ProcessInfoStatus.NOT_FOUND,
+        name_status=ProcessInfoStatus.ACCESS_DENIED,
+    )
+    process = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=ProcessIdentity(4100, CREATE_TIME), name="browser.exe",
+        executable_path_status=ProcessInfoStatus.ACCESS_DENIED,
+        parent=parent,
+    )
+    record = _open(repository, process=process)
+    loaded = repository.get(record.record_id)
+    assert loaded is not None
+    assert loaded.snapshot.process == process
+    assert loaded.snapshot.process.parent is not None
+    assert loaded.snapshot.process.parent.status is status
+
+
+def test_observed_parent_with_unavailable_name_keeps_verified_identity(
+    repository: SQLiteConnectionHistoryRepository,
+) -> None:
+    parent = ParentProcessInfo(
+        status=ParentProcessStatus.OBSERVED,
+        observed_at=FIRST,
+        parent_pid=100,
+        identity=ProcessIdentity(100, CREATE_TIME - timedelta(hours=1)),
+        pid_status=ProcessInfoStatus.AVAILABLE,
+        create_time_status=ProcessInfoStatus.AVAILABLE,
+        name_status=ProcessInfoStatus.ACCESS_DENIED,
+    )
+    process = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=ProcessIdentity(4100, CREATE_TIME), name="browser.exe",
+        parent=parent,
+    )
+    record = _open(repository, process=process)
+    loaded = repository.get(record.record_id)
+    assert loaded is not None
+    assert loaded.snapshot.process.parent == parent
+    assert loaded.snapshot.process.parent.name is None
+
+
+def test_legacy_null_metadata_is_unknown_without_fabrication(
+    database: SQLiteDatabase, repository: SQLiteConnectionHistoryRepository,
+) -> None:
+    with database.connection() as connection:
+        connection.execute(
+            """INSERT INTO connection_history (
+                id, protocol, local_address, local_port, pid,
+                process_create_time_utc_us, process_name, process_status,
+                connection_state, first_seen_utc_us, last_seen_utc_us
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("12345678-1234-1234-1234-123456789abc", "tcp", "127.0.0.1",
+             5000, 42, 1_000_000, "old.exe", "available", "listen", 2_000_000,
+             2_000_000),
+        )
+    record = repository.get(UUID("12345678-1234-1234-1234-123456789abc"))
+    assert record is not None
+    assert record.snapshot.process.identity == ProcessIdentity(
+        42, epoch_microseconds_to_datetime(1_000_000)
+    )
+    assert record.snapshot.process.name == "old.exe"
+    assert record.snapshot.process.executable_path is None
+    assert record.snapshot.process.executable_path_status is ProcessInfoStatus.UNAVAILABLE
+    assert record.snapshot.process.parent is None
+
+
+def test_invalid_persisted_metadata_is_sanitized_and_path_is_bounded(
+    database: SQLiteDatabase, repository: SQLiteConnectionHistoryRepository,
+) -> None:
+    record = _open(repository)
+    with database.connection() as connection:
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "UPDATE connection_history SET parent_status = ? WHERE id = ?",
+                ("broken", str(record.record_id)),
+            )
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "UPDATE connection_history SET executable_path = ? WHERE id = ?",
+                ("x" * 4097, str(record.record_id)),
+            )
+        connection.execute(
+            "UPDATE connection_history SET executable_path = ? WHERE id = ?",
+            ("bad\npath", str(record.record_id)),
+        )
+    with pytest.raises(HistoryDataCorrupt) as captured:
+        repository.get(record.record_id)
+    assert "bad\npath" not in str(captured.value)
+
+    with database.connection() as connection:
+        connection.execute("PRAGMA ignore_check_constraints = ON")
+        connection.execute(
+            "UPDATE connection_history SET executable_path = NULL, parent_status = ? WHERE id = ?",
+            ("broken", str(record.record_id)),
+        )
+    with pytest.raises(HistoryDataCorrupt):
+        repository.get(record.record_id)
+
+
+def test_closed_history_is_not_enriched_by_newer_process_metadata(
+    repository: SQLiteConnectionHistoryRepository,
+) -> None:
+    old_snapshot = _snapshot(process=_process())
+    old_record = repository.record_opened(ConnectionOpened(old_snapshot))
+    repository.record_closed(ConnectionClosed(old_snapshot, SECOND))
+    current = _snapshot(
+        observed_at=CLOSED,
+        process=ProcessInfo(
+            status=ProcessInfoStatus.AVAILABLE,
+            identity=old_snapshot.process.identity,
+            name="browser.exe",
+            executable_path=r"C:\new\browser.exe",
+        ),
+    )
+    new_record = repository.record_opened(ConnectionOpened(current))
+    assert new_record.record_id != old_record.record_id
+    previous = repository.get(old_record.record_id)
+    assert previous is not None
+    assert previous.snapshot.process.executable_path is None
 
 
 @pytest.mark.parametrize("status", tuple(ProcessInfoStatus))

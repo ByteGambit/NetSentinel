@@ -41,6 +41,8 @@ from netsentinel.domain.connections import (
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
+    ParentProcessInfo,
+    ParentProcessStatus,
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
@@ -58,8 +60,19 @@ _HISTORY_COLUMNS = """
     id, protocol, local_address, local_port, remote_address, remote_port,
     pid, process_create_time_utc_us, process_name, process_status,
     connection_state, first_seen_utc_us, last_seen_utc_us,
-    closed_at_utc_us, close_reason
+    closed_at_utc_us, close_reason,
+    executable_path, process_name_status, process_create_time_status,
+    executable_path_status, parent_status, parent_observed_at_utc_us,
+    parent_pid, parent_create_time_utc_us, parent_name, parent_pid_status,
+    parent_create_time_status, parent_name_status
 """
+_METADATA_COLUMNS = (
+    "executable_path", "process_name_status", "process_create_time_status",
+    "executable_path_status", "parent_status", "parent_observed_at_utc_us",
+    "parent_pid", "parent_create_time_utc_us", "parent_name",
+    "parent_pid_status", "parent_create_time_status", "parent_name_status",
+)
+_METADATA_ASSIGNMENTS = ", ".join(f"{column} = ?" for column in _METADATA_COLUMNS)
 
 
 def datetime_to_epoch_microseconds(value: datetime) -> int:
@@ -329,17 +342,18 @@ class SQLiteConnectionHistoryRepository:
         snapshot: ConnectionSnapshot,
     ) -> None:
         values = _snapshot_values(snapshot)
+        metadata = _metadata_values(snapshot.process)
         observed_at = datetime_to_epoch_microseconds(snapshot.observed_at)
         connection.execute(
-            """
+            f"""
             INSERT INTO connection_history (
                 id, protocol, local_address, local_port, remote_address,
                 remote_port, pid, process_create_time_utc_us, process_name,
                 process_status, connection_state, first_seen_utc_us,
-                last_seen_utc_us, closed_at_utc_us, close_reason
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                last_seen_utc_us, {', '.join(_METADATA_COLUMNS)}
+            ) VALUES ({', '.join('?' for _ in range(13 + len(_METADATA_COLUMNS)))})
             """,
-            (str(record_id), *values, observed_at, observed_at),
+            (str(record_id), *values, observed_at, observed_at, *metadata),
         )
 
     @staticmethod
@@ -349,16 +363,18 @@ class SQLiteConnectionHistoryRepository:
         snapshot: ConnectionSnapshot,
     ) -> None:
         values = _snapshot_values(snapshot)
+        metadata = _metadata_values(snapshot.process)
         connection.execute(
-            """
+            f"""
             UPDATE connection_history
             SET protocol = ?, local_address = ?, local_port = ?,
                 remote_address = ?, remote_port = ?, pid = ?,
                 process_create_time_utc_us = ?, process_name = ?,
-                process_status = ?, connection_state = ?, last_seen_utc_us = ?
+                process_status = ?, connection_state = ?, last_seen_utc_us = ?,
+                {_METADATA_ASSIGNMENTS}
             WHERE id = ? AND closed_at_utc_us IS NULL
             """,
-            (*values, datetime_to_epoch_microseconds(snapshot.observed_at), str(record_id)),
+            (*values, datetime_to_epoch_microseconds(snapshot.observed_at), *metadata, str(record_id)),
         )
 
     @staticmethod
@@ -368,14 +384,16 @@ class SQLiteConnectionHistoryRepository:
         event: ConnectionClosed,
     ) -> None:
         values = _snapshot_values(event.last_snapshot)
+        metadata = _metadata_values(event.last_snapshot.process)
         connection.execute(
-            """
+            f"""
             UPDATE connection_history
             SET protocol = ?, local_address = ?, local_port = ?,
                 remote_address = ?, remote_port = ?, pid = ?,
                 process_create_time_utc_us = ?, process_name = ?,
                 process_status = ?, connection_state = ?, last_seen_utc_us = ?,
-                closed_at_utc_us = ?, close_reason = ?
+                closed_at_utc_us = ?, close_reason = ?,
+                {_METADATA_ASSIGNMENTS}
             WHERE id = ? AND closed_at_utc_us IS NULL
             """,
             (
@@ -383,6 +401,7 @@ class SQLiteConnectionHistoryRepository:
                 datetime_to_epoch_microseconds(event.last_snapshot.observed_at),
                 datetime_to_epoch_microseconds(event.occurred_at),
                 event.reason.value,
+                *metadata,
                 str(record_id),
             ),
         )
@@ -661,6 +680,26 @@ def _snapshot_values(snapshot: ConnectionSnapshot) -> tuple[object, ...]:
     )
 
 
+def _metadata_values(process: ProcessInfo) -> tuple[object, ...]:
+    parent = process.parent
+    return (
+        process.executable_path,
+        process.name_status.value if process.name_status is not None else None,
+        process.create_time_status.value if process.create_time_status is not None else None,
+        process.executable_path_status.value if process.executable_path_status is not None else None,
+        parent.status.value if parent is not None else None,
+        datetime_to_epoch_microseconds(parent.observed_at) if parent is not None else None,
+        parent.parent_pid if parent is not None else None,
+        datetime_to_epoch_microseconds(parent.identity.create_time)
+        if parent is not None and parent.identity is not None and parent.identity.create_time is not None
+        else None,
+        parent.name if parent is not None else None,
+        parent.pid_status.value if parent is not None else None,
+        parent.create_time_status.value if parent is not None else None,
+        parent.name_status.value if parent is not None else None,
+    )
+
+
 def _key_values(key: ConnectionKey) -> tuple[object, ...]:
     remote = key.remote_endpoint
     identity = key.process_identity
@@ -700,10 +739,42 @@ def _row_to_record(row: sqlite3.Row) -> ConnectionHistoryRecord:
             if pid is not None
             else None
         )
+        parent_status_value = row["parent_status"]
+        parent_fields = (
+            "parent_observed_at_utc_us", "parent_pid", "parent_create_time_utc_us",
+            "parent_name", "parent_pid_status", "parent_create_time_status",
+            "parent_name_status",
+        )
+        if parent_status_value is None and any(row[field] is not None for field in parent_fields):
+            raise ValueError("parent metadata has no status")
+        parent = None
+        if parent_status_value is not None:
+            parent_pid = row["parent_pid"]
+            parent_create_time = row["parent_create_time_utc_us"]
+            parent = ParentProcessInfo(
+                status=ParentProcessStatus(parent_status_value),
+                observed_at=epoch_microseconds_to_datetime(row["parent_observed_at_utc_us"]),
+                parent_pid=parent_pid,
+                identity=ProcessIdentity(
+                    parent_pid, epoch_microseconds_to_datetime(parent_create_time)
+                ) if parent_create_time is not None else None,
+                name=row["parent_name"],
+                pid_status=ProcessInfoStatus(row["parent_pid_status"]),
+                create_time_status=ProcessInfoStatus(row["parent_create_time_status"]),
+                name_status=ProcessInfoStatus(row["parent_name_status"]),
+            )
         process = ProcessInfo(
             status=ProcessInfoStatus(row["process_status"]),
             identity=identity,
             name=row["process_name"],
+            executable_path=row["executable_path"],
+            name_status=ProcessInfoStatus(row["process_name_status"])
+            if row["process_name_status"] is not None else None,
+            create_time_status=ProcessInfoStatus(row["process_create_time_status"])
+            if row["process_create_time_status"] is not None else None,
+            executable_path_status=ProcessInfoStatus(row["executable_path_status"])
+            if row["executable_path_status"] is not None else None,
+            parent=parent,
         )
         remote_address = row["remote_address"]
         remote_endpoint = (

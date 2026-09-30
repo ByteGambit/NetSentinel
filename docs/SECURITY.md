@@ -259,7 +259,7 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Veriler varsayılan olarak yalnızca yerel makinede tutulur.
 - Telemetry veya bulut aktarımı varsayılan değildir; ilk kapsamda yoktur.
 - Ham paket payload'ı ve DNS cevap payload'ının gereksiz bölümleri saklanmaz.
-- Process command line toplanmaz; NS-052 executable path'i yalnız yerel, best-effort process metadata olarak okur. Path log/diagnostics'e veya dış servise gönderilmez ve bu taskta kalıcılaştırılmaz.
+- Process command line toplanmaz; NS-052 executable path'i yalnız yerel, best-effort process metadata olarak okur. NS-054 path'i en çok 4096 karakterlik connection history snapshot'ında yerel olarak saklar; path log/diagnostics'e veya dış servise gönderilmez. Yerel DB şifreli varsayılmaz.
 - Network context yalnızca interface kimliği/görünen adı ve türü, IPv4 adres/subnet,
   isteğe bağlı gateway/DNS adresleri, UTC gözlem zamanı ve türetilmiş fingerprint
   taşır. MAC, packet payload, hostname veya kullanıcı verisi NS-019'da toplanmaz

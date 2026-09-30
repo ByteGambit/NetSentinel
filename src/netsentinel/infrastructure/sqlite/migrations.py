@@ -150,6 +150,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="vlan_verification",
             sql=_read_resource("009_vlan_verification.sql", 9, "vlan_verification"),
         ),
+        Migration(
+            version=10,
+            name="process_metadata",
+            sql=_read_resource("010_process_metadata.sql", 10, "process_metadata"),
+        ),
     )
 
 

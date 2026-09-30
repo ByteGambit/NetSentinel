@@ -609,7 +609,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-054 — Process metadata persistence
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-09-30).
 - **Amaç:** Process context'ini geçmiş kayıtlarında güvenle korumak.
 - **Yapılacaklar:** Connection history mapping'ini veya küçük metadata snapshot'ını additive migration ile genişlet; eski kayıtları okunur bırak.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/application/services/history.py, tests/integration/sqlite/.
