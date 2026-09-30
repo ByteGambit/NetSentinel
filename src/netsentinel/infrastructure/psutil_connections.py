@@ -10,6 +10,7 @@ from typing import Any
 import psutil
 
 from netsentinel.application.ports import (
+    ConnectionCollectionRound,
     ConnectionCollectionPermissionDenied,
     ConnectionCollectionTransientError,
 )
@@ -21,6 +22,7 @@ from netsentinel.domain.connections import (
     ProcessInfo,
     ProcessInfoStatus,
     TransportProtocol,
+    ObservationQuality,
 )
 
 
@@ -67,6 +69,10 @@ class PsutilConnectionCollector:
         cannot discard the rest of the snapshot.
         """
 
+        return self.collect_round().snapshots
+
+    def collect_round(self) -> ConnectionCollectionRound:
+        """Report skipped malformed rows as reduced measurement quality."""
         try:
             records = tuple(self._connections_provider(kind="inet"))
         except (psutil.AccessDenied, PermissionError) as error:
@@ -84,13 +90,19 @@ class PsutilConnectionCollector:
 
         observed_at = _utc_time(self._clock())
         snapshots: list[ConnectionSnapshot] = []
+        discarded = 0
         for record in records:
             try:
                 snapshots.append(_normalize_record(record, observed_at))
             except (AttributeError, IndexError, TypeError, ValueError, psutil.Error):
+                discarded += 1
                 continue
 
-        return tuple(sorted(snapshots, key=_snapshot_sort_key))
+        return ConnectionCollectionRound(
+            snapshots=tuple(sorted(snapshots, key=_snapshot_sort_key)),
+            quality=ObservationQuality.REDUCED if discarded else ObservationQuality.COMPLETE,
+            discarded_rows=discarded,
+        )
 
 
 def _normalize_record(record: Any, observed_at: datetime) -> ConnectionSnapshot:

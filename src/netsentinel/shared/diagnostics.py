@@ -65,6 +65,8 @@ class DiagnosticCode(str, Enum):
     COLLECTOR_PERMISSION_DENIED = "collector_permission_denied"
     COLLECTOR_TRANSIENT_ERROR = "collector_transient_error"
     COLLECTOR_UNEXPECTED_ERROR = "collector_unexpected_error"
+    CONNECTION_CAPACITY_LOSS = "connection_capacity_loss"
+    CONNECTION_REDUCED_ROUND = "connection_reduced_round"
     PROCESS_ENRICHMENT_ERROR = "process_enrichment_error"
     PROCESS_METADATA_DEGRADED = "process_metadata_degraded"
     TRACKER_ERROR = "tracker_error"
@@ -165,6 +167,9 @@ class EngineCounters:
     subscriber_failures: int = 0
     process_metadata_unavailable: int = 0
     polling_overruns: int = 0
+    reduced_rounds: int = 0
+    discarded_observations: int = 0
+    collection_gaps: int = 0
 
 
 @dataclass(frozen=True, slots=True)

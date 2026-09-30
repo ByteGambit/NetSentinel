@@ -16,6 +16,7 @@ from netsentinel.domain.connections import (
     ConnectionOpened,
     ConnectionSnapshot,
     ConnectionUpdated,
+    ObservationQuality,
     ProcessInfo,
     TransportProtocol,
 )
@@ -177,6 +178,23 @@ class ConnectionCollector(Protocol):
 
     def collect(self) -> tuple[ConnectionSnapshot, ...]:
         """Return the connections visible in one collection pass."""
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionCollectionRound:
+    """Portable collector outcome; reduced rows cannot prove absence."""
+
+    snapshots: tuple[ConnectionSnapshot, ...]
+    quality: ObservationQuality = ObservationQuality.COMPLETE
+    discarded_rows: int = 0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.snapshots, tuple) or not all(isinstance(row, ConnectionSnapshot) for row in self.snapshots):
+            raise TypeError("snapshots must be a tuple of ConnectionSnapshot")
+        if not isinstance(self.quality, ObservationQuality) or self.quality is ObservationQuality.FAILED:
+            raise ValueError("collected rounds must be complete or reduced")
+        if isinstance(self.discarded_rows, bool) or not isinstance(self.discarded_rows, int) or self.discarded_rows < 0:
+            raise ValueError("discarded_rows must be non-negative")
 
 
 class ProcessMetadataResolver(Protocol):

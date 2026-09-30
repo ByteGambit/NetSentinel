@@ -20,6 +20,7 @@ from netsentinel.domain.connections import (
     ProcessIdentity,
     ProcessInfoStatus,
     TransportProtocol,
+    ObservationQuality,
 )
 from netsentinel.infrastructure.psutil_connections import PsutilConnectionCollector
 
@@ -60,6 +61,13 @@ def test_collector_satisfies_application_port() -> None:
     collector: ConnectionCollector = collector_for()
 
     assert collector.collect() == ()
+
+
+def test_malformed_row_makes_round_reduced_without_exposing_it() -> None:
+    result = collector_for(connection(), object()).collect_round()
+    assert len(result.snapshots) == 1
+    assert result.quality is ObservationQuality.REDUCED
+    assert result.discarded_rows == 1
 
 
 def test_collects_ipv4_tcp_established_connection_with_minimal_pid_identity() -> None:

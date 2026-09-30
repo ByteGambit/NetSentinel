@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from ipaddress import ip_address
 from typing import TypeAlias
-from uuid import UUID
+from uuid import UUID, uuid4
 
 
 class TransportProtocol(str, Enum):
@@ -68,6 +68,21 @@ class ConnectionClosureReason(str, Enum):
     """Domain-level reason for considering a connection closed."""
 
     NOT_OBSERVED = "not_observed"
+
+
+class ObservationOrigin(str, Enum):
+    """Whether a key was already visible at the first complete observation."""
+
+    INITIAL = "initial"
+    OBSERVED = "observed"
+
+
+class ObservationQuality(str, Enum):
+    """Completeness of one connection collection round."""
+
+    COMPLETE = "complete"
+    REDUCED = "reduced"
+    FAILED = "failed"
 
 
 def _require_utc(value: datetime, field_name: str) -> datetime:
@@ -396,10 +411,16 @@ class ConnectionOpened:
     """Signals that a connection key appeared in a snapshot."""
 
     snapshot: ConnectionSnapshot
+    origin: ObservationOrigin = field(default=ObservationOrigin.OBSERVED, compare=False)
+    session_id: UUID = field(default_factory=uuid4, compare=False)
+    lifecycle_id: UUID = field(default_factory=uuid4, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.snapshot, ConnectionSnapshot):
             raise TypeError("snapshot must be a ConnectionSnapshot")
+        _validate_observation_identity(self.session_id, self.lifecycle_id)
+        if not isinstance(self.origin, ObservationOrigin):
+            raise TypeError("origin must be an ObservationOrigin")
 
     @property
     def key(self) -> ConnectionKey:
@@ -416,12 +437,15 @@ class ConnectionUpdated:
 
     previous: ConnectionSnapshot
     current: ConnectionSnapshot
+    session_id: UUID = field(default_factory=uuid4, compare=False)
+    lifecycle_id: UUID = field(default_factory=uuid4, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.previous, ConnectionSnapshot):
             raise TypeError("previous must be a ConnectionSnapshot")
         if not isinstance(self.current, ConnectionSnapshot):
             raise TypeError("current must be a ConnectionSnapshot")
+        _validate_observation_identity(self.session_id, self.lifecycle_id)
         if self.previous.key != self.current.key:
             raise ValueError("updated snapshots must have the same connection key")
         if self.current.observed_at < self.previous.observed_at:
@@ -448,12 +472,15 @@ class ConnectionClosed:
     last_snapshot: ConnectionSnapshot
     occurred_at: datetime
     reason: ConnectionClosureReason = ConnectionClosureReason.NOT_OBSERVED
+    session_id: UUID = field(default_factory=uuid4, compare=False)
+    lifecycle_id: UUID = field(default_factory=uuid4, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.last_snapshot, ConnectionSnapshot):
             raise TypeError("last_snapshot must be a ConnectionSnapshot")
         if not isinstance(self.reason, ConnectionClosureReason):
             raise TypeError("reason must be a ConnectionClosureReason")
+        _validate_observation_identity(self.session_id, self.lifecycle_id)
         object.__setattr__(
             self,
             "occurred_at",
@@ -474,6 +501,9 @@ class TrackedConnection:
     first_seen: datetime
     last_seen: datetime
     snapshot: ConnectionSnapshot
+    session_id: UUID = field(default_factory=uuid4, compare=False)
+    lifecycle_id: UUID = field(default_factory=uuid4, compare=False)
+    origin: ObservationOrigin = field(default=ObservationOrigin.OBSERVED, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -488,6 +518,9 @@ class TrackedConnection:
         )
         if not isinstance(self.snapshot, ConnectionSnapshot):
             raise TypeError("snapshot must be a ConnectionSnapshot")
+        _validate_observation_identity(self.session_id, self.lifecycle_id)
+        if not isinstance(self.origin, ObservationOrigin):
+            raise TypeError("origin must be an ObservationOrigin")
         if self.last_seen < self.first_seen:
             raise ValueError("last_seen cannot precede first_seen")
         if self.snapshot.observed_at != self.last_seen:
@@ -571,6 +604,33 @@ ConnectionLifecycleEvent: TypeAlias = (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class ConnectionRoundObservation:
+    """Bounded, metadata-free quality report for one collection round."""
+
+    session_id: UUID
+    observed_at: datetime
+    quality: ObservationQuality
+    discarded_observations: int = 0
+    capacity_drops: int = 0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.session_id, UUID):
+            raise TypeError("session_id must be a UUID")
+        object.__setattr__(self, "observed_at", _require_utc(self.observed_at, "observed_at"))
+        if not isinstance(self.quality, ObservationQuality):
+            raise TypeError("quality must be an ObservationQuality")
+        if isinstance(self.discarded_observations, bool) or not isinstance(self.discarded_observations, int) or self.discarded_observations < 0:
+            raise ValueError("discarded_observations must be a non-negative integer")
+        if isinstance(self.capacity_drops, bool) or not isinstance(self.capacity_drops, int) or not 0 <= self.capacity_drops <= self.discarded_observations:
+            raise ValueError("capacity_drops must be between zero and discarded_observations")
+
+
+def _validate_observation_identity(session_id: UUID, lifecycle_id: UUID) -> None:
+    if not isinstance(session_id, UUID) or not isinstance(lifecycle_id, UUID):
+        raise TypeError("session_id and lifecycle_id must be UUID values")
+
+
 __all__ = (
     "ConnectionClosed",
     "ConnectionClosureReason",
@@ -578,9 +638,12 @@ __all__ = (
     "ConnectionKey",
     "ConnectionLifecycleEvent",
     "ConnectionOpened",
+    "ConnectionRoundObservation",
     "ConnectionSnapshot",
     "ConnectionState",
     "ConnectionUpdated",
+    "ObservationOrigin",
+    "ObservationQuality",
     "Endpoint",
     "MAX_PARENT_NAME_LENGTH",
     "ParentProcessInfo",

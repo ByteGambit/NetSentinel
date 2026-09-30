@@ -9,16 +9,20 @@ from math import isfinite
 from threading import Event, RLock, Thread, current_thread
 from time import monotonic
 from typing import Protocol
+from uuid import UUID, uuid4
 
 from netsentinel.application.events import EventDispatcher, PublishReport
 from netsentinel.application.ports import (
     ConnectionCollectionPermissionDenied,
     ConnectionCollectionTransientError,
     ConnectionCollector,
+    ConnectionCollectionRound,
 )
 from netsentinel.domain.connections import (
     ConnectionLifecycleEvent,
     ConnectionSnapshot,
+    ConnectionRoundObservation,
+    ObservationQuality,
     ProcessInfoStatus,
 )
 from netsentinel.shared.diagnostics import (
@@ -113,6 +117,8 @@ class MonitoringEngine:
         self._collector = collector
         self._enricher = enricher
         self._tracker = tracker
+        self._session_id = getattr(tracker, "session_id", uuid4())
+        self._started_once = False
         self._dispatcher = dispatcher if dispatcher is not None else EventDispatcher()
         self._polling_interval = float(polling_interval)
         self._shutdown_timeout = float(shutdown_timeout)
@@ -134,6 +140,10 @@ class MonitoringEngine:
     @property
     def dispatcher(self) -> EventDispatcher:
         return self._dispatcher
+
+    @property
+    def session_id(self) -> UUID:
+        return self._session_id
 
     @property
     def health(self) -> EngineHealthSnapshot:
@@ -165,6 +175,15 @@ class MonitoringEngine:
             persistence = self._persistence
             if persistence is not None and not persistence.start():
                 return False
+
+            if self._started_once:
+                reset = getattr(self._tracker, "reset_session", None)
+                if callable(reset):
+                    reset()
+                    self._session_id = getattr(self._tracker, "session_id", uuid4())
+                else:
+                    self._session_id = uuid4()
+            self._started_once = True
 
             self._cancel = Event()
             worker = Thread(
@@ -304,9 +323,13 @@ class MonitoringEngine:
 
     def _poll_once(self) -> None:
         try:
-            snapshots = self._collector.collect()
+            collect_round = getattr(self._collector, "collect_round", None)
+            collected = collect_round() if callable(collect_round) else self._collector.collect()
+            round_result = collected if isinstance(collected, ConnectionCollectionRound) else ConnectionCollectionRound(tuple(collected))
+            snapshots = round_result.snapshots
         except ConnectionCollectionPermissionDenied:
             self._set_connection_capability(CapabilityStatus.UNAVAILABLE)
+            self._publish_failed_observation()
             self._mark_round_failed(
                 DiagnosticCode.COLLECTOR_PERMISSION_DENIED,
                 DiagnosticComponent.COLLECTOR,
@@ -315,6 +338,7 @@ class MonitoringEngine:
             return
         except ConnectionCollectionTransientError:
             self._set_connection_capability(CapabilityStatus.DEGRADED)
+            self._publish_failed_observation()
             self._mark_round_failed(
                 DiagnosticCode.COLLECTOR_TRANSIENT_ERROR,
                 DiagnosticComponent.COLLECTOR,
@@ -323,6 +347,7 @@ class MonitoringEngine:
             return
         except Exception:
             self._set_connection_capability(CapabilityStatus.DEGRADED)
+            self._publish_failed_observation()
             self._mark_round_failed(
                 DiagnosticCode.COLLECTOR_UNEXPECTED_ERROR,
                 DiagnosticComponent.COLLECTOR,
@@ -336,6 +361,7 @@ class MonitoringEngine:
             enriched = self._enricher.enrich(snapshots)
         except Exception:
             self._set_process_capability(CapabilityStatus.DEGRADED)
+            self._publish_failed_observation()
             self._mark_round_failed(
                 DiagnosticCode.PROCESS_ENRICHMENT_ERROR,
                 DiagnosticComponent.PROCESS_ENRICHER,
@@ -354,15 +380,24 @@ class MonitoringEngine:
             return
 
         try:
-            events = self._tracker.track(enriched)
+            if round_result.quality is ObservationQuality.COMPLETE:
+                events = self._tracker.track(enriched)
+            else:
+                events = self._tracker.track(enriched, quality=round_result.quality, discarded_rows=round_result.discarded_rows)
         except Exception:
+            self._publish_failed_observation()
             self._mark_round_failed(
                 DiagnosticCode.TRACKER_ERROR,
                 DiagnosticComponent.TRACKER,
             )
             return
 
-        subscriber_failures = 0
+        observation = getattr(self._tracker, "last_round", None)
+        subscriber_failures = (
+            self._dispatcher.publish(observation).failed
+            if isinstance(observation, ConnectionRoundObservation)
+            else 0
+        )
         for event in events:
             try:
                 report: PublishReport = self._dispatcher.publish(event)
@@ -375,6 +410,33 @@ class MonitoringEngine:
             subscriber_failures += report.failed
 
         self._mark_round_success(len(events), subscriber_failures)
+        if isinstance(observation, ConnectionRoundObservation) and observation.quality is ObservationQuality.REDUCED:
+            self._record_reduced_round(observation)
+
+    def _publish_failed_observation(self) -> None:
+        record_failure = getattr(self._tracker, "record_failure", None)
+        observation = record_failure(observed_at=self._utc_now()) if callable(record_failure) else ConnectionRoundObservation(self._session_id, self._utc_now(), ObservationQuality.FAILED)
+        self._dispatcher.publish(observation)
+        with self._lock:
+            self._health = replace(self._health, counters=replace(
+                self._health.counters,
+                collection_gaps=self._health.counters.collection_gaps + 1,
+            ))
+
+    def _record_reduced_round(self, observation: ConnectionRoundObservation) -> None:
+        now = self._utc_now()
+        with self._lock:
+            counters = replace(self._health.counters,
+                reduced_rounds=self._health.counters.reduced_rounds + 1,
+                collection_gaps=self._health.counters.collection_gaps + 1,
+                discarded_observations=self._health.counters.discarded_observations + observation.discarded_observations,
+            )
+            code = DiagnosticCode.CONNECTION_CAPACITY_LOSS if observation.capacity_drops else DiagnosticCode.CONNECTION_REDUCED_ROUND
+            self._health = replace(self._health,
+                counters=counters,
+                last_error=self._diagnostic(code, DiagnosticComponent.TRACKER, DiagnosticSeverity.WARNING, now),
+                capabilities=replace(self._health.capabilities, connection_monitoring=CapabilityStatus.DEGRADED),
+            )
 
     def _mark_poll_started(self) -> None:
         now = self._utc_now()

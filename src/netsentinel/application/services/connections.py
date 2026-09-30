@@ -5,14 +5,18 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
 
 from netsentinel.domain.connections import (
     ConnectionClosed,
     ConnectionKey,
     ConnectionLifecycleEvent,
+    ConnectionRoundObservation,
     ConnectionOpened,
     ConnectionSnapshot,
     ConnectionUpdated,
+    ObservationOrigin,
+    ObservationQuality,
     ProcessInfoStatus,
     ParentProcessStatus,
     TrackedConnection,
@@ -20,6 +24,7 @@ from netsentinel.domain.connections import (
 
 
 Clock = Callable[[], datetime]
+DEFAULT_ACTIVE_CAPACITY = 4_096
 
 
 _PROCESS_STATUS_PREFERENCE = {
@@ -41,7 +46,7 @@ _PARENT_STATUS_PREFERENCE = {
 class ConnectionTrackingService:
     """Compare complete observation rounds and retain active lifecycle state.
 
-    The first round treats every visible key as newly opened. Later rounds emit
+    The first complete round marks visible keys as initial observations. Later rounds emit
     updates only when observable state or process metadata changes. A missing
     key emits ``ConnectionClosed`` with ``NOT_OBSERVED`` semantics; this is not
     evidence of a TCP FIN/RST or a real UDP session close.
@@ -53,10 +58,37 @@ class ConnectionTrackingService:
     group sorted by ``ConnectionKey`` fields.
     """
 
-    def __init__(self, *, clock: Clock | None = None) -> None:
+    def __init__(self, *, clock: Clock | None = None, capacity: int = DEFAULT_ACTIVE_CAPACITY) -> None:
+        if isinstance(capacity, bool) or not isinstance(capacity, int) or capacity <= 0:
+            raise ValueError("capacity must be a positive integer")
         self._clock = clock if clock is not None else (lambda: datetime.now(UTC))
+        self._capacity = capacity
+        self._session_id = uuid4()
         self._active: dict[ConnectionKey, TrackedConnection] = {}
         self._last_observation_at: datetime | None = None
+        self._first_complete_seen = False
+        self._last_round: ConnectionRoundObservation | None = None
+
+    @property
+    def session_id(self) -> UUID:
+        return self._session_id
+
+    @property
+    def last_round(self) -> ConnectionRoundObservation | None:
+        return self._last_round
+
+    def reset_session(self) -> None:
+        """Start a fresh in-memory session after a stopped engine restarts."""
+        self._session_id = uuid4()
+        self._active.clear()
+        self._last_observation_at = None
+        self._first_complete_seen = False
+        self._last_round = None
+
+    def record_failure(self, *, observed_at: datetime | None = None) -> ConnectionRoundObservation:
+        at = _require_utc(observed_at if observed_at is not None else self._clock(), "observed_at")
+        self._last_round = ConnectionRoundObservation(self._session_id, at, ObservationQuality.FAILED)
+        return self._last_round
 
     @property
     def active_connections(self) -> tuple[TrackedConnection, ...]:
@@ -72,6 +104,8 @@ class ConnectionTrackingService:
         snapshots: Iterable[ConnectionSnapshot],
         *,
         observed_at: datetime | None = None,
+        quality: ObservationQuality = ObservationQuality.COMPLETE,
+        discarded_rows: int = 0,
     ) -> tuple[ConnectionLifecycleEvent, ...]:
         """Apply one complete snapshot round and return its lifecycle events.
 
@@ -81,8 +115,20 @@ class ConnectionTrackingService:
         fully deterministic without relying on wall-clock time.
         """
 
-        current = _deduplicate_snapshots(snapshots)
-        observation_time = self._observation_time(current, observed_at)
+        if not isinstance(quality, ObservationQuality) or quality is ObservationQuality.FAILED:
+            raise ValueError("track quality must be complete or reduced")
+        if isinstance(discarded_rows, bool) or not isinstance(discarded_rows, int) or discarded_rows < 0:
+            raise ValueError("discarded_rows must be non-negative")
+        current, capacity_drops, latest = _deduplicate_snapshots(snapshots, self._capacity, self._active)
+        effective_quality = ObservationQuality.REDUCED if capacity_drops or discarded_rows or quality is ObservationQuality.REDUCED else ObservationQuality.COMPLETE
+        if effective_quality is ObservationQuality.REDUCED:
+            reserved = len(set(self._active) - set(current))
+            for key in sorted((set(current) - set(self._active)), key=_connection_key_sort_key, reverse=True):
+                if len(current) + reserved <= self._capacity:
+                    break
+                del current[key]
+                capacity_drops += 1
+        observation_time = self._observation_time(current, observed_at if observed_at is not None else latest)
         self._validate_round(current, observation_time)
 
         previous_keys = set(self._active)
@@ -97,17 +143,25 @@ class ConnectionTrackingService:
             key=_connection_key_sort_key,
         )
         closed_keys = sorted(
-            previous_keys - current_keys,
+            previous_keys - current_keys if effective_quality is ObservationQuality.COMPLETE else (),
             key=_connection_key_sort_key,
         )
+        lifecycle_ids = {key: uuid4() for key in opened_keys}
 
         opened_events = tuple(
-            ConnectionOpened(snapshot=current[key]) for key in opened_keys
+            ConnectionOpened(
+                snapshot=current[key],
+                origin=ObservationOrigin.OBSERVED if self._first_complete_seen else ObservationOrigin.INITIAL,
+                session_id=self._session_id,
+                lifecycle_id=lifecycle_ids[key],
+            ) for key in opened_keys
         )
         updated_events = tuple(
             ConnectionUpdated(
                 previous=self._active[key].snapshot,
                 current=current[key],
+                session_id=self._session_id,
+                lifecycle_id=self._active[key].lifecycle_id,
             )
             for key in common_keys
             if _observable_metadata_changed(
@@ -119,6 +173,8 @@ class ConnectionTrackingService:
             ConnectionClosed(
                 last_snapshot=self._active[key].snapshot,
                 occurred_at=observation_time,
+                session_id=self._session_id,
+                lifecycle_id=self._active[key].lifecycle_id,
             )
             for key in closed_keys
         )
@@ -130,6 +186,9 @@ class ConnectionTrackingService:
                 first_seen=snapshot.observed_at,
                 last_seen=snapshot.observed_at,
                 snapshot=snapshot,
+                session_id=self._session_id,
+                lifecycle_id=lifecycle_ids[key],
+                origin=ObservationOrigin.OBSERVED if self._first_complete_seen else ObservationOrigin.INITIAL,
             )
         for key in common_keys:
             previous = self._active[key]
@@ -138,10 +197,26 @@ class ConnectionTrackingService:
                 first_seen=previous.first_seen,
                 last_seen=snapshot.observed_at,
                 snapshot=snapshot,
+                session_id=previous.session_id,
+                lifecycle_id=previous.lifecycle_id,
+                origin=previous.origin,
             )
+
+        if effective_quality is ObservationQuality.REDUCED:
+            for key in sorted(previous_keys - current_keys, key=_connection_key_sort_key):
+                if len(next_active) >= self._capacity:
+                    break
+                next_active[key] = self._active[key]
 
         self._active = next_active
         self._last_observation_at = observation_time
+        if effective_quality is ObservationQuality.COMPLETE:
+            self._first_complete_seen = True
+        self._last_round = ConnectionRoundObservation(
+            self._session_id, observation_time, effective_quality,
+            discarded_rows + capacity_drops,
+            capacity_drops,
+        )
         return opened_events + updated_events + closed_events
 
     def _observation_time(
@@ -186,17 +261,33 @@ class ConnectionTrackingService:
 
 def _deduplicate_snapshots(
     snapshots: Iterable[ConnectionSnapshot],
-) -> dict[ConnectionKey, ConnectionSnapshot]:
-    grouped: dict[ConnectionKey, list[ConnectionSnapshot]] = {}
+    capacity: int,
+    active: dict[ConnectionKey, TrackedConnection],
+) -> tuple[dict[ConnectionKey, ConnectionSnapshot], int, datetime | None]:
+    grouped: dict[ConnectionKey, ConnectionSnapshot] = {}
+    discarded = 0
+    latest: datetime | None = None
     for snapshot in snapshots:
         if not isinstance(snapshot, ConnectionSnapshot):
             raise TypeError("snapshots must contain ConnectionSnapshot values")
-        grouped.setdefault(snapshot.key, []).append(snapshot)
-
-    return {
-        key: max(candidates, key=_duplicate_preference)
-        for key, candidates in grouped.items()
-    }
+        if latest is None or snapshot.observed_at > latest:
+            latest = snapshot.observed_at
+        key = snapshot.key
+        prior = grouped.get(key)
+        if prior is not None:
+            grouped[key] = max((prior, snapshot), key=_duplicate_preference)
+            continue
+        if len(grouped) < capacity:
+            grouped[key] = snapshot
+            continue
+        # Existing lifecycles win, then the lowest canonical key. Every
+        # discarded observation is accounted for without retaining its key.
+        worst = max(grouped, key=lambda candidate: (candidate not in active, _connection_key_sort_key(candidate)))
+        if (key not in active, _connection_key_sort_key(key)) < (worst not in active, _connection_key_sort_key(worst)):
+            del grouped[worst]
+            grouped[key] = snapshot
+        discarded += 1
+    return grouped, discarded, latest
 
 
 def _duplicate_preference(snapshot: ConnectionSnapshot) -> tuple[object, ...]:

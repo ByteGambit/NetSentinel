@@ -631,7 +631,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-056 — Typed observation identity ve quality
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Baseline/incident için örnekleme olaylarının anlamını korumak.
 - **Yapılacaklar:** Session/lifecycle reference, initial snapshot, incomplete/gap/quality sözleşmesi ve bounded round state'i tracker/engine/typed events'e ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/services/connections.py, src/netsentinel/application/engine.py, src/netsentinel/application/events.py, src/netsentinel/shared/diagnostics.py, tests/unit/.

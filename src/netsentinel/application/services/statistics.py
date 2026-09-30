@@ -12,6 +12,7 @@ from netsentinel.domain.connections import (
     ConnectionClosed,
     ConnectionLifecycleEvent,
     ConnectionOpened,
+    ObservationOrigin,
 )
 
 
@@ -71,6 +72,8 @@ class StatisticsService:
         now = self._utc_now()
         self._prune(now)
         if isinstance(event, ConnectionOpened):
+            if event.origin is ObservationOrigin.INITIAL:
+                return
             is_opened = True
         elif isinstance(event, ConnectionClosed):
             is_opened = False
