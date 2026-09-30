@@ -17,12 +17,56 @@ from netsentinel.domain.connections import (
     ConnectionUpdated,
     Endpoint,
     MAX_EXECUTABLE_PATH_LENGTH,
+    MAX_PARENT_NAME_LENGTH,
+    ParentProcessInfo,
+    ParentProcessStatus,
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
     TrackedConnection,
     TransportProtocol,
 )
+
+
+def test_parent_context_validation_and_partial_availability() -> None:
+    observed = datetime(2026, 9, 18, 9, 0, tzinfo=UTC)
+    parent = ParentProcessInfo(
+        status=ParentProcessStatus.OBSERVED,
+        observed_at=observed,
+        parent_pid=7,
+        identity=ProcessIdentity(7, observed - timedelta(hours=2)),
+        name_status=ProcessInfoStatus.ACCESS_DENIED,
+        pid_status=ProcessInfoStatus.AVAILABLE,
+        create_time_status=ProcessInfoStatus.AVAILABLE,
+    )
+    assert parent.name is None
+    assert parent.name_status is ProcessInfoStatus.ACCESS_DENIED
+    with pytest.raises((TypeError, ValueError)):
+        ParentProcessInfo(ParentProcessStatus.OBSERVED, observed, parent_pid=-1)
+    with pytest.raises(ValueError):
+        ParentProcessInfo(ParentProcessStatus.OBSERVED, observed, parent_pid=7)
+    with pytest.raises(ValueError):
+        ParentProcessInfo(
+            ParentProcessStatus.OBSERVED,
+            observed,
+            parent_pid=7,
+            identity=ProcessIdentity(8, observed),
+            pid_status=ProcessInfoStatus.AVAILABLE,
+            create_time_status=ProcessInfoStatus.AVAILABLE,
+        )
+    with pytest.raises(ValueError):
+        ParentProcessInfo(
+            ParentProcessStatus.OBSERVED,
+            observed,
+            parent_pid=7,
+            identity=ProcessIdentity(7, observed),
+            name="x" * (MAX_PARENT_NAME_LENGTH + 1),
+            pid_status=ProcessInfoStatus.AVAILABLE,
+            create_time_status=ProcessInfoStatus.AVAILABLE,
+            name_status=ProcessInfoStatus.AVAILABLE,
+        )
+    with pytest.raises(ValueError):
+        ParentProcessInfo(ParentProcessStatus.ABSENT, observed.replace(tzinfo=None))
 
 
 OBSERVED_AT = datetime(2026, 9, 18, 8, 30, tzinfo=UTC)
@@ -207,7 +251,9 @@ def test_executable_path_is_omitted_from_process_repr() -> None:
     assert "C:\\Users\\private" not in repr(process)
 
 
-@pytest.mark.parametrize("path", ["", " ", "x\x00y", "x" * (MAX_EXECUTABLE_PATH_LENGTH + 1)])
+@pytest.mark.parametrize(
+    "path", ["", " ", "x\x00y", "x" * (MAX_EXECUTABLE_PATH_LENGTH + 1)]
+)
 def test_process_info_rejects_invalid_executable_path(path: str) -> None:
     with pytest.raises(ValueError, match="executable_path"):
         ProcessInfo(

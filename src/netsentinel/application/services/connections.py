@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from netsentinel.domain.connections import (
@@ -13,6 +14,7 @@ from netsentinel.domain.connections import (
     ConnectionSnapshot,
     ConnectionUpdated,
     ProcessInfoStatus,
+    ParentProcessStatus,
     TrackedConnection,
 )
 
@@ -25,6 +27,14 @@ _PROCESS_STATUS_PREFERENCE = {
     ProcessInfoStatus.NOT_FOUND: 1,
     ProcessInfoStatus.ACCESS_DENIED: 2,
     ProcessInfoStatus.AVAILABLE: 3,
+}
+_PARENT_STATUS_PREFERENCE = {
+    ParentProcessStatus.UNAVAILABLE: 0,
+    ParentProcessStatus.NOT_FOUND: 1,
+    ParentProcessStatus.ACCESS_DENIED: 2,
+    ParentProcessStatus.REUSED: 3,
+    ParentProcessStatus.ABSENT: 4,
+    ParentProcessStatus.OBSERVED: 5,
 }
 
 
@@ -162,10 +172,7 @@ class ConnectionTrackingService:
                     "snapshot observation time cannot follow the round time"
                 )
             previous = self._active.get(key)
-            if (
-                previous is not None
-                and snapshot.observed_at < previous.last_seen
-            ):
+            if previous is not None and snapshot.observed_at < previous.last_seen:
                 raise ValueError(
                     "connection observation cannot precede its last observation"
                 )
@@ -194,11 +201,24 @@ def _deduplicate_snapshots(
 
 def _duplicate_preference(snapshot: ConnectionSnapshot) -> tuple[object, ...]:
     process = snapshot.process
+    parent = process.parent
     return (
         snapshot.observed_at,
         _PROCESS_STATUS_PREFERENCE[process.status],
         process.name is not None,
         process.name or "",
+        parent is not None,
+        _PARENT_STATUS_PREFERENCE[parent.status] if parent is not None else -1,
+        parent.parent_pid
+        if parent is not None and parent.parent_pid is not None
+        else -1,
+        parent.identity.create_time.isoformat()
+        if parent is not None
+        and parent.identity is not None
+        and parent.identity.create_time is not None
+        else "",
+        parent.name if parent is not None and parent.name is not None else "",
+        parent.observed_at.isoformat() if parent is not None else "",
         snapshot.state.value,
     )
 
@@ -207,7 +227,14 @@ def _observable_metadata_changed(
     previous: ConnectionSnapshot,
     current: ConnectionSnapshot,
 ) -> bool:
-    return previous.state != current.state or previous.process != current.process
+    old_process = previous.process
+    new_parent = current.process.parent
+    if old_process.parent is not None and new_parent is not None:
+        old_process = replace(
+            old_process,
+            parent=replace(old_process.parent, observed_at=new_parent.observed_at),
+        )
+    return previous.state != current.state or old_process != current.process
 
 
 def _connection_key_sort_key(key: ConnectionKey) -> tuple[object, ...]:

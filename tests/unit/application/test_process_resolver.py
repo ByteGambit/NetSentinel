@@ -17,6 +17,7 @@ from netsentinel.domain.connections import (
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
+    ParentProcessStatus,
     TransportProtocol,
 )
 from netsentinel.infrastructure.psutil_processes import PsutilProcessMetadataResolver
@@ -104,7 +105,47 @@ def test_pass_local_cache_reads_executable_path_only_once() -> None:
     result = ProcessMetadataEnricher(resolver).enrich(source)
 
     assert process.exe_calls == 1
-    assert all(item.process.executable_path == "C:\\Apps\\browser.exe" for item in result)
+    assert all(
+        item.process.executable_path == "C:\\Apps\\browser.exe" for item in result
+    )
+
+
+def test_pass_local_cache_resolves_parent_only_once_per_child() -> None:
+    class CountingProcess:
+        def __init__(self, pid: int) -> None:
+            self.pid = pid
+
+        def create_time(self) -> float:
+            return (
+                STARTED_AT - timedelta(hours=1) if self.pid == 7 else STARTED_AT
+            ).timestamp()
+
+        def name(self) -> str:
+            return "parent.exe" if self.pid == 7 else "child.exe"
+
+        def exe(self) -> str:
+            return "C:\\Apps\\child.exe"
+
+        def ppid(self) -> int:
+            return 7 if self.pid == 42 else 0
+
+    calls: list[int] = []
+
+    def factory(pid: int) -> CountingProcess:
+        calls.append(pid)
+        return CountingProcess(pid)
+
+    resolver = PsutilProcessMetadataResolver(
+        process_factory=factory, clock=lambda: OBSERVED_AT
+    )
+    result = ProcessMetadataEnricher(resolver).enrich(
+        [snapshot(pid=42), snapshot(pid=42, port=50_001)]
+    )
+
+    assert calls == [42, 7, 7]
+    assert all(item.process.parent is not None for item in result)
+    assert result[0].process.parent is result[1].process.parent
+    assert result[0].process.parent.status is ParentProcessStatus.OBSERVED
 
 
 def test_cache_does_not_cross_snapshot_passes_and_exposes_pid_reuse() -> None:

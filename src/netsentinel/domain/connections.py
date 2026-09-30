@@ -50,6 +50,18 @@ class ProcessInfoStatus(str, Enum):
 
 
 MAX_EXECUTABLE_PATH_LENGTH = 4096
+MAX_PARENT_NAME_LENGTH = 255
+
+
+class ParentProcessStatus(str, Enum):
+    """Outcome of a current, best-effort parent observation, not lineage."""
+
+    OBSERVED = "observed"
+    ABSENT = "absent"
+    ACCESS_DENIED = "access_denied"
+    NOT_FOUND = "not_found"
+    REUSED = "reused"
+    UNAVAILABLE = "unavailable"
 
 
 class ConnectionClosureReason(str, Enum):
@@ -123,6 +135,72 @@ class ProcessIdentity:
 
 
 @dataclass(frozen=True, slots=True)
+class ParentProcessInfo:
+    """Conservative parent context observed during one process lookup.
+
+    ``parent_pid`` is only a reported PID. ``identity`` is set only when the
+    parent instance was checked for consistency; neither is historical lineage.
+    """
+
+    status: ParentProcessStatus
+    observed_at: datetime
+    parent_pid: int | None = None
+    identity: ProcessIdentity | None = None
+    name: str | None = None
+    pid_status: ProcessInfoStatus = ProcessInfoStatus.UNAVAILABLE
+    create_time_status: ProcessInfoStatus = ProcessInfoStatus.UNAVAILABLE
+    name_status: ProcessInfoStatus = ProcessInfoStatus.UNAVAILABLE
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, ParentProcessStatus):
+            raise TypeError("status must be a ParentProcessStatus")
+        object.__setattr__(
+            self, "observed_at", _require_utc(self.observed_at, "observed_at")
+        )
+        if self.parent_pid is not None:
+            if isinstance(self.parent_pid, bool) or not isinstance(
+                self.parent_pid, int
+            ):
+                raise TypeError("parent_pid must be an integer or None")
+            if self.parent_pid <= 0:
+                raise ValueError("parent_pid must be positive")
+        if self.identity is not None:
+            if not isinstance(self.identity, ProcessIdentity):
+                raise TypeError("identity must be a ProcessIdentity or None")
+            if (
+                self.identity.pid != self.parent_pid
+                or self.identity.create_time is None
+            ):
+                raise ValueError(
+                    "parent identity requires matching PID and create_time"
+                )
+        if self.name is not None:
+            if not isinstance(self.name, str):
+                raise TypeError("name must be a string or None")
+            if (
+                not self.name.strip()
+                or len(self.name) > MAX_PARENT_NAME_LENGTH
+                or any(ord(char) < 32 for char in self.name)
+            ):
+                raise ValueError("parent name is invalid or exceeds the limit")
+        for field_name, value, present in (
+            ("pid_status", self.pid_status, self.parent_pid is not None),
+            ("create_time_status", self.create_time_status, self.identity is not None),
+            ("name_status", self.name_status, self.name is not None),
+        ):
+            if not isinstance(value, ProcessInfoStatus):
+                raise TypeError(f"{field_name} must be a ProcessInfoStatus")
+            if (value is ProcessInfoStatus.AVAILABLE) != present:
+                raise ValueError(f"{field_name} does not match its value")
+        if (self.status is ParentProcessStatus.OBSERVED) != (self.identity is not None):
+            raise ValueError("observed parent requires a verified instance")
+        if self.status is not ParentProcessStatus.OBSERVED and self.name is not None:
+            raise ValueError("unverified parent cannot include a name")
+        if self.status is ParentProcessStatus.ABSENT and self.parent_pid is not None:
+            raise ValueError("absent parent cannot include a PID")
+
+
+@dataclass(frozen=True, slots=True)
 class ProcessInfo:
     """Process identity and independent availability of its metadata fields.
 
@@ -137,14 +215,18 @@ class ProcessInfo:
     name_status: ProcessInfoStatus | None = None
     create_time_status: ProcessInfoStatus | None = None
     executable_path_status: ProcessInfoStatus | None = None
+    parent: ParentProcessInfo | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.status, ProcessInfoStatus):
             raise TypeError("status must be a ProcessInfoStatus")
-        if self.identity is not None and not isinstance(
-            self.identity, ProcessIdentity
-        ):
+        if self.identity is not None and not isinstance(self.identity, ProcessIdentity):
             raise TypeError("identity must be a ProcessIdentity or None")
+        if self.parent is not None:
+            if not isinstance(self.parent, ParentProcessInfo):
+                raise TypeError("parent must be a ParentProcessInfo or None")
+            if self.identity is None:
+                raise ValueError("parent requires a process identity")
         if self.name is not None and not isinstance(self.name, str):
             raise TypeError("name must be a string or None")
         if self.name is not None and not self.name.strip():
@@ -500,6 +582,9 @@ __all__ = (
     "ConnectionState",
     "ConnectionUpdated",
     "Endpoint",
+    "MAX_PARENT_NAME_LENGTH",
+    "ParentProcessInfo",
+    "ParentProcessStatus",
     "ProcessIdentity",
     "ProcessInfo",
     "ProcessInfoStatus",

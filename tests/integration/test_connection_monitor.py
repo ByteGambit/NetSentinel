@@ -30,6 +30,8 @@ from netsentinel.domain.connections import (
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
+    ParentProcessInfo,
+    ParentProcessStatus,
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
@@ -114,6 +116,9 @@ class FakeProcess:
     def name(self) -> str:
         return "fixture.exe"
 
+    def ppid(self) -> int:
+        return 0
+
 
 def test_bootstrap_composes_the_real_m1_dependencies_without_starting_them() -> None:
     engine = create_monitoring_engine(polling_interval=0.05)
@@ -142,7 +147,7 @@ def test_psutil_adapter_contract_flows_into_enrichment_and_tracking() -> None:
         clock=lambda: T0,
     )
     resolver = PsutilProcessMetadataResolver(
-        process_factory=lambda pid: FakeProcess()
+        process_factory=lambda pid: FakeProcess(), clock=lambda: T0
     )
 
     collected = collector.collect()
@@ -159,10 +164,16 @@ def test_psutil_adapter_contract_flows_into_enrichment_and_tracking() -> None:
         status=ProcessInfoStatus.AVAILABLE,
         identity=ProcessIdentity(321, PROCESS_STARTED),
         name="fixture.exe",
+        parent=ParentProcessInfo(
+            status=ParentProcessStatus.ABSENT,
+            observed_at=T0,
+        ),
     )
 
 
-def test_fake_pipeline_repeated_polling_dispatches_lifecycle_and_stops_cleanly() -> None:
+def test_fake_pipeline_repeated_polling_dispatches_lifecycle_and_stops_cleanly() -> (
+    None
+):
     first = raw_snapshot(observed_at=T0)
     updated = raw_snapshot(
         observed_at=T0 + timedelta(seconds=1),
@@ -284,7 +295,11 @@ def _collect_visible_loopback_sockets(
         except ConnectionCollectionTransientError:
             return False
         client = next(
-            (item for item in snapshots if _matches_client_connection(item, connection)),
+            (
+                item
+                for item in snapshots
+                if _matches_client_connection(item, connection)
+            ),
             None,
         )
         listener = next(

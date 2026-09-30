@@ -598,7 +598,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-053 — Best-effort parent metadata
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Connection process'inin elde edilebilen parent context'ini sağlamak.
 - **Yapılacaklar:** Parent PID, optional parent instance/name, observed-at ve availability durumlarını typed resolver sonucuna ekle; PID reuse ve kapanmış parent için conservative sonuç ver.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/connections.py, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/psutil_processes.py, tests/unit/.

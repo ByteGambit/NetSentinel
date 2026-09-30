@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
@@ -20,6 +21,8 @@ from netsentinel.domain.connections import (
     ProcessIdentity,
     ProcessInfo,
     ProcessInfoStatus,
+    ParentProcessInfo,
+    ParentProcessStatus,
     TransportProtocol,
 )
 
@@ -61,11 +64,7 @@ def connection(
             if protocol is TransportProtocol.UDP
             else ConnectionState.ESTABLISHED
         )
-    remote = (
-        None
-        if remote_address is None
-        else Endpoint(remote_address, remote_port)
-    )
+    remote = None if remote_address is None else Endpoint(remote_address, remote_port)
     return ConnectionSnapshot(
         protocol=protocol,
         local_endpoint=Endpoint(local_address, local_port),
@@ -95,9 +94,7 @@ def test_one_connection_then_empty_emits_not_observed_close() -> None:
 
     events = tracker.track(())
 
-    assert events == (
-        ConnectionClosed(last_snapshot=snapshot, occurred_at=T1),
-    )
+    assert events == (ConnectionClosed(last_snapshot=snapshot, occurred_at=T1),)
     closed = events[0]
     assert isinstance(closed, ConnectionClosed)
     assert closed.reason is ConnectionClosureReason.NOT_OBSERVED
@@ -168,6 +165,43 @@ def test_executable_path_enrichment_updates_without_connection_churn() -> None:
     assert tracker.track((second,)) == (
         ConnectionUpdated(previous=first, current=second),
     )
+
+
+def test_parent_metadata_update_keeps_connection_key_and_no_close_open() -> None:
+    tracker = ConnectionTrackingService()
+    original = process()
+    parent = ParentProcessInfo(
+        status=ParentProcessStatus.OBSERVED,
+        observed_at=T1,
+        parent_pid=7,
+        identity=ProcessIdentity(7, T0 - timedelta(hours=1)),
+        name="WINWORD.EXE",
+        pid_status=ProcessInfoStatus.AVAILABLE,
+        create_time_status=ProcessInfoStatus.AVAILABLE,
+        name_status=ProcessInfoStatus.AVAILABLE,
+    )
+    enriched = ProcessInfo(
+        status=ProcessInfoStatus.AVAILABLE,
+        identity=original.identity,
+        name=original.name,
+        parent=parent,
+    )
+    first = connection(observed_at=T0, process_info=original)
+    second = connection(observed_at=T1, process_info=enriched)
+    third = connection(
+        observed_at=T1 + timedelta(minutes=1),
+        process_info=replace(
+            enriched, parent=replace(parent, observed_at=T1 + timedelta(minutes=1))
+        ),
+    )
+
+    assert first.key == second.key == third.key
+    tracker.track((first,))
+    assert tracker.track((second,)) == (
+        ConnectionUpdated(previous=first, current=second),
+    )
+    assert tracker.track((third,)) == ()
+    assert tracker.active_connections[0].snapshot == third
 
 
 def test_different_remote_endpoint_is_a_different_connection() -> None:
