@@ -21,6 +21,7 @@ from netsentinel.domain.connections import (
     TransportProtocol,
 )
 from netsentinel.domain.destination_context import DestinationContext
+from netsentinel.domain.executable_hash import ExecutableHash
 from netsentinel.domain.devices import (
     DeviceIdentity, DeviceProfile, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
@@ -215,6 +216,13 @@ class ProcessMetadataResolver(Protocol):
 
     def resolve(self, pid: int) -> ProcessInfo:
         """Return process metadata without leaking provider-specific types."""
+
+
+class ExecutableHasher(Protocol):
+    """Blocking local file reader; called only from a bounded worker."""
+
+    def hash(self, path: str, *, is_cancelled: Callable[[], bool]) -> ExecutableHash:
+        """Return portable file-content evidence or a typed failure."""
 
 
 class NetworkContextCollectionError(RuntimeError):
@@ -658,4 +666,5 @@ __all__ = (
     "PacketCaptureRequest",
     "PacketCaptureTransientError",
     "ProcessMetadataResolver",
+    "ExecutableHasher",
 )

@@ -1577,6 +1577,24 @@ için 2048 satırla sınırlıdır.
 
 Destination IP/domain canonical value object'leri ile local ASN/country enrichment source, dataset version, lookup subject, freshness ve unknown taşır. Ülke/ASN maliciousness verdict değildir. Executable hash local, on-demand, bounded file I/O'dur. Signer adapter NS-067 offline spike sonucunda uygunsa NS-068'de eklenir; signed=trusted veya unsigned=malicious kuralı kurulmaz. Cloud reputation M15'te ayrıca user-controlled port/adapter sınırıdır; hiçbir yerel path, raw history veya payload bu sınırdan kendiliğinden çıkmaz.
 
+NS-066 `ExecutableHashService` yalnız açık `ProcessInfo` isteğinde iş planlar; poller,
+dispatcher ve Qt thread'i dosya okumaz. `ExecutableHasher` portunun yerel adapter'ı
+tek daemon worker üzerinde SHA-256'yı 1 MiB parçalarla hesaplar. En fazla 64
+benzersiz path bekler, bir aktif iş yürütür ve aynı path'in bekleyen isteklerini
+tek future'a birleştirir. Yeni istekler queue dolduğunda `saturated` olur.
+1 GiB boyut ve 5 saniyelik kooperatif süre sınırı vardır; shutdown beklemesi
+en fazla 2 saniyedir. Cache 128 girişli deterministik LRU'dur; anahtar filesystem
+device/file ID, size ve mtime_ns içerir (file ID yoksa path de kullanılır).
+Windows creation-time alanının yeni dosya açılışında değişebildiği gözlendiği
+için anahtara dahil edilmez. Worker pre-stat, açık handle fstat ve post-stat
+karşılaştırır; değişim başarı olarak yayımlanmaz. UNC ve symlink varsayılan
+kapsam dışıdır. Metadata eşitliği atomik snapshot veya yüklenmiş process image'ı
+kanıtlamaz; cache yalnız redundant işi azaltır. İstek token'ı doğrulanabilir
+PID+create_time ve path snapshot'ı taşır; create_time yoksa process'e bağlı
+hash isteği `unavailable` olur. Tüketici sonucu güncel metadata ile eşleştirmelidir.
+Hash ne process identity ne de güvenlik kararıdır. NS-066 DB, history ve UI
+şemasını değiştirmez; otomatik executable taraması yapmaz.
+
 NS-065 temelinde `DestinationContextResolver` public IP'yi local `DestinationContextProvider` portuna yönlendirir; private/special adresler portu çağırmadan `not_applicable` olur. Yerel TSV adapter sınırlandırılmış dosyayı açık yükleme çağrısında IPv4/IPv6 prefix indeksine çevirir; runtime lookup yalnız bellek kullanır ve en uzun prefix'i seçer. Sonuç kaynak adı/sürümü/lisansı ve UTC yükleme zamanını taşır. En fazla 4096 IP için cache dataset generation değişince temizlenir. Varsayılan dataset yoktur; dosya hatası typed/sanitized diagnostic üretir. Yükleme `create_destination_context_resolver` çağrısında yapılır ve GUI worker'ında çağrılmalıdır; NS-064 UI entegrasyonu ayrı kalır. Format, limitler ve lisans kararı [local dataset sözleşmesinde](LOCAL_DESTINATION_DATASET.md) kayıtlıdır.
 
 NS-064, Connections ve History seçimine iki ayrı read-only bölüm bağlar: observed DNS associations ile current local ASN/country context. Her yüzeyin tek bounded worker kuyruğu ve generation kontrolü vardır; SQLite sorgusu ve dataset yüklemesi Qt thread'inde yapılmaz. DNS adayları exact network fingerprint ve DNS client IP ile, en çok 32 satır ve deterministik sırayla okunur; `unknown`/`ambiguous` scope'ta DNS sorgusu yapılmaz. Association provenance, observed age, effective TTL ve canonical source status kullanıcıya gösterilir; correlation hiçbir zaman connection hostname'i veya DNS→process iddiası değildir. Source kaybı evidence yokluğundan ayrılır. History'de canonical ID'si olmayan eski DNS kayıtları için ayrı, en çok 128 satırlık exact scope/client/IP/time probe yalnız legacy limitation durumunu gösterir; eski kayıttan yeni canonical ID veya kesin hostname türetilmez. Country yalnız dataset eşleşmesidir, fiziksel konum veya risk hükmü değildir.

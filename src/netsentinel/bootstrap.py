@@ -31,6 +31,8 @@ from netsentinel.application.services.history import ConnectionHistoryPersistenc
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
 from netsentinel.application.services.processes import ProcessMetadataEnricher
+from netsentinel.application.services.executable_hash import ExecutableHashService
+from netsentinel.infrastructure.local_executable_hasher import LocalFileExecutableHasher
 from netsentinel.infrastructure.psutil_connections import (
     PsutilConnectionCollector,
 )
@@ -83,6 +85,12 @@ def create_monitoring_engine(
         polling_interval=settings.polling_interval if polling_interval is None else polling_interval,
         shutdown_timeout=settings.shutdown_timeout if shutdown_timeout is None else shutdown_timeout,
     )
+
+
+def create_executable_hash_service() -> ExecutableHashService:
+    """Create a dormant, local-only on-demand hasher; no polling hook."""
+
+    return ExecutableHashService(LocalFileExecutableHasher())
 
 
 def create_desktop_engine(
@@ -415,6 +423,7 @@ __all__ = (
     "create_history_retention_service",
     "create_history_query_service_factory",
     "create_monitoring_engine",
+    "create_executable_hash_service",
     "create_network_context_provider",
     "create_packet_capture",
 )

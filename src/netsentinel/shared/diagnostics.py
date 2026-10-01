@@ -173,6 +173,20 @@ class EngineCounters:
 
 
 @dataclass(frozen=True, slots=True)
+class ExecutableHashDiagnostics:
+    """Aggregate worker state without file paths or digests."""
+
+    requested: int = 0
+    completed: int = 0
+    coalesced: int = 0
+    saturated: int = 0
+    cancelled: int = 0
+    active: int = 0
+    pending: int = 0
+    queue_capacity: int = 64
+
+
+@dataclass(frozen=True, slots=True)
 class EngineHealthSnapshot:
     """Immutable snapshot safe to consume outside the worker thread."""
 
@@ -424,6 +438,7 @@ __all__ = (
     "DiagnosticComponent",
     "DiagnosticSeverity",
     "EngineCounters",
+    "ExecutableHashDiagnostics",
     "EngineHealthSnapshot",
     "EngineState",
     "PersistenceCounters",

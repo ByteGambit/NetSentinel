@@ -743,7 +743,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-066 — Bounded executable hashing
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE.
 - **Amaç:** Dosya kimliğini local/on-demand zenginleştirmek.
 - **Yapılacaklar:** Ayrı worker/port, SHA-256 ve file-identity keyed cache ekle; path race/UNC policy uygula.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/ports.py, src/netsentinel/application/services/, src/netsentinel/infrastructure/, src/netsentinel/shared/diagnostics.py, tests/unit/.
