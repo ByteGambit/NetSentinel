@@ -675,7 +675,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-060 — DNS-process attribution spike
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** DNS event PID'sinin caller/process ilişkisindeki gerçek anlamını ölçmek.
 - **Yapılacaklar:** Windows provider/schema, cache hit, resolver service, custom resolver ve DoH/DoT kapsamını araştır; typed unknown sınırı öner.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, tests/fixtures/, docs/ARCHITECTURE.md, docs/SECURITY.md.
