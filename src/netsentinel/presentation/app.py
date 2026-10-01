@@ -19,6 +19,7 @@ from netsentinel.presentation.history_query import (
     HistoryQueryCoordinator,
     HistoryServiceFactory,
 )
+from netsentinel.presentation.destination_query import DestinationQueryCoordinator, DestinationServiceFactory
 from netsentinel.presentation.alert_query import AlertQueryCoordinator, AlertServiceFactory
 from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFactory
 from netsentinel.presentation.capability_query import CapabilityCoordinator
@@ -52,10 +53,12 @@ class ApplicationLifecycle:
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
         capability_queries: CapabilityCoordinator | None = None,
+        destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
         self._history_queries = history_queries
+        self._destination_queries = destination_queries or ()
         self._device_inventory = device_inventory
         self._device_profiles = device_profiles
         self._alert_queries = alert_queries
@@ -77,6 +80,8 @@ class ApplicationLifecycle:
         self._start_requested = True
         if self._history_queries is not None:
             self._history_queries.start()
+        for query in self._destination_queries:
+            query.start()
         if self._alert_queries is not None:
             self._alert_queries.start()
         if self._dns_queries is not None:
@@ -96,6 +101,8 @@ class ApplicationLifecycle:
             self._bridge.stop()
             if self._history_queries is not None:
                 self._history_queries.stop()
+            for query in self._destination_queries:
+                query.stop()
             if self._alert_queries is not None:
                 self._alert_queries.stop()
             if self._dns_queries is not None:
@@ -119,6 +126,7 @@ class ApplicationLifecycle:
             if self._history_queries is None
             else self._history_queries.stop()
         )
+        destination_stopped = all(tuple(query.stop() for query in self._destination_queries))
         alerts_stopped = True if self._alert_queries is None else self._alert_queries.stop()
         dns_stopped = True if self._dns_queries is None else self._dns_queries.stop()
         devices_stopped = (
@@ -127,7 +135,7 @@ class ApplicationLifecycle:
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
+        self._shutdown_result = self._engine.stop() and history_stopped and destination_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -145,6 +153,7 @@ class ApplicationShell:
     alert_queries: AlertQueryCoordinator | None = None
     dns_queries: DnsQueryCoordinator | None = None
     capability_queries: CapabilityCoordinator | None = None
+    destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None
 
 
 def create_application(
@@ -152,6 +161,7 @@ def create_application(
     argv: Sequence[str] | None = None,
     *,
     history_service_factory: HistoryServiceFactory | None = None,
+    destination_service_factory: DestinationServiceFactory | None = None,
     device_service_factory: DeviceServiceFactory | None = None,
     profile_service_factory: ProfileServiceFactory | None = None,
     alert_service_factory: AlertServiceFactory | None = None,
@@ -181,6 +191,8 @@ def create_application(
         if history_service_factory is not None
         else None
     )
+    destination_queries = (DestinationQueryCoordinator(destination_service_factory),
+                           DestinationQueryCoordinator(destination_service_factory)) if destination_service_factory else None
     device_inventory = (
         DeviceInventoryCoordinator(device_service_factory)
         if device_service_factory is not None else None
@@ -189,11 +201,12 @@ def create_application(
     alert_queries = AlertQueryCoordinator(alert_service_factory) if alert_service_factory is not None else None
     dns_queries = DnsQueryCoordinator(dns_service_factory) if dns_service_factory is not None else None
     capability_queries = CapabilityCoordinator(capability_service_factory) if capability_service_factory is not None else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
         history_queries=history_queries,
+        destination_queries=destination_queries,
         device_inventory=device_inventory,
         device_profiles=device_profiles,
         alert_queries=alert_queries,
@@ -203,6 +216,9 @@ def create_application(
     bridge.setParent(window)
     if history_queries is not None:
         history_queries.setParent(window)
+    if destination_queries is not None:
+        for query in destination_queries:
+            query.setParent(window)
     if device_inventory is not None:
         device_inventory.setParent(window)
     if device_profiles is not None:
@@ -215,7 +231,7 @@ def create_application(
         capability_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries)
 
 
 def run_application(
@@ -240,6 +256,7 @@ def run_application(
             create_device_profile_service_factory,
             create_alert_query_service_factory,
             create_dns_query_service_factory,
+            create_destination_evidence_service_factory,
             create_capability_service_factory,
             runtime_config_path,
         )
@@ -256,12 +273,14 @@ def run_application(
         profile_service_factory = create_device_profile_service_factory()
         alert_service_factory = create_alert_query_service_factory()
         dns_service_factory = create_dns_query_service_factory()
+        destination_service_factory = create_destination_evidence_service_factory(config=settings)
     else:
         history_service_factory = None
         device_service_factory = None
         profile_service_factory = None
         alert_service_factory = None
         dns_service_factory = None
+        destination_service_factory = None
 
     shell = create_application(
         engine,
@@ -271,6 +290,7 @@ def run_application(
         profile_service_factory=profile_service_factory,
         alert_service_factory=alert_service_factory,
         dns_service_factory=dns_service_factory,
+        destination_service_factory=destination_service_factory,
         capability_service_factory=capability_service_factory,
     )
     onboarding = None

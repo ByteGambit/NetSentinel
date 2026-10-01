@@ -263,6 +263,14 @@ origin kanıtıymış gibi doldurulmaz. Source retention veya write failure sonr
 eksik kaynak, DNS observation yokluğu şeklinde yorumlanmaz. Hata diagnostics'i
 domain/IP/DB yolu/SQL içermez; veri yerel SQLite dışına gönderilmez.
 
+NS-064, yeni connection history kayıtlarında yalnız exact network scope
+status/fingerprint/interface ID/index/method ve son scope'un başlangıç UTC
+zamanını yerel SQLite'a ekler. Eski kayıtların scope'u tahmin edilmez. Detail
+worker'ları scoped DNS association ve mevcut local ASN/country dataset'ini
+okur; en çok 32 candidate ve legacy göstergesi için en çok 128 kayıt inceler.
+GUI DNS verisini hostname veya process attribution olarak sunmaz; IP/domain
+cloud servisine, tarayıcıya veya clipboard'a gönderilmez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

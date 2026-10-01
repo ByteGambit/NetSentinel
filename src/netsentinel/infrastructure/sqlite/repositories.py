@@ -35,6 +35,9 @@ from netsentinel.domain.connections import (
     ConnectionClosed,
     ConnectionClosureReason,
     ConnectionHistoryRecord,
+    ConnectionNetworkScope,
+    NetworkAttributionMethod,
+    NetworkScopeStatus,
     ConnectionKey,
     ConnectionOpened,
     ConnectionSnapshot,
@@ -65,7 +68,9 @@ _HISTORY_COLUMNS = """
     executable_path_status, parent_status, parent_observed_at_utc_us,
     parent_pid, parent_create_time_utc_us, parent_name, parent_pid_status,
     parent_create_time_status, parent_name_status,
-    observation_gap, monitoring_session_id, lifecycle_id
+    observation_gap, monitoring_session_id, lifecycle_id,
+    network_scope_status, network_fingerprint, network_interface_id,
+    network_interface_index, network_scope_method, network_scope_since_utc_us
 """
 _METADATA_COLUMNS = (
     "executable_path", "process_name_status", "process_create_time_status",
@@ -375,6 +380,7 @@ class SQLiteConnectionHistoryRepository:
     ) -> None:
         values = _snapshot_values(snapshot)
         metadata = _metadata_values(snapshot.process)
+        scope = _scope_values(snapshot)
         observed_at = datetime_to_epoch_microseconds(snapshot.observed_at)
         connection.execute(
             f"""
@@ -383,11 +389,14 @@ class SQLiteConnectionHistoryRepository:
                 remote_port, pid, process_create_time_utc_us, process_name,
                 process_status, connection_state, first_seen_utc_us,
                 last_seen_utc_us, {', '.join(_METADATA_COLUMNS)},
-                monitoring_session_id, lifecycle_id
-            ) VALUES ({', '.join('?' for _ in range(15 + len(_METADATA_COLUMNS)))})
+                monitoring_session_id, lifecycle_id,
+                network_scope_status, network_fingerprint, network_interface_id,
+                network_interface_index, network_scope_method, network_scope_since_utc_us
+            ) VALUES ({', '.join('?' for _ in range(21 + len(_METADATA_COLUMNS)))})
             """,
             (str(record_id), *values, observed_at, observed_at, *metadata,
-             str(session_id), str(lifecycle_id)),
+             str(session_id), str(lifecycle_id), *scope,
+             datetime_to_epoch_microseconds(snapshot.observed_at)),
         )
 
     @staticmethod
@@ -398,6 +407,8 @@ class SQLiteConnectionHistoryRepository:
     ) -> None:
         values = _snapshot_values(snapshot)
         metadata = _metadata_values(snapshot.process)
+        scope = _scope_values(snapshot)
+        scope_since = _scope_since(connection, record_id, scope, snapshot.observed_at)
         connection.execute(
             f"""
             UPDATE connection_history
@@ -405,10 +416,14 @@ class SQLiteConnectionHistoryRepository:
                 remote_address = ?, remote_port = ?, pid = ?,
                 process_create_time_utc_us = ?, process_name = ?,
                 process_status = ?, connection_state = ?, last_seen_utc_us = ?,
-                {_METADATA_ASSIGNMENTS}
+                {_METADATA_ASSIGNMENTS},
+                network_scope_status = ?, network_fingerprint = ?,
+                network_interface_id = ?, network_interface_index = ?,
+                network_scope_method = ?, network_scope_since_utc_us = ?
             WHERE id = ? AND closed_at_utc_us IS NULL AND observation_gap = 0
             """,
-            (*values, datetime_to_epoch_microseconds(snapshot.observed_at), *metadata, str(record_id)),
+            (*values, datetime_to_epoch_microseconds(snapshot.observed_at), *metadata,
+             *scope, scope_since, str(record_id)),
         )
 
     @staticmethod
@@ -419,6 +434,8 @@ class SQLiteConnectionHistoryRepository:
     ) -> None:
         values = _snapshot_values(event.last_snapshot)
         metadata = _metadata_values(event.last_snapshot.process)
+        scope = _scope_values(event.last_snapshot)
+        scope_since = _scope_since(connection, record_id, scope, event.last_snapshot.observed_at)
         connection.execute(
             f"""
             UPDATE connection_history
@@ -427,7 +444,10 @@ class SQLiteConnectionHistoryRepository:
                 process_create_time_utc_us = ?, process_name = ?,
                 process_status = ?, connection_state = ?, last_seen_utc_us = ?,
                 closed_at_utc_us = ?, close_reason = ?,
-                {_METADATA_ASSIGNMENTS}
+                {_METADATA_ASSIGNMENTS},
+                network_scope_status = ?, network_fingerprint = ?,
+                network_interface_id = ?, network_interface_index = ?,
+                network_scope_method = ?, network_scope_since_utc_us = ?
             WHERE id = ? AND closed_at_utc_us IS NULL AND observation_gap = 0
             """,
             (
@@ -436,6 +456,8 @@ class SQLiteConnectionHistoryRepository:
                 datetime_to_epoch_microseconds(event.occurred_at),
                 event.reason.value,
                 *metadata,
+                *scope,
+                scope_since,
                 str(record_id),
             ),
         )
@@ -723,6 +745,28 @@ def _snapshot_values(snapshot: ConnectionSnapshot) -> tuple[object, ...]:
     )
 
 
+def _scope_values(snapshot: ConnectionSnapshot) -> tuple[object, ...]:
+    scope = snapshot.network_scope
+    return (
+        scope.status.value, scope.fingerprint, scope.interface_id,
+        scope.interface_index, scope.method.value if scope.method is not None else None,
+    )
+
+
+def _scope_since(
+    connection: sqlite3.Connection, record_id: UUID,
+    scope: tuple[object, ...], observed_at: datetime,
+) -> int:
+    row = connection.execute(
+        "SELECT network_scope_status, network_fingerprint, network_interface_id, "
+        "network_interface_index, network_scope_method, network_scope_since_utc_us "
+        "FROM connection_history WHERE id = ?", (str(record_id),),
+    ).fetchone()
+    if row is not None and tuple(row[:5]) == scope and row[5] is not None:
+        return int(row[5])
+    return datetime_to_epoch_microseconds(observed_at)
+
+
 def _metadata_values(process: ProcessInfo) -> tuple[object, ...]:
     parent = process.parent
     return (
@@ -758,6 +802,21 @@ def _key_values(key: ConnectionKey) -> tuple[object, ...]:
             if identity is not None and identity.create_time is not None
             else None
         ),
+    )
+
+
+def _row_to_scope(row: sqlite3.Row) -> ConnectionNetworkScope:
+    status = NetworkScopeStatus(row["network_scope_status"])
+    if status is not NetworkScopeStatus.RESOLVED:
+        if any(row[key] is not None for key in (
+            "network_fingerprint", "network_interface_id",
+            "network_interface_index", "network_scope_method",
+        )):
+            raise ValueError("unresolved scope has context fields")
+        return ConnectionNetworkScope(status)
+    return ConnectionNetworkScope(
+        status, row["network_fingerprint"], row["network_interface_id"],
+        row["network_interface_index"], NetworkAttributionMethod(row["network_scope_method"]),
     )
 
 
@@ -833,6 +892,7 @@ def _row_to_record(row: sqlite3.Row) -> ConnectionHistoryRecord:
             state=ConnectionState(row["connection_state"]),
             process=process,
             observed_at=last_seen,
+            network_scope=_row_to_scope(row),
         )
         raw_closed_at = row["closed_at_utc_us"]
         raw_reason = row["close_reason"]
@@ -854,6 +914,8 @@ def _row_to_record(row: sqlite3.Row) -> ConnectionHistoryRecord:
             observation_gap=bool(row["observation_gap"]),
             session_id=UUID(row["monitoring_session_id"]) if row["monitoring_session_id"] else None,
             lifecycle_id=UUID(row["lifecycle_id"]) if row["lifecycle_id"] else None,
+            network_scope_since=(epoch_microseconds_to_datetime(row["network_scope_since_utc_us"])
+                                 if row["network_scope_since_utc_us"] is not None else None),
         )
     except HistoryDataCorrupt:
         raise

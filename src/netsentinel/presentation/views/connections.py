@@ -28,6 +28,9 @@ from PyQt6.QtWidgets import (
 )
 
 from netsentinel.domain.connections import ConnectionState, TransportProtocol
+from netsentinel.domain.connections import ConnectionNetworkScope
+from netsentinel.application.services.destination_evidence import live_request, DestinationEvidenceResult
+from netsentinel.presentation.destination_query import DestinationQueryCoordinator
 from netsentinel.presentation.bridge import BridgeHealthSnapshot
 from netsentinel.presentation.models.connection_filter import (
     ConnectionsFilterProxyModel,
@@ -51,6 +54,7 @@ class ConnectionsView(QWidget):
         self,
         model: ConnectionsTableModel | None = None,
         parent: QWidget | None = None,
+        *, destination_queries: DestinationQueryCoordinator | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("connectionsPage")
@@ -61,6 +65,8 @@ class ConnectionsView(QWidget):
         )
         self.proxy_model = ConnectionsFilterProxyModel(self)
         self._selected_row_id: ConnectionRowId | None = None
+        self.destination_queries = destination_queries
+        self._destination_generation: int | None = None
         self._selection_syncing = False
         self._selected_row_removing = False
         self._paused = False
@@ -217,6 +223,9 @@ class ConnectionsView(QWidget):
         self.proxy_model.modelReset.connect(self._on_proxy_structure_changed)
         self.proxy_model.layoutChanged.connect(self._on_proxy_structure_changed)
         self._update_empty_state()
+        if destination_queries is not None:
+            destination_queries.result_ready.connect(self._destination_ready)
+            destination_queries.query_failed.connect(self._destination_failed)
 
     @property
     def selected_row_id(self) -> ConnectionRowId | None:
@@ -369,14 +378,17 @@ class ConnectionsView(QWidget):
         if not current.isValid():
             self._selected_row_id = None
             self.details.clear()
+            self._destination_generation = None
             return
         row_id = self.proxy_model.data(current, int(ConnectionRole.ROW_ID))
         if not isinstance(row_id, ConnectionRowId):
             self._selected_row_id = None
             self.details.clear()
+            self._destination_generation = None
             return
         self._selected_row_id = row_id
         self.details.set_connection(current.siblingAtColumn(0))
+        self._request_destination(current)
 
     def _on_proxy_data_changed(
         self,
@@ -394,6 +406,7 @@ class ConnectionsView(QWidget):
             self._selected_row_id = None
             self.table.selectionModel().clear()
             self.details.clear()
+            self._destination_generation = None
             self._update_empty_state()
             return
         if not self._selection_syncing:
@@ -422,6 +435,7 @@ class ConnectionsView(QWidget):
         if self._selected_row_id is None:
             self.table.selectionModel().clearSelection()
             self.details.clear()
+            self._destination_generation = None
             return
 
         row = self._find_proxy_row(self._selected_row_id)
@@ -433,6 +447,7 @@ class ConnectionsView(QWidget):
                 self._selection_syncing = False
             self._selected_row_id = None
             self.details.clear()
+            self._destination_generation = None
             return
 
         index = self.proxy_model.index(row, 0)
@@ -447,6 +462,38 @@ class ConnectionsView(QWidget):
             self._selection_syncing = False
         if not self._paused:
             self.details.set_connection(index)
+            self._request_destination(index)
+
+    def _request_destination(self, index: QModelIndex) -> None:
+        first = index.siblingAtColumn(0)
+        remote = self.proxy_model.data(first, int(ConnectionRole.RAW_REMOTE_ADDRESS))
+        if not isinstance(remote, str):
+            self.details.destination.clear("No remote destination.")
+            self._destination_generation = None
+            return
+        if self.destination_queries is None:
+            self.details.destination.clear("Destination evidence unavailable.")
+            return
+        local = self.proxy_model.data(first, int(ConnectionRole.RAW_LOCAL_ADDRESS))
+        scope = self.proxy_model.data(first, int(ConnectionRole.NETWORK_SCOPE))
+        if not isinstance(scope, ConnectionNetworkScope):
+            scope = ConnectionNetworkScope.unknown()
+        self.details.destination.clear("Loading destination evidence…")
+        try:
+            self._destination_generation = self.destination_queries.request(
+                live_request(remote, local if isinstance(local, str) else None, scope)
+            )
+        except RuntimeError:
+            self.details.destination.clear("Destination evidence unavailable.")
+
+    def _destination_ready(self, generation: int, result: object) -> None:
+        if (generation == self._destination_generation and self._selected_row_id is not None
+                and isinstance(result, DestinationEvidenceResult)):
+            self.details.destination.set_result(result)
+
+    def _destination_failed(self, generation: int) -> None:
+        if generation == self._destination_generation:
+            self.details.destination.clear("Destination evidence unavailable.")
 
     def _find_proxy_row(self, row_id: ConnectionRowId) -> int | None:
         for row in range(self.proxy_model.rowCount()):

@@ -31,6 +31,9 @@ from netsentinel.application.ports import ConnectionHistoryQuery
 from netsentinel.application.services.history_query import ConnectionHistoryPage
 from netsentinel.domain.connections import TransportProtocol
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
+from netsentinel.presentation.destination_query import DestinationQueryCoordinator
+from netsentinel.application.services.destination_evidence import DestinationEvidenceRequest
+from netsentinel.presentation.destination_context import DestinationEvidenceWidget
 from netsentinel.presentation.models.history import HistoryRow, HistoryTableModel
 from netsentinel.presentation.process_context import (
     PROCESS_CONTEXT_FIELDS,
@@ -86,6 +89,13 @@ class HistoryDetailsWidget(QGroupBox):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(content)
         layout.addWidget(scroll)
+        self.destination = DestinationEvidenceWidget(self)
+        destination_scroll = QScrollArea(self)
+        destination_scroll.setWidgetResizable(True)
+        destination_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        destination_scroll.setMaximumHeight(240)
+        destination_scroll.setWidget(self.destination)
+        layout.addWidget(destination_scroll)
         self.clear()
 
     def clear(self) -> None:
@@ -93,6 +103,7 @@ class HistoryDetailsWidget(QGroupBox):
         self.status_label.show()
         for label in self.values.values():
             label.setText(MISSING_VALUE)
+        self.destination.clear()
 
     def set_row(self, row: HistoryRow) -> None:
         self.status_label.hide()
@@ -119,6 +130,7 @@ class HistoryView(QWidget):
         self,
         coordinator: HistoryQueryCoordinator | None = None,
         *,
+        destination_queries: DestinationQueryCoordinator | None = None,
         model: HistoryTableModel | None = None,
         parent: QWidget | None = None,
     ) -> None:
@@ -126,6 +138,8 @@ class HistoryView(QWidget):
         self.setObjectName("historyView")
         self.setAccessibleName("Connection history page")
         self.coordinator = coordinator
+        self.destination_queries = destination_queries
+        self._destination_generation: int | None = None
         self.model = HistoryTableModel(self) if model is None else model
         self._page_index = 0
         self._latest_generation: int | None = None
@@ -270,6 +284,9 @@ class HistoryView(QWidget):
         if coordinator is not None:
             coordinator.page_ready.connect(self._page_ready)
             coordinator.query_failed.connect(self._query_failed)
+        if destination_queries is not None:
+            destination_queries.result_ready.connect(self._destination_ready)
+            destination_queries.query_failed.connect(self._destination_failed)
         self._update_pagination()
 
     @property
@@ -351,6 +368,7 @@ class HistoryView(QWidget):
         )
         self._restore_record_id = current.record_id if current is not None else None
         self.details.clear()
+        self._destination_generation = None
         self.table.clearSelection()
         self._loading = True
         self.state_label.setText("Loading history…")
@@ -404,6 +422,7 @@ class HistoryView(QWidget):
         self._has_next = page.has_next
         self.model.replace_records(page.records)
         self.details.clear()
+        self._destination_generation = None
         if self._restore_record_id is not None:
             for index, row in enumerate(self.model.rows):
                 if row.record_id == self._restore_record_id:
@@ -436,8 +455,39 @@ class HistoryView(QWidget):
         row = self.model.row_at(current.row()) if current.isValid() else None
         if row is None:
             self.details.clear()
+            self._destination_generation = None
         else:
             self.details.set_row(row)
+            self._request_destination(row)
+
+    def _request_destination(self, row: HistoryRow) -> None:
+        if row.remote_address is None:
+            self.details.destination.clear("No remote destination.")
+            self._destination_generation = None
+            return
+        if self.destination_queries is None:
+            self.details.destination.clear("Destination evidence unavailable.")
+            return
+        self.details.destination.clear("Loading destination evidence…")
+        try:
+            self._destination_generation = self.destination_queries.request(
+                DestinationEvidenceRequest(row.remote_address, row.local_address,
+                                           row.network_scope, row.network_scope_since or row.last_seen,
+                                           row.last_seen, historical=True)
+            )
+        except RuntimeError:
+            self.details.destination.clear("Destination evidence unavailable.")
+
+    def _destination_ready(self, generation: int, result: object) -> None:
+        from netsentinel.application.services.destination_evidence import DestinationEvidenceResult
+
+        if generation == self._destination_generation and isinstance(result, DestinationEvidenceResult):
+            if self.table.selectionModel().hasSelection():
+                self.details.destination.set_result(result)
+
+    def _destination_failed(self, generation: int) -> None:
+        if generation == self._destination_generation:
+            self.details.destination.clear("Destination evidence unavailable.")
 
     def _filters_active(self) -> bool:
         return bool(

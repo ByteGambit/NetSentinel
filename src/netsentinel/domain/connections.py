@@ -613,6 +613,7 @@ class ConnectionHistoryRecord:
     observation_gap: bool = False
     session_id: UUID | None = None
     lifecycle_id: UUID | None = None
+    network_scope_since: datetime | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.record_id, UUID):
@@ -657,6 +658,10 @@ class ConnectionHistoryRecord:
             raise TypeError("lifecycle_id must be a UUID or None")
         if (self.session_id is None) != (self.lifecycle_id is None):
             raise ValueError("session_id and lifecycle_id must be set together")
+        if self.network_scope_since is not None:
+            object.__setattr__(self, "network_scope_since", _require_utc(self.network_scope_since, "network_scope_since"))
+            if not self.first_seen <= self.network_scope_since <= self.last_seen:
+                raise ValueError("network_scope_since must be within the observed interval")
 
     @property
     def key(self) -> ConnectionKey:

@@ -141,6 +141,38 @@ class SQLiteDnsAssociationRepository:
         except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError):
             raise DnsAssociationRepositoryError("DNS association could not be read.") from None
 
+    def overlapping_by_ip(
+        self, ip: str, *, network_scope: ConnectionNetworkScope, client_ip: str | None,
+        first_seen: datetime, last_seen: datetime, limit: int = 32,
+    ) -> tuple[DomainAssociation, ...]:
+        """Evidence valid at any point in an observed connection interval."""
+        from ipaddress import ip_address
+
+        if type(limit) is not int or not 1 <= limit <= 32 or first_seen > last_seen:
+            raise ValueError("invalid historical association query")
+        if any(value.tzinfo is None or value.utcoffset() != timedelta(0) for value in (first_seen, last_seen)):
+            raise ValueError("query clocks must be UTC-aware")
+        if network_scope.status is not NetworkScopeStatus.RESOLVED or client_ip is None:
+            return ()
+        address, client = str(ip_address(ip)), str(ip_address(client_ip))
+        try:
+            with self._database.connection() as connection:
+                rows = connection.execute(
+                    f"WITH ranked AS (SELECT {_COLUMNS}, ROW_NUMBER() OVER ("
+                    "PARTITION BY network_fingerprint, client_ip, domain, ip, provenance, cname_chain_json "
+                    "ORDER BY observed_at_utc_us DESC, rowid DESC) AS rank "
+                    "FROM dns_associations WHERE network_fingerprint = ? AND client_ip = ? AND ip = ? "
+                    "AND observed_at_utc_us <= ? AND expires_at_utc_us > ?) "
+                    f"SELECT {_COLUMNS} FROM ranked WHERE rank = 1 "
+                    "ORDER BY observed_at_utc_us DESC, "
+                    "CASE provenance WHEN 'direct_answer' THEN 0 ELSE 1 END, "
+                    "domain, cname_chain_json, evidence_id DESC LIMIT ?",
+                    (network_scope.fingerprint, client, address, to_us(last_seen), to_us(first_seen), limit),
+                ).fetchall()
+            return tuple(_decode(row) for row in rows)
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError):
+            raise DnsAssociationRepositoryError("DNS association could not be read.") from None
+
     def active_for_restore(self, *, now_utc: datetime, limit: int = 2048) -> tuple[DomainAssociation, ...]:
         if type(limit) is not int or not 1 <= limit <= 2048:
             raise ValueError("limit must be between 1 and 2048")

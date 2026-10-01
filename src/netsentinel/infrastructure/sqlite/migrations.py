@@ -165,6 +165,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="dns_association_evidence",
             sql=_read_resource("012_dns_association_evidence.sql", 12, "dns_association_evidence"),
         ),
+        Migration(
+            version=13,
+            name="connection_network_scope",
+            sql=_read_resource("013_connection_network_scope.sql", 13, "connection_network_scope"),
+        ),
     )
 
 

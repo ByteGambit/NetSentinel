@@ -16,9 +16,9 @@ def test_migrations_and_user_paths_do_not_depend_on_cwd(tmp_path: Path, monkeypa
     monkeypatch.setenv("LOCALAPPDATA", str(data))
     monkeypatch.chdir(elsewhere)
 
-    assert [item.version for item in builtin_migrations()] == list(range(1, 13))
+    assert [item.version for item in builtin_migrations()] == list(range(1, 14))
     assert default_database_path() == data / "NetSentinel" / "netsentinel.sqlite3"
     assert runtime_config_path() == data / "NetSentinel" / "config.json"
     with SQLiteDatabase().connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 12
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 13
     assert not any(elsewhere.iterdir())

@@ -721,7 +721,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-064 — Destination context UI
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-01).
 - **Amaç:** Belirsiz domain association'ı kullanıcıya açıklamak.
 - **Yapılacaklar:** Connections/History detail'e candidate/source/TTL/age ve local enrichment read model'i ekle; worker sorgusu kullan.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/history_query.py, tests/gui/.

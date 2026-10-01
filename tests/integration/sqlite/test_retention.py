@@ -567,7 +567,10 @@ def test_storage_diagnostics_report_empty_and_populated_files_without_path(
     assert empty.total_local_storage_bytes == empty.database_bytes + empty.wal_bytes
     assert populated.total_rows == 400
     assert populated.completed_rows == 400
-    assert populated.total_local_storage_bytes > empty.total_local_storage_bytes
+    # The initial migration WAL may be larger than the checkpointed populated
+    # database; only the main file's growth is stable across SQLite checkpoints.
+    assert populated.database_bytes > empty.database_bytes
+    assert populated.total_local_storage_bytes == populated.database_bytes + populated.wal_bytes
     assert {field.name for field in fields(HistoryStorageDiagnostics)} == {
         "database_bytes",
         "wal_bytes",

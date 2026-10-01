@@ -12,6 +12,7 @@ from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from netsentinel.domain.connections import (
     ConnectionClosureReason,
     ConnectionHistoryRecord,
+    ConnectionNetworkScope,
     ProcessInfo,
 )
 from netsentinel.presentation.viewmodels import (
@@ -65,6 +66,12 @@ class HistoryRow:
     process_create_time_display: str
     close_reason_display: str
     process_info: ProcessInfo
+    remote_address: str | None
+    local_address: str
+    network_scope: ConnectionNetworkScope
+    first_seen: datetime
+    last_seen: datetime
+    network_scope_since: datetime | None
 
 
 def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
@@ -108,6 +115,12 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
         ),
         close_reason_display=observation_status,
         process_info=snapshot.process,
+        remote_address=remote.address if remote is not None else None,
+        local_address=snapshot.local_endpoint.address,
+        network_scope=snapshot.network_scope,
+        first_seen=record.first_seen,
+        last_seen=record.last_seen,
+        network_scope_since=record.network_scope_since,
     )
 
 

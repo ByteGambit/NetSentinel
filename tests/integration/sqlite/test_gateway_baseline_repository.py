@@ -29,8 +29,8 @@ def test_upgrade_round_trip_history_and_scope(tmp_path):
     old = SQLiteConnectionFactory(path).connect()
     try:
         assert MigrationRunner(builtin_migrations()[:3]).migrate(old) == 3
-        assert default_migration_runner().migrate(old) == 12
-        assert default_migration_runner().migrate(old) == 12
+        assert default_migration_runner().migrate(old) == 13
+        assert default_migration_runner().migrate(old) == 13
     finally:
         old.close()
     database = SQLiteDatabase(path)

@@ -23,6 +23,9 @@ from netsentinel.domain.connections import (
     ConnectionClosureReason,
     ConnectionOpened,
     ConnectionSnapshot,
+    ConnectionNetworkScope,
+    NetworkAttributionMethod,
+    NetworkScopeStatus,
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
@@ -82,6 +85,7 @@ def _snapshot(
     remote_address: str | None = "198.51.100.20",
     remote_port: int = 443,
     process: ProcessInfo | None = None,
+    network_scope: ConnectionNetworkScope | None = None,
 ) -> ConnectionSnapshot:
     if state is None:
         state = (
@@ -99,6 +103,7 @@ def _snapshot(
         state=state,
         process=process if process is not None else _process(),
         observed_at=observed_at,
+        network_scope=network_scope or ConnectionNetworkScope.unknown(),
     )
 
 
@@ -121,7 +126,7 @@ def test_repository_uses_fresh_migrated_temporary_database(
     with database.connection() as connection:
         assert connection.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 12
+        ).fetchone()[0] == 13
 
 
 def test_open_insert_and_lookup_round_trip_ipv4_process_and_timestamps(
@@ -142,6 +147,27 @@ def test_open_insert_and_lookup_round_trip_ipv4_process_and_timestamps(
     assert loaded.first_seen.microsecond == 123_456
     assert loaded.closed_at is None
     assert repository.get(UUID("00000000-0000-0000-0000-000000000000")) is None
+
+
+def test_network_scope_round_trip_and_change_limits_historical_window(repository) -> None:
+    first_scope = ConnectionNetworkScope(NetworkScopeStatus.RESOLVED, "a" * 64, "first", 1,
+                                         NetworkAttributionMethod.LOCAL_ADDRESS_MATCH)
+    second_scope = ConnectionNetworkScope(NetworkScopeStatus.RESOLVED, "b" * 64, "second", 2,
+                                          NetworkAttributionMethod.LOCAL_ADDRESS_MATCH)
+    opened = _open(repository, network_scope=first_scope)
+    assert opened.snapshot.network_scope == first_scope
+    assert opened.network_scope_since == FIRST
+    current = _snapshot(observed_at=SECOND, network_scope=second_scope)
+    updated = repository.record_updated(ConnectionUpdated(
+        _snapshot(network_scope=first_scope), current, opened.session_id, opened.lifecycle_id,
+    ))
+    assert updated.snapshot.network_scope == second_scope
+    assert updated.network_scope_since == SECOND
+    later = _snapshot(observed_at=CLOSED, network_scope=second_scope)
+    stable = repository.record_updated(ConnectionUpdated(
+        current, later, opened.session_id, opened.lifecycle_id,
+    ))
+    assert stable.network_scope_since == SECOND
 
 
 def test_ipv6_udp_and_nullable_remote_pid_metadata_round_trip(

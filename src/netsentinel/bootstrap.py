@@ -24,6 +24,7 @@ from netsentinel.application.services.dns_history import (
 )
 from netsentinel.application.services.dns_association import DnsAssociationService
 from netsentinel.application.services.destination_context import DestinationContextResolver
+from netsentinel.application.services.destination_evidence import DestinationEvidenceService
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
@@ -310,6 +311,21 @@ def create_destination_context_resolver(config: AppConfig | None = None) -> Dest
 
     settings = config or AppConfig()
     return DestinationContextResolver(LocalDestinationDataset(settings.destination_dataset_path))
+
+
+def create_destination_evidence_service_factory(
+    *, config: AppConfig | None = None, database_path: str | PathLike[str] | None = None,
+) -> Callable[[], DestinationEvidenceService]:
+    """Construct local dataset and SQLite readers inside the query worker."""
+
+    def create() -> DestinationEvidenceService:
+        return DestinationEvidenceService(
+            SQLiteDnsAssociationRepository(SQLiteDatabase(database_path)),
+            create_destination_context_resolver(config),
+            SQLiteDnsHistoryRepository(SQLiteDatabase(database_path)),
+        )
+
+    return create
 
 
 def collect_diagnostics(

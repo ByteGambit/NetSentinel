@@ -63,6 +63,7 @@ class ConnectionRole(IntEnum):
     RAW_REMOTE_PORT = ROW_ID + 8
     DURATION = ROW_ID + 9
     PROCESS_INFO = ROW_ID + 10
+    NETWORK_SCOPE = ROW_ID + 11
 
 
 _DISPLAY_FIELDS = (
@@ -87,6 +88,7 @@ _RAW_ROLE_FIELDS = {
     ConnectionRole.RAW_REMOTE_PORT: "remote_port",
     ConnectionRole.DURATION: "duration_seconds",
     ConnectionRole.PROCESS_INFO: "process_info",
+    ConnectionRole.NETWORK_SCOPE: "network_scope",
 }
 
 _CHANGED_ROLES = [
@@ -176,6 +178,7 @@ class ConnectionsTableModel(QAbstractTableModel):
                 int(ConnectionRole.RAW_REMOTE_PORT): b"rawRemotePort",
                 int(ConnectionRole.DURATION): b"duration",
                 int(ConnectionRole.PROCESS_INFO): b"processInfo",
+                int(ConnectionRole.NETWORK_SCOPE): b"networkScope",
             }
         )
         return names

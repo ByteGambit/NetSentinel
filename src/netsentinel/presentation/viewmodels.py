@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from netsentinel.domain.connections import (
+    ConnectionNetworkScope,
     ConnectionKey,
     ConnectionSnapshot,
     ConnectionState,
@@ -63,6 +64,7 @@ class ConnectionRow:
     first_seen: datetime
     observed_at: datetime
     process_info: ProcessInfo
+    network_scope: ConnectionNetworkScope
 
 
 def connection_row_id(key: ConnectionKey) -> ConnectionRowId:
@@ -125,6 +127,7 @@ def connection_row_from_snapshot(
         first_seen=started_at,
         observed_at=snapshot.observed_at,
         process_info=snapshot.process,
+        network_scope=snapshot.network_scope,
     )
 
 

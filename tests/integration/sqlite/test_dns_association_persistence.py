@@ -87,6 +87,49 @@ def test_evidence_associations_and_history_are_distinct_and_idempotent(tmp_path)
                                      now_utc=AT + timedelta(seconds=2), limit=1)
 
 
+def test_historical_interval_excludes_future_expired_and_other_scope(tmp_path) -> None:
+    db = SQLiteDatabase(tmp_path / "historical.sqlite3")
+    history = SQLiteDnsHistoryRepository(db)
+    repository = SQLiteDnsAssociationRepository(db)
+    service = DnsAssociationService(clock=lambda: 0.0)
+    _persist(history, service, _transaction(at=AT - timedelta(seconds=30)))
+    _persist(history, service, _transaction(at=AT + timedelta(seconds=30)))
+    _persist(history, service, _transaction(at=AT - timedelta(seconds=120)))
+    matches = repository.overlapping_by_ip(
+        "1.2.3.4", network_scope=_scope(), client_ip="192.0.2.20",
+        first_seen=AT, last_seen=AT + timedelta(seconds=5),
+    )
+    assert len(matches) == 1
+    assert matches[0].observed_at == AT - timedelta(seconds=30)
+    assert repository.overlapping_by_ip(
+        "1.2.3.4", network_scope=_scope("b" * 64), client_ip="192.0.2.20",
+        first_seen=AT, last_seen=AT + timedelta(seconds=5),
+    ) == ()
+    assert repository.overlapping_by_ip(
+        "1.2.3.4", network_scope=_scope(), client_ip="192.0.2.21",
+        first_seen=AT, last_seen=AT + timedelta(seconds=5),
+    ) == ()
+
+
+def test_historical_candidate_order_prefers_direct_at_equal_time(tmp_path) -> None:
+    db = SQLiteDatabase(tmp_path / "order.sqlite3")
+    history = SQLiteDnsHistoryRepository(db)
+    repository = SQLiteDnsAssociationRepository(db)
+    service = DnsAssociationService(clock=lambda: 0.0)
+    answers = (
+        DnsAnswer("example.com", DnsRecordType.CNAME, "edge.example", 30),
+        DnsAnswer("edge.example", DnsRecordType.A, "1.2.3.4", 60),
+    )
+    _persist(history, service, _transaction(answers=answers))
+    rows = repository.overlapping_by_ip(
+        "1.2.3.4", network_scope=_scope(), client_ip="192.0.2.20",
+        first_seen=AT, last_seen=AT + timedelta(seconds=1),
+    )
+    assert tuple(item.provenance for item in rows) == (
+        DnsAssociationProvenance.DIRECT_ANSWER, DnsAssociationProvenance.CNAME_DERIVED,
+    )
+
+
 def test_cname_ttl_zero_scope_resolver_and_restart(tmp_path) -> None:
     path = tmp_path / "restart.sqlite3"
     db = SQLiteDatabase(path)
@@ -160,7 +203,7 @@ def test_legacy_unknown_origin_and_retention_does_not_cascade(tmp_path) -> None:
             f"INSERT INTO dns_history ({columns}) VALUES ({','.join('?' for _ in values)})",
             values,
         )
-        assert MigrationRunner(builtin_migrations()).migrate(connection) == 12
+        assert MigrationRunner(builtin_migrations()).migrate(connection) == 13
     finally:
         connection.close()
     db = SQLiteDatabase(path)
@@ -169,6 +212,18 @@ def test_legacy_unknown_origin_and_retention_does_not_cascade(tmp_path) -> None:
     assert old is not None and old.transaction.evidence_id is None
     assert history.source_status(old.transaction.evidence_id) is DnsEvidenceSourceStatus.UNKNOWN_LEGACY
     assert history.get_by_evidence_id(legacy.transaction.evidence_id) is None
+    assert history.legacy_ip_observed(
+        "1.2.3.4", network_fingerprint=NETWORK, client_ip="192.0.2.20",
+        first_seen=AT, last_seen=AT + timedelta(seconds=1),
+    )
+    assert not history.legacy_ip_observed(
+        "1.2.3.4", network_fingerprint="b" * 64, client_ip="192.0.2.20",
+        first_seen=AT, last_seen=AT + timedelta(seconds=1),
+    )
+    assert not history.legacy_ip_observed(
+        "1.2.3.4", network_fingerprint=NETWORK, client_ip="192.0.2.20",
+        first_seen=AT - timedelta(minutes=2), last_seen=AT - timedelta(minutes=1),
+    )
     service = DnsAssociationService(clock=lambda: 0.0)
     new, observed = _persist(history, service, _transaction(at=AT + timedelta(days=1)))
     assert observed

@@ -25,6 +25,7 @@ from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.device_profile import DeviceProfileCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
+from netsentinel.presentation.destination_query import DestinationQueryCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
 from netsentinel.presentation.capability_query import CapabilityCoordinator
@@ -81,6 +82,7 @@ class MainWindow(QMainWindow):
         connections_model: ConnectionsTableModel | None = None,
         statistics: StatisticsService | None = None,
         history_queries: HistoryQueryCoordinator | None = None,
+        destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
@@ -142,8 +144,9 @@ class MainWindow(QMainWindow):
             PageId.CONNECTIONS: ConnectionsView(
                 model=self.connections_model,
                 parent=self.content,
+                destination_queries=destination_queries[0] if destination_queries else None,
             ),
-            PageId.HISTORY: HistoryView(history_queries, parent=self.content),
+            PageId.HISTORY: HistoryView(history_queries, destination_queries=destination_queries[1] if destination_queries else None, parent=self.content),
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory, profiles=device_profiles),
             PageId.DNS: DnsView(self.content, coordinator=dns_queries),
             PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries),

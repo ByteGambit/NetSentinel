@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
+from datetime import timedelta
+from ipaddress import ip_address
 import json
 from math import isfinite
 import sqlite3
@@ -153,6 +155,39 @@ class SQLiteDnsHistoryRepository:
             return DnsEvidenceSourceStatus.UNKNOWN_LEGACY
         return (DnsEvidenceSourceStatus.AVAILABLE if self.get_by_evidence_id(evidence_id) is not None
                 else DnsEvidenceSourceStatus.SOURCE_UNAVAILABLE)
+
+    def legacy_ip_observed(
+        self, ip: str, *, network_fingerprint: str, client_ip: str,
+        first_seen: datetime, last_seen: datetime,
+    ) -> bool:
+        """Bounded legacy indicator, without inventing a canonical source ID."""
+        address = str(ip_address(ip))
+        client = str(ip_address(client_ip))
+        lower = max(datetime(1970, 1, 1, tzinfo=UTC), first_seen - timedelta(seconds=3600))
+        try:
+            with self._database.connection() as connection:
+                rows = connection.execute(
+                    "SELECT answers_json, response_at_utc_us FROM dns_history "
+                    "WHERE evidence_id IS NULL AND status = 'completed' AND response_code = 0 "
+                    "AND truncated = 0 AND network_fingerprint = ? AND client_ip = ? "
+                    "AND response_at_utc_us >= ? AND response_at_utc_us <= ? "
+                    "ORDER BY response_at_utc_us DESC, id DESC LIMIT 128",
+                    (network_fingerprint, client, to_us(lower), to_us(last_seen)),
+                ).fetchall()
+            for row in rows:
+                observed = from_us(row["response_at_utc_us"])
+                answers = json.loads(row["answers_json"])
+                if not isinstance(answers, list):
+                    continue
+                for answer in answers[:16]:
+                    if (isinstance(answer, list) and len(answer) == 4
+                            and answer[1] in (1, 28) and answer[2] == address
+                            and type(answer[3]) is int and answer[3] > 0
+                            and observed + timedelta(seconds=min(answer[3], 3600)) > first_seen):
+                        return True
+            return False
+        except (SQLiteAdapterError, sqlite3.Error, ValueError, TypeError, OverflowError, json.JSONDecodeError):
+            raise DnsHistoryRepositoryError("Legacy DNS evidence could not be read.") from None
 
     def get(self, record_id: UUID) -> DnsHistoryRecord | None:
         if not isinstance(record_id, UUID):

@@ -15,6 +15,7 @@ from netsentinel.presentation.process_context import (
     process_context_text,
 )
 from netsentinel.presentation.viewmodels import MISSING_VALUE
+from netsentinel.presentation.destination_context import DestinationEvidenceWidget
 
 
 _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
@@ -70,6 +71,13 @@ class ConnectionDetailsWidget(QGroupBox):
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         scroll.setWidget(content)
         layout.addWidget(scroll)
+        self.destination = DestinationEvidenceWidget(self)
+        destination_scroll = QScrollArea(self)
+        destination_scroll.setWidgetResizable(True)
+        destination_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        destination_scroll.setMaximumHeight(240)
+        destination_scroll.setWidget(self.destination)
+        layout.addWidget(destination_scroll)
         self.clear()
 
     def value_text(self, field: str) -> str:
@@ -82,6 +90,7 @@ class ConnectionDetailsWidget(QGroupBox):
         self.status_label.show()
         for label in self.value_labels.values():
             label.setText(MISSING_VALUE)
+        self.destination.clear()
 
     def set_connection(self, index: QModelIndex) -> None:
         if not index.isValid() or index.model() is None:
