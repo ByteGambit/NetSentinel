@@ -18,7 +18,7 @@ from netsentinel.domain.dns import (
 )
 
 
-_Key = tuple[str, str, str, str, DnsAssociationProvenance, tuple[str, ...], str]
+_Key = tuple[str, str, str, str, DnsAssociationProvenance, tuple[str, ...]]
 MAX_CNAME_STATES = 64
 MAX_CNAME_RESULTS = 64
 
@@ -190,7 +190,7 @@ class DnsAssociationService:
         key: _Key = (
             association.network_fingerprint, association.client_ip,
             association.domain, association.ip, association.provenance,
-            association.cname_chain, association.server_ip,
+            association.cname_chain,
         )
         old = self._items.get(key)
         if old is not None:

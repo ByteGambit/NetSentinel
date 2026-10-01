@@ -205,6 +205,10 @@ def test_response_replay_and_older_timestamp_do_not_refresh() -> None:
     assert lookup(service).candidates[0].observed_at == AT
     service.observe(replace(transaction(), response_at=AT - timedelta(seconds=1)))
     assert lookup(service).candidates[0].observed_at == AT
+    later = transaction(at=AT + timedelta(seconds=2))
+    service.observe(replace(later, server_ip="198.51.100.54"))
+    assert service.stats().active == 1
+    assert lookup(service).candidates[0].server_ip == "198.51.100.54"
 
 
 def test_concurrent_observe_and_lookup_stay_bounded() -> None:

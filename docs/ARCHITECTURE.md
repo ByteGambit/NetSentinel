@@ -1529,7 +1529,8 @@ TTL=0 gözlem olarak dönse de aktif cache'e girmez. Runtime expiry monotonic'ti
 UTC response zamanı kanıt olarak kalır. Varsayılan retention üst sınırı 3600 s,
 global 2048, scope başına IP 32 ve domain 32 adaydır. Süre dolanlar önce
 temizlenir, kapasitede en eski/yenilenmemiş aday deterministik tahliye edilir.
-Duplicate yeni observation time ile coalesce olur; kapasite kaybı sticky,
+Duplicate yeni observation time ile coalesce olur; DNS server kimlik değildir,
+son gözlemin resolver provenance'ı tutulur. Kapasite kaybı sticky,
 sanitize aggregate service stats içinde görünür. Transaction alanları yalnız
 geçici evidence reference'dır; kalıcı DNS result ID ve SQLite NS-063 işidir.
 
