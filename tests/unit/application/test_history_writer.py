@@ -27,10 +27,12 @@ from netsentinel.domain.connections import (
     ConnectionState,
     ConnectionUpdated,
     Endpoint,
+    ObservationQuality,
     ProcessInfo,
     TransportProtocol,
 )
 from netsentinel.shared.diagnostics import DiagnosticCode, PersistenceState
+from netsentinel.shared.config import AppConfig, load_config_values
 
 
 BASE = datetime(2026, 9, 19, 12, 0, tzinfo=UTC)
@@ -87,6 +89,9 @@ class ControlledSession:
 
     def record_updated(self, event: ConnectionUpdated) -> ConnectionHistoryRecord:
         return self._record("updated", event, event.current)
+
+    def record_checkpoint(self, event: ConnectionUpdated) -> None:
+        self._record("checkpoint", event, event.current)
 
     def record_closed(self, event: ConnectionClosed) -> ConnectionHistoryRecord:
         return self._record("closed", event, event.last_snapshot)
@@ -484,3 +489,95 @@ def test_application_domain_and_presentation_preserve_sqlite_and_writer_boundari
                     violations.append(str(source_path))
 
     assert violations == []
+
+
+def test_checkpoint_due_uses_monotonic_time_and_is_per_lifecycle() -> None:
+    session = ControlledSession()
+    writer, _ = _writer(session)
+    now = [0.0]
+    submitted: list[ConnectionUpdated] = []
+    writer.submit_checkpoint = lambda event: submitted.append(event) or True  # type: ignore[method-assign]
+    persistence = ConnectionHistoryPersistence(
+        EventDispatcher(), writer, checkpoint_interval=10,
+        monotonic_clock=lambda: now[0],
+    )
+    tracker = ConnectionTrackingService()
+    first = (_snapshot(1), _snapshot(2), _snapshot(3))
+    tracker.track(first)
+    persistence.observe_round(tracker.active_connections, {item.key for item in first})
+    assert submitted == []
+    now[0] = 10.0
+    later = tuple(_snapshot(index, at=BASE + timedelta(hours=5)) for index in (1, 2, 3))
+    tracker.track(later)
+    persistence.observe_round(tracker.active_connections, {item.key for item in later})
+    assert len(submitted) == 3
+    assert {item.current.key for item in submitted} == {item.key for item in later}
+    now[0] = 11.0
+    # A UTC clock jump has no effect on the next due time.
+    jumped = tuple(_snapshot(index, at=BASE + timedelta(days=2)) for index in (1, 2, 3))
+    tracker.track(jumped)
+    persistence.observe_round(tracker.active_connections, {item.key for item in jumped})
+    assert len(submitted) == 3
+    now[0] = 20.0
+    persistence.observe_round(tracker.active_connections, {jumped[0].key})
+    assert len(submitted) == 4
+    assert submitted[-1].current.key == jumped[0].key
+
+
+def test_slow_writer_coalesces_checkpoints_before_close() -> None:
+    session = ControlledSession()
+    session.release_write.clear()
+    writer, _ = _writer(session, queue_capacity=2, batch_size=1, batch_interval=0)
+    opened = ConnectionOpened(_snapshot(1))
+    assert writer.start()
+    assert writer.submit(opened)
+    assert session.entered_write.wait(1.0)
+    for seconds in range(1, 101):
+        current = _snapshot(1, at=BASE + timedelta(seconds=seconds))
+        assert writer.submit_checkpoint(ConnectionUpdated(
+            opened.snapshot, current, opened.session_id, opened.lifecycle_id,
+        ))
+    assert writer.health.queue_depth == 1
+    assert writer.submit(ConnectionClosed(
+        current, current.observed_at + timedelta(seconds=1),
+        session_id=opened.session_id, lifecycle_id=opened.lifecycle_id,
+    ))
+    assert writer.health.queue_depth == 2
+    session.release_write.set()
+    assert writer.stop(2.0)
+    assert [kind for kind, _ in session.calls] == ["opened", "checkpoint", "closed"]
+    assert session.calls[1][1].current.observed_at == current.observed_at
+
+
+def test_failed_and_reduced_round_checkpoint_only_seen_lifecycle() -> None:
+    writer, _ = _writer(ControlledSession())
+    submitted: list[ConnectionUpdated] = []
+    writer.submit_checkpoint = lambda event: submitted.append(event) or True  # type: ignore[method-assign]
+    now = [0.0]
+    persistence = ConnectionHistoryPersistence(
+        EventDispatcher(), writer, checkpoint_interval=10,
+        monotonic_clock=lambda: now[0],
+    )
+    tracker = ConnectionTrackingService()
+    first = (_snapshot(1), _snapshot(2))
+    tracker.track(first)
+    persistence.observe_round(tracker.active_connections, {item.key for item in first})
+    now[0] = 12.0
+    assert tracker.record_failure(observed_at=BASE + timedelta(seconds=10)).quality is ObservationQuality.FAILED
+    assert submitted == []
+    seen = _snapshot(1, at=BASE + timedelta(seconds=12))
+    tracker.track((seen,), quality=ObservationQuality.REDUCED)
+    persistence.observe_round(tracker.active_connections, {seen.key})
+    assert len(submitted) == 1
+    assert submitted[0].current.observed_at == seen.observed_at
+    retained = next(item for item in tracker.active_connections if item.key == first[1].key)
+    assert retained.last_seen == BASE
+    assert not any(item.current.key == first[1].key for item in submitted)
+
+
+def test_checkpoint_interval_config_is_typed_and_bounded() -> None:
+    assert AppConfig().history_checkpoint_interval == 30.0
+    assert load_config_values({"history_checkpoint_interval": 45}).config.history_checkpoint_interval == 45
+    invalid = load_config_values({"history_checkpoint_interval": 0})
+    assert invalid.config.history_checkpoint_interval == 30.0
+    assert invalid.issues[0].field == "history_checkpoint_interval"

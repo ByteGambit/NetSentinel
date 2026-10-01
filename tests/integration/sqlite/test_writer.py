@@ -77,10 +77,12 @@ def _events() -> tuple[ConnectionOpened, ConnectionUpdated, ConnectionClosed]:
         process=process,
         observed_at=FIRST + timedelta(seconds=1),
     )
+    opened = ConnectionOpened(opened_snapshot)
     return (
-        ConnectionOpened(opened_snapshot),
-        ConnectionUpdated(opened_snapshot, updated_snapshot),
-        ConnectionClosed(updated_snapshot, FIRST + timedelta(seconds=2)),
+        opened,
+        ConnectionUpdated(opened_snapshot, updated_snapshot, opened.session_id, opened.lifecycle_id),
+        ConnectionClosed(updated_snapshot, FIRST + timedelta(seconds=2),
+                         session_id=opened.session_id, lifecycle_id=opened.lifecycle_id),
     )
 
 

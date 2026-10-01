@@ -66,6 +66,21 @@ class SQLiteConnectionHistoryWriteSession:
                 "Connection history could not be written."
             ) from error
 
+    def reconcile_open(self, limit: int = 256) -> int:
+        """Mark a bounded group of prior open observations as interrupted."""
+        self._require_batch()
+        try:
+            cursor = self._connection.execute(
+                """UPDATE connection_history SET observation_gap = 1
+                   WHERE id IN (SELECT id FROM connection_history
+                                WHERE closed_at_utc_us IS NULL AND observation_gap = 0
+                                ORDER BY first_seen_utc_us, id LIMIT ?)""",
+                (limit,),
+            )
+            return cursor.rowcount
+        except sqlite3.Error as error:
+            raise HistoryRepositoryError("History reconciliation failed.") from error
+
     def record_updated(self, event: ConnectionUpdated) -> ConnectionHistoryRecord:
         if not isinstance(event, ConnectionUpdated):
             raise TypeError("event must be a ConnectionUpdated")
@@ -81,6 +96,13 @@ class SQLiteConnectionHistoryWriteSession:
             raise HistoryRepositoryError(
                 "Connection history could not be written."
             ) from error
+
+    def record_checkpoint(self, event: ConnectionUpdated) -> None:
+        self._require_batch()
+        try:
+            self._repository._record_checkpoint_in_transaction(self._connection, event)  # noqa: SLF001
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError) as error:
+            raise HistoryRepositoryError("Connection checkpoint could not be written.") from error
 
     def record_closed(self, event: ConnectionClosed) -> ConnectionHistoryRecord:
         if not isinstance(event, ConnectionClosed):

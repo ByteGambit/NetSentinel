@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from uuid import UUID
 from math import isfinite
 from queue import Empty, Full, Queue
 from threading import Event, RLock, Thread, current_thread
@@ -21,6 +22,8 @@ from netsentinel.domain.connections import (
     ConnectionLifecycleEvent,
     ConnectionOpened,
     ConnectionUpdated,
+    ConnectionKey,
+    TrackedConnection,
 )
 from netsentinel.shared.diagnostics import (
     Diagnostic,
@@ -39,9 +42,15 @@ DEFAULT_BATCH_INTERVAL = 0.1
 DEFAULT_RETRY_LIMIT = 2
 DEFAULT_RETRY_BACKOFF = 0.05
 DEFAULT_SHUTDOWN_TIMEOUT = 2.0
+DEFAULT_CHECKPOINT_INTERVAL = 30.0
 
 WallClock = Callable[[], datetime]
 MonotonicClock = Callable[[], float]
+
+
+@dataclass(frozen=True, slots=True)
+class _Checkpoint:
+    event: ConnectionUpdated
 
 
 class HistoryWriterLifecycleError(RuntimeError):
@@ -55,6 +64,9 @@ class ConnectionHistoryPersistence:
         self,
         dispatcher: EventDispatcher,
         writer: ConnectionHistoryWriter,
+        *,
+        checkpoint_interval: float = DEFAULT_CHECKPOINT_INTERVAL,
+        monotonic_clock: MonotonicClock | None = None,
     ) -> None:
         if not isinstance(dispatcher, EventDispatcher):
             raise TypeError("dispatcher must be an EventDispatcher")
@@ -64,6 +76,12 @@ class ConnectionHistoryPersistence:
         self._writer = writer
         self._lock = RLock()
         self._subscriptions: list[Subscription[object]] = []
+        _require_non_negative_float(checkpoint_interval, "checkpoint_interval")
+        if checkpoint_interval == 0:
+            raise ValueError("checkpoint_interval must be positive")
+        self._checkpoint_interval = float(checkpoint_interval)
+        self._monotonic = monotonic_clock or monotonic
+        self._checkpoint_due: dict[UUID, float] = {}
 
     def start(self) -> bool:
         """Start the writer, then attach each lifecycle type exactly once."""
@@ -101,7 +119,33 @@ class ConnectionHistoryPersistence:
                 self._writer.stop()
                 raise
             self._subscriptions = subscriptions
+            self._checkpoint_due.clear()
             return True
+
+    def observe_round(
+        self,
+        active: tuple[TrackedConnection, ...],
+        observed_keys: set[ConnectionKey],
+    ) -> None:
+        """Schedule freshness only for lifecycles actually seen in this round."""
+        now = self._monotonic()
+        live = {item.lifecycle_id for item in active}
+        for lifecycle_id in tuple(self._checkpoint_due):
+            if lifecycle_id not in live:
+                del self._checkpoint_due[lifecycle_id]
+        for item in active:
+            if item.snapshot.key not in observed_keys:
+                continue
+            due = self._checkpoint_due.setdefault(item.lifecycle_id, now + self._checkpoint_interval)
+            if now < due:
+                continue
+            snapshot = item.snapshot
+            checkpoint = ConnectionUpdated(
+                previous=snapshot, current=snapshot,
+                session_id=item.session_id, lifecycle_id=item.lifecycle_id,
+            )
+            if self._writer.submit_checkpoint(checkpoint):
+                self._checkpoint_due[item.lifecycle_id] = now + self._checkpoint_interval
 
     def stop(self, timeout: float | None = None) -> bool:
         """Detach producers first, then bounded-drain the writer."""
@@ -111,6 +155,7 @@ class ConnectionHistoryPersistence:
             self._subscriptions.clear()
         for subscription in subscriptions:
             self._dispatcher.unsubscribe(subscription)
+        self._checkpoint_due.clear()
         return self._writer.stop(timeout)
 
     def health_snapshot(self) -> PersistenceHealthSnapshot:
@@ -159,7 +204,8 @@ class ConnectionHistoryWriter:
             raise ValueError("thread_name must not be empty")
 
         self._repository_factory = repository_factory
-        self._queue: Queue[ConnectionLifecycleEvent] = Queue(maxsize=queue_capacity)
+        self._queue: Queue[ConnectionLifecycleEvent | UUID] = Queue(maxsize=queue_capacity)
+        self._pending_checkpoints: dict[UUID, ConnectionUpdated] = {}
         self._batch_size = batch_size
         self._batch_interval = float(batch_interval)
         self._retry_limit = retry_limit
@@ -249,6 +295,32 @@ class ConnectionHistoryWriter:
             )
             return True
 
+    def submit_checkpoint(self, event: ConnectionUpdated) -> bool:
+        """Keep at most one queued checkpoint per lifecycle."""
+        if not isinstance(event, ConnectionUpdated):
+            raise TypeError("checkpoint must be a ConnectionUpdated")
+        with self._lock:
+            if not self._accepting or self._health.state is not PersistenceState.RUNNING:
+                return False
+            prior = self._pending_checkpoints.get(event.lifecycle_id)
+            if prior is not None:
+                if event.current.observed_at >= prior.current.observed_at:
+                    self._pending_checkpoints[event.lifecycle_id] = event
+                return True
+            try:
+                self._queue.put_nowait(event.lifecycle_id)
+            except Full:
+                self._record_drop_locked(DiagnosticCode.PERSISTENCE_OVERFLOW)
+                return False
+            self._pending_checkpoints[event.lifecycle_id] = event
+            self._health = replace(
+                self._health,
+                queue_depth=self._queue.qsize(),
+                counters=replace(self._health.counters,
+                    accepted_events=self._health.counters.accepted_events + 1),
+            )
+            return True
+
     def stop(self, timeout: float | None = None) -> bool:
         """Close acceptance and drain accepted work within a bounded wait.
 
@@ -309,6 +381,12 @@ class ConnectionHistoryWriter:
                 session_manager = self._repository_factory()
                 with session_manager as repository:
                     session_entered = True
+                    reconcile = getattr(repository, "reconcile_open", None)
+                    if callable(reconcile):
+                        while not self._abandon_requested.is_set():
+                            with repository.batch():
+                                if reconcile() == 0:
+                                    break
                     self._consume(repository)
             except Exception:
                 self._record_worker_failure(
@@ -337,9 +415,9 @@ class ConnectionHistoryWriter:
             except Empty:
                 continue
 
-            batch = [first]
+            batch_items = [first]
             deadline = self._monotonic() + self._batch_interval
-            while len(batch) < self._batch_size:
+            while len(batch_items) < self._batch_size:
                 try:
                     if self._stop_requested.is_set():
                         item = self._queue.get_nowait()
@@ -350,18 +428,27 @@ class ConnectionHistoryWriter:
                         item = self._queue.get(timeout=remaining)
                 except Empty:
                     break
-                batch.append(item)
+                batch_items.append(item)
+
+            with self._lock:
+                batch = tuple(
+                    _Checkpoint(checkpoint) if isinstance(item, UUID) else checkpoint
+                    for item in batch_items
+                    if (checkpoint := self._pending_checkpoints.pop(item, None)
+                        if isinstance(item, UUID) else item) is not None
+                )
 
             try:
-                self._persist_batch_resilient(repository, tuple(batch))
+                if batch:
+                    self._persist_batch_resilient(repository, batch)
             finally:
-                for _ in batch:
+                for _ in batch_items:
                     self._queue.task_done()
 
     def _persist_batch_resilient(
         self,
         repository: ConnectionHistoryWriteSession,
-        batch: tuple[ConnectionLifecycleEvent, ...],
+        batch: tuple[ConnectionLifecycleEvent | _Checkpoint, ...],
     ) -> None:
         if self._attempt_batch(repository, batch):
             self._record_success(len(batch))
@@ -389,7 +476,7 @@ class ConnectionHistoryWriter:
     def _attempt_batch(
         self,
         repository: ConnectionHistoryWriteSession,
-        batch: tuple[ConnectionLifecycleEvent, ...],
+        batch: tuple[ConnectionLifecycleEvent | _Checkpoint, ...],
     ) -> bool:
         for attempt in range(self._retry_limit + 1):
             try:
@@ -421,9 +508,11 @@ class ConnectionHistoryWriter:
     @staticmethod
     def _persist_event(
         repository: ConnectionHistoryWriteSession,
-        event: ConnectionLifecycleEvent,
+        event: ConnectionLifecycleEvent | _Checkpoint,
     ) -> None:
-        if isinstance(event, ConnectionOpened):
+        if isinstance(event, _Checkpoint):
+            repository.record_checkpoint(event.event)
+        elif isinstance(event, ConnectionOpened):
             repository.record_opened(event)
         elif isinstance(event, ConnectionUpdated):
             repository.record_updated(event)
@@ -487,6 +576,7 @@ class ConnectionHistoryWriter:
             self._queue.task_done()
             discarded += 1
         if discarded:
+            self._pending_checkpoints.clear()
             self._health = replace(
                 self._health,
                 queue_depth=0,

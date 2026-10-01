@@ -121,7 +121,7 @@ def test_repository_uses_fresh_migrated_temporary_database(
     with database.connection() as connection:
         assert connection.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 10
+        ).fetchone()[0] == 11
 
 
 def test_open_insert_and_lookup_round_trip_ipv4_process_and_timestamps(
@@ -224,10 +224,14 @@ def test_process_and_parent_metadata_round_trip_and_lifecycle_snapshot(
         ),
     )
     current = _snapshot(observed_at=SECOND, process=changed)
-    updated = repository.record_updated(ConnectionUpdated(_snapshot(process=process), current))
+    updated = repository.record_updated(ConnectionUpdated(
+        _snapshot(process=process), current, opened.session_id, opened.lifecycle_id,
+    ))
     assert updated.snapshot.process == changed
     assert updated.key == opened.key
-    closed = repository.record_closed(ConnectionClosed(current, CLOSED))
+    closed = repository.record_closed(ConnectionClosed(
+        current, CLOSED, session_id=opened.session_id, lifecycle_id=opened.lifecycle_id,
+    ))
     assert closed.snapshot.process == changed
     assert repository.get(closed.record_id) == closed
 
@@ -347,7 +351,10 @@ def test_closed_history_is_not_enriched_by_newer_process_metadata(
 ) -> None:
     old_snapshot = _snapshot(process=_process())
     old_record = repository.record_opened(ConnectionOpened(old_snapshot))
-    repository.record_closed(ConnectionClosed(old_snapshot, SECOND))
+    repository.record_closed(ConnectionClosed(
+        old_snapshot, SECOND, session_id=old_record.session_id,
+        lifecycle_id=old_record.lifecycle_id,
+    ))
     current = _snapshot(
         observed_at=CLOSED,
         process=ProcessInfo(
@@ -413,7 +420,9 @@ def test_update_changes_same_record_metadata_and_preserves_first_seen(
         process=_process(name="renamed.exe"),
     )
 
-    updated = repository.record_updated(ConnectionUpdated(previous, current))
+    updated = repository.record_updated(ConnectionUpdated(
+        previous, current, opened.session_id, opened.lifecycle_id,
+    ))
 
     assert updated.record_id == opened.record_id
     assert updated.first_seen == FIRST
@@ -433,6 +442,8 @@ def test_close_preserves_not_observed_semantics_and_is_idempotent(
         snapshot,
         occurred_at=CLOSED,
         reason=ConnectionClosureReason.NOT_OBSERVED,
+        session_id=opened.session_id,
+        lifecycle_id=opened.lifecycle_id,
     )
 
     first_close = repository.record_closed(event)
@@ -452,7 +463,10 @@ def test_duplicate_open_is_idempotent_even_after_close(
 
     first = repository.record_opened(event)
     duplicate = repository.record_opened(event)
-    repository.record_closed(ConnectionClosed(event.snapshot, CLOSED))
+    repository.record_closed(ConnectionClosed(
+        event.snapshot, CLOSED, session_id=event.session_id,
+        lifecycle_id=event.lifecycle_id,
+    ))
     delayed_duplicate = repository.record_opened(event)
 
     assert first.record_id == duplicate.record_id == delayed_duplicate.record_id

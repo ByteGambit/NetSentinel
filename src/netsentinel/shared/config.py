@@ -81,6 +81,7 @@ class AppConfig:
     capture_queue_capacity: int = 1_024
     history_queue_capacity: int = 2_048
     history_batch_size: int = 64
+    history_checkpoint_interval: float = 30.0
     dns_queue_capacity: int = 2_048
     dns_batch_size: int = 64
     log_max_bytes: int = 1_048_576
@@ -94,6 +95,9 @@ class AppConfig:
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or not 0.05 <= value <= 60:
                 raise ValueError(f"{name} must be finite and between 0.05 and 60")
+        interval = self.history_checkpoint_interval
+        if isinstance(interval, bool) or not isinstance(interval, (int, float)) or not isfinite(interval) or not 1 <= interval <= 3600:
+            raise ValueError("history_checkpoint_interval must be finite and between 1 and 3600")
         for name, ceiling in (
             ("capture_queue_capacity", 65_536), ("history_queue_capacity", 65_536),
             ("history_batch_size", 500), ("dns_queue_capacity", 65_536),

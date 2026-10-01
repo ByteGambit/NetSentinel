@@ -653,7 +653,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-058 — History freshness ve restart gaps
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Uzun yaşayan bağlantının güncelliğini ve gözlem boşluğunu doğru anlatmak.
 - **Yapılacaklar:** Coalesced last-seen checkpoint, monitoring-session gap ve startup reconciliation'ı history worker/repository/read model'e ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/history.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/presentation/views/history.py, src/netsentinel/shared/diagnostics.py, tests/integration/.

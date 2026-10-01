@@ -54,11 +54,11 @@ class HistoryDetailsWidget(QGroupBox):
         ("state", "State"),
         ("local", "Local endpoint"),
         ("remote", "Remote endpoint"),
-        ("opened", "Opened"),
+        ("opened", "First seen"),
         ("last_seen", "Last seen"),
         ("closed", "Closed"),
         ("close_reason", "Close reason"),
-        ("duration", "Duration"),
+        ("duration", "Observed duration"),
     )
 
     def __init__(self, parent: QWidget | None = None) -> None:

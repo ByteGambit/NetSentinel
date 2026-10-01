@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Event, Lock, enumerate as enumerate_threads
@@ -71,6 +72,8 @@ def record(
         if name is not None and identity is not None
         else ProcessInfo.unavailable()
     )
+
+
     state = ConnectionState.NONE if protocol is TransportProtocol.UDP else ConnectionState.ESTABLISHED
     snapshot = ConnectionSnapshot(
         protocol=protocol,
@@ -88,6 +91,18 @@ def record(
         closed_at=observed + timedelta(seconds=2) if closed else None,
         close_reason=ConnectionClosureReason.NOT_OBSERVED if closed else None,
     )
+
+
+def test_history_row_distinguishes_gap_open_and_legacy_unknown() -> None:
+    legacy = record(closed=False)
+    assert history_row_from_record(legacy).close_reason_display == "Historical status unknown"
+    active = replace(legacy, session_id=uuid4(), lifecycle_id=uuid4())
+    assert history_row_from_record(active).close_reason_display == "Currently observed / open"
+    gap = replace(active, observation_gap=True)
+    row = history_row_from_record(gap)
+    assert row.close_reason_display == "Last observed before monitoring gap"
+    assert row.closed_display == "Unknown (monitoring gap)"
+    assert row.duration_display == history_row_from_record(active).duration_display
 
 
 class FakeRepository:

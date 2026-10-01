@@ -155,6 +155,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="process_metadata",
             sql=_read_resource("010_process_metadata.sql", 10, "process_metadata"),
         ),
+        Migration(
+            version=11,
+            name="history_observation_gaps",
+            sql=_read_resource("011_history_observation_gaps.sql", 11, "history_observation_gaps"),
+        ),
     )
 
 

@@ -42,10 +42,10 @@ HEADERS = (
     "Local",
     "Remote",
     "State",
-    "Opened",
+    "First seen",
     "Last seen",
     "Closed",
-    "Duration",
+    "Observed duration",
 )
 
 
@@ -77,6 +77,14 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
     remote = snapshot.remote_endpoint
     duration_end = record.closed_at if record.closed_at is not None else record.last_seen
     duration = max(0.0, (duration_end - record.first_seen).total_seconds())
+    if record.observation_gap:
+        observation_status = "Last observed before monitoring gap"
+    elif record.close_reason is not None:
+        observation_status = format_close_reason(record.close_reason)
+    elif record.session_id is not None:
+        observation_status = "Currently observed / open"
+    else:
+        observation_status = "Historical status unknown"
     return HistoryRow(
         record_id=record.record_id,
         process_display=snapshot.process.name or MISSING_VALUE,
@@ -90,7 +98,7 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
         closed_display=(
             format_local_timestamp(record.closed_at)
             if record.closed_at is not None
-            else MISSING_VALUE
+            else "Unknown (monitoring gap)" if record.observation_gap else MISSING_VALUE
         ),
         duration_display=format_duration(duration),
         process_create_time_display=(
@@ -98,7 +106,7 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
             if identity is not None and identity.create_time is not None
             else MISSING_VALUE
         ),
-        close_reason_display=format_close_reason(record.close_reason),
+        close_reason_display=observation_status,
         process_info=snapshot.process,
     )
 

@@ -108,7 +108,9 @@ def create_desktop_engine(
         retry_backoff=history_retry_backoff,
         shutdown_timeout=shutdown_timeout,
     )
-    persistence = ConnectionHistoryPersistence(dispatcher, writer)
+    persistence = ConnectionHistoryPersistence(
+        dispatcher, writer, checkpoint_interval=settings.history_checkpoint_interval,
+    )
     database = SQLiteDatabase(database_path)
     network_context_provider = create_network_context_provider()
     dns_config = DnsConfigMonitoringService(

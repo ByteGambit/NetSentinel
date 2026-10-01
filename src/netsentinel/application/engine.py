@@ -419,6 +419,12 @@ class MonitoringEngine:
                 return
             subscriber_failures += report.failed
 
+        persistence = self._persistence
+        observe_round = getattr(persistence, "observe_round", None)
+        active = getattr(self._tracker, "active_connections", None)
+        if callable(observe_round) and isinstance(active, tuple):
+            observe_round(active, {snapshot.key for snapshot in enriched})
+
         self._mark_round_success(len(events), subscriber_failures)
         if isinstance(observation, ConnectionRoundObservation) and observation.quality is ObservationQuality.REDUCED:
             self._record_reduced_round(observation)

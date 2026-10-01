@@ -596,7 +596,7 @@ class TrackedConnection:
 
 @dataclass(frozen=True, slots=True)
 class ConnectionHistoryRecord:
-    """Portable persisted view of one complete connection lifecycle.
+    """Portable persisted view of one observed connection lifecycle.
 
     ``record_id`` is persistence identity and is deliberately distinct from
     :class:`ConnectionKey`, which identifies an active lifecycle across
@@ -610,6 +610,9 @@ class ConnectionHistoryRecord:
     snapshot: ConnectionSnapshot
     closed_at: datetime | None = None
     close_reason: ConnectionClosureReason | None = None
+    observation_gap: bool = False
+    session_id: UUID | None = None
+    lifecycle_id: UUID | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.record_id, UUID):
@@ -644,6 +647,16 @@ class ConnectionHistoryRecord:
             self.close_reason, ConnectionClosureReason
         ):
             raise TypeError("close_reason must be a ConnectionClosureReason or None")
+        if not isinstance(self.observation_gap, bool):
+            raise TypeError("observation_gap must be a bool")
+        if self.observation_gap and self.closed_at is not None:
+            raise ValueError("a gap record cannot have a close timestamp")
+        if self.session_id is not None and not isinstance(self.session_id, UUID):
+            raise TypeError("session_id must be a UUID or None")
+        if self.lifecycle_id is not None and not isinstance(self.lifecycle_id, UUID):
+            raise TypeError("lifecycle_id must be a UUID or None")
+        if (self.session_id is None) != (self.lifecycle_id is None):
+            raise ValueError("session_id and lifecycle_id must be set together")
 
     @property
     def key(self) -> ConnectionKey:

@@ -563,6 +563,9 @@ class ConnectionHistoryWriteSession(Protocol):
     def record_updated(self, event: ConnectionUpdated) -> ConnectionHistoryRecord:
         """Persist one updated event within the current batch."""
 
+    def record_checkpoint(self, event: ConnectionUpdated) -> None:
+        """Refresh only this lifecycle when it is still open."""
+
     def record_closed(self, event: ConnectionClosed) -> ConnectionHistoryRecord:
         """Persist one closed event within the current batch."""
 

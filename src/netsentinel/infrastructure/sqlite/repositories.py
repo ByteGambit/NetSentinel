@@ -64,7 +64,8 @@ _HISTORY_COLUMNS = """
     executable_path, process_name_status, process_create_time_status,
     executable_path_status, parent_status, parent_observed_at_utc_us,
     parent_pid, parent_create_time_utc_us, parent_name, parent_pid_status,
-    parent_create_time_status, parent_name_status
+    parent_create_time_status, parent_name_status,
+    observation_gap, monitoring_session_id, lifecycle_id
 """
 _METADATA_COLUMNS = (
     "executable_path", "process_name_status", "process_create_time_status",
@@ -178,24 +179,35 @@ class SQLiteConnectionHistoryRepository:
     ) -> ConnectionHistoryRecord:
         """Map OPENED using a caller-owned active transaction."""
 
-        existing_row = self._find_by_key_and_first_seen(
-            connection,
-            event.key,
-            datetime_to_epoch_microseconds(event.occurred_at),
-        )
+        existing_row = self._find_lifecycle(connection, event.lifecycle_id)
+        if existing_row is None:
+            existing_row = self._find_by_key_and_first_seen(
+                connection, event.key, datetime_to_epoch_microseconds(event.occurred_at),
+            )
+            if existing_row is not None and existing_row["observation_gap"]:
+                existing_row = None
         if existing_row is None:
             existing_row = self._find_active(connection, event.key)
         if existing_row is not None:
             existing = _row_to_record(existing_row)
-            if existing.is_closed:
+            if existing.lifecycle_id == event.lifecycle_id and existing.key != event.key:
+                raise HistoryRepositoryError("Lifecycle identity cannot change connection key.")
+            if existing.lifecycle_id != event.lifecycle_id:
+                connection.execute(
+                    "UPDATE connection_history SET observation_gap = 1 WHERE id = ? AND closed_at_utc_us IS NULL",
+                    (str(existing.record_id),),
+                )
+                existing_row = None
+            else:
+                if existing.is_closed or existing.observation_gap:
+                    return existing
+                if event.occurred_at >= existing.last_seen:
+                    self._update_snapshot(connection, existing.record_id, event.snapshot)
+                    return self._get_required(connection, existing.record_id)
                 return existing
-            if event.occurred_at >= existing.last_seen:
-                self._update_snapshot(connection, existing.record_id, event.snapshot)
-                return self._get_required(connection, existing.record_id)
-            return existing
 
         record_id = self._new_record_id()
-        self._insert_open(connection, record_id, event.snapshot)
+        self._insert_open(connection, record_id, event.snapshot, event.session_id, event.lifecycle_id)
         return self._get_required(connection, record_id)
 
     def _record_updated_in_transaction(
@@ -205,18 +217,33 @@ class SQLiteConnectionHistoryRepository:
     ) -> ConnectionHistoryRecord:
         """Map UPDATED using a caller-owned active transaction."""
 
-        row = self._find_active(connection, event.key)
+        lifecycle_row = self._find_lifecycle(connection, event.lifecycle_id)
+        if lifecycle_row is not None and (lifecycle_row["closed_at_utc_us"] is not None or lifecycle_row["observation_gap"]):
+            return _row_to_record(lifecycle_row)
+        row = lifecycle_row
         if row is None:
             raise HistoryRecordNotFound(
                 "The active connection history record was not found."
             )
         existing = _row_to_record(row)
+        if existing.key != event.key:
+            raise HistoryRepositoryError("Lifecycle identity cannot change connection key.")
         if event.current.observed_at < existing.last_seen:
-            raise HistoryRepositoryError(
-                "Connection history cannot move backwards in time."
-            )
+            return existing
         self._update_snapshot(connection, existing.record_id, event.current)
         return self._get_required(connection, existing.record_id)
+
+    def _record_checkpoint_in_transaction(
+        self, connection: sqlite3.Connection, event: ConnectionUpdated,
+    ) -> None:
+        """A delayed checkpoint must never attach to a reused tuple."""
+        row = self._find_lifecycle(connection, event.lifecycle_id)
+        if row is None or row["closed_at_utc_us"] is not None or row["observation_gap"]:
+            return
+        existing = _row_to_record(row)
+        if event.current.key != existing.key or event.current.observed_at <= existing.last_seen:
+            return
+        self._update_snapshot(connection, existing.record_id, event.current)
 
     def _record_closed_in_transaction(
         self,
@@ -225,17 +252,20 @@ class SQLiteConnectionHistoryRepository:
     ) -> ConnectionHistoryRecord:
         """Map CLOSED using a caller-owned active transaction."""
 
-        row = self._find_active(connection, event.key)
+        lifecycle_row = self._find_lifecycle(connection, event.lifecycle_id)
+        if lifecycle_row is not None and (lifecycle_row["closed_at_utc_us"] is not None or lifecycle_row["observation_gap"]):
+            return _row_to_record(lifecycle_row)
+        row = lifecycle_row
         if row is None:
             return self._get_duplicate_close(connection, event)
 
         existing = _row_to_record(row)
+        if existing.key != event.key:
+            raise HistoryRepositoryError("Lifecycle identity cannot change connection key.")
         if event.occurred_at < existing.first_seen:
             return self._get_duplicate_close(connection, event)
         if event.last_snapshot.observed_at < existing.last_seen:
-            raise HistoryRepositoryError(
-                "Connection history cannot move backwards in time."
-            )
+            return existing
         if event.occurred_at < existing.last_seen:
             raise HistoryRepositoryError(
                 "Connection close time precedes the last observation."
@@ -340,6 +370,8 @@ class SQLiteConnectionHistoryRepository:
         connection: sqlite3.Connection,
         record_id: UUID,
         snapshot: ConnectionSnapshot,
+        session_id: UUID,
+        lifecycle_id: UUID,
     ) -> None:
         values = _snapshot_values(snapshot)
         metadata = _metadata_values(snapshot.process)
@@ -350,10 +382,12 @@ class SQLiteConnectionHistoryRepository:
                 id, protocol, local_address, local_port, remote_address,
                 remote_port, pid, process_create_time_utc_us, process_name,
                 process_status, connection_state, first_seen_utc_us,
-                last_seen_utc_us, {', '.join(_METADATA_COLUMNS)}
-            ) VALUES ({', '.join('?' for _ in range(13 + len(_METADATA_COLUMNS)))})
+                last_seen_utc_us, {', '.join(_METADATA_COLUMNS)},
+                monitoring_session_id, lifecycle_id
+            ) VALUES ({', '.join('?' for _ in range(15 + len(_METADATA_COLUMNS)))})
             """,
-            (str(record_id), *values, observed_at, observed_at, *metadata),
+            (str(record_id), *values, observed_at, observed_at, *metadata,
+             str(session_id), str(lifecycle_id)),
         )
 
     @staticmethod
@@ -372,7 +406,7 @@ class SQLiteConnectionHistoryRepository:
                 process_create_time_utc_us = ?, process_name = ?,
                 process_status = ?, connection_state = ?, last_seen_utc_us = ?,
                 {_METADATA_ASSIGNMENTS}
-            WHERE id = ? AND closed_at_utc_us IS NULL
+            WHERE id = ? AND closed_at_utc_us IS NULL AND observation_gap = 0
             """,
             (*values, datetime_to_epoch_microseconds(snapshot.observed_at), *metadata, str(record_id)),
         )
@@ -394,7 +428,7 @@ class SQLiteConnectionHistoryRepository:
                 process_status = ?, connection_state = ?, last_seen_utc_us = ?,
                 closed_at_utc_us = ?, close_reason = ?,
                 {_METADATA_ASSIGNMENTS}
-            WHERE id = ? AND closed_at_utc_us IS NULL
+            WHERE id = ? AND closed_at_utc_us IS NULL AND observation_gap = 0
             """,
             (
                 *values,
@@ -407,6 +441,15 @@ class SQLiteConnectionHistoryRepository:
         )
 
     @staticmethod
+    def _find_lifecycle(
+        connection: sqlite3.Connection, lifecycle_id: UUID,
+    ) -> sqlite3.Row | None:
+        return connection.execute(
+            f"SELECT {_HISTORY_COLUMNS} FROM connection_history WHERE lifecycle_id = ? LIMIT 1",
+            (str(lifecycle_id),),
+        ).fetchone()
+
+    @staticmethod
     def _find_active(
         connection: sqlite3.Connection, key: ConnectionKey
     ) -> sqlite3.Row | None:
@@ -417,7 +460,7 @@ class SQLiteConnectionHistoryRepository:
             WHERE protocol = ? AND local_address = ? AND local_port = ?
               AND remote_address IS ? AND remote_port IS ?
               AND pid IS ? AND process_create_time_utc_us IS ?
-              AND closed_at_utc_us IS NULL
+              AND closed_at_utc_us IS NULL AND observation_gap = 0
             ORDER BY first_seen_utc_us DESC, id DESC
             LIMIT 1
             """,
@@ -516,13 +559,13 @@ class SQLiteHistoryRetentionRepository:
                     cursor = connection.execute(
                         """
                         DELETE FROM connection_history
-                        WHERE closed_at_utc_us IS NOT NULL
-                          AND closed_at_utc_us < ?
+                        WHERE (closed_at_utc_us IS NOT NULL OR observation_gap = 1)
+                          AND COALESCE(closed_at_utc_us, last_seen_utc_us) < ?
                           AND id IN (
                               SELECT id
                               FROM connection_history
-                              WHERE closed_at_utc_us IS NOT NULL
-                                AND closed_at_utc_us < ?
+                              WHERE (closed_at_utc_us IS NOT NULL OR observation_gap = 1)
+                                AND COALESCE(closed_at_utc_us, last_seen_utc_us) < ?
                               ORDER BY first_seen_utc_us ASC,
                                        closed_at_utc_us ASC,
                                        id ASC
@@ -571,11 +614,11 @@ class SQLiteHistoryRetentionRepository:
                     cursor = connection.execute(
                         """
                         DELETE FROM connection_history
-                        WHERE closed_at_utc_us IS NOT NULL
+                        WHERE (closed_at_utc_us IS NOT NULL OR observation_gap = 1)
                           AND id IN (
                               SELECT id
                               FROM connection_history
-                              WHERE closed_at_utc_us IS NOT NULL
+                              WHERE (closed_at_utc_us IS NOT NULL OR observation_gap = 1)
                               ORDER BY first_seen_utc_us ASC,
                                        closed_at_utc_us ASC,
                                        id ASC
@@ -600,9 +643,9 @@ class SQLiteHistoryRetentionRepository:
                 row = connection.execute(
                     """
                     SELECT COUNT(*) AS total_rows,
-                           COUNT(*) FILTER (WHERE closed_at_utc_us IS NULL)
+                           COUNT(*) FILTER (WHERE closed_at_utc_us IS NULL AND observation_gap = 0)
                                AS active_rows,
-                           COUNT(*) FILTER (WHERE closed_at_utc_us IS NOT NULL)
+                           COUNT(*) FILTER (WHERE closed_at_utc_us IS NOT NULL OR observation_gap = 1)
                                AS completed_rows
                     FROM connection_history
                     """
@@ -808,6 +851,9 @@ def _row_to_record(row: sqlite3.Row) -> ConnectionHistoryRecord:
                 if raw_reason is not None
                 else None
             ),
+            observation_gap=bool(row["observation_gap"]),
+            session_id=UUID(row["monitoring_session_id"]) if row["monitoring_session_id"] else None,
+            lifecycle_id=UUID(row["lifecycle_id"]) if row["lifecycle_id"] else None,
         )
     except HistoryDataCorrupt:
         raise
