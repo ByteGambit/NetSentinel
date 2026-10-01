@@ -699,7 +699,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-062 — Bounded DNS association service
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-01).
 - **Amaç:** Domain/IP ilişkisini connection'a belirsizliği koruyarak bağlamak.
 - **Yapılacaklar:** Many-to-many TTL associations, source/time/network/client evidence ve bounded state için application service/port tanımla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/application/ports.py, tests/unit/.

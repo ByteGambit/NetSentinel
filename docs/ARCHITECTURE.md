@@ -1516,6 +1516,23 @@ NS-058, değişmeyen ancak gerçekten yeniden gözlenen connection'ları yapıla
 
 Bugünkü klasik DNS parser/tracker network-scoped observation sağlar; PID ya da connection sebebi sağlamaz. M12 DNS result ID'sini event origin'den writer ve association consumer'a aynı şekilde taşır. Directly observed DNS domain → answer IP evidence ile process → connection → remote IP gözlemi ayrı tutulur. Bounded `DomainAssociation` multi-to-multi adayları network/client/time/TTL ve source reference üzerinden ilişkilendirir. Directly observed DNS evidence, correlated association, ambiguous association ve unknown UI/modelde ayrılır; shared IP/CDN/multiple-domain adayları kaybolmaz. PTR sonucu tek başına forward causality değildir. DNS-process attribution yalnız NS-060 spike sonucuna göre ayrı planning pass'te düşünülür.
 
+NS-062 runtime servisi mevcut `DnsTrackingService` sonucundaki yalnız eşleşmiş,
+başarılı, truncated olmayan klasik DNS response'larını tüketir. A/AAAA answer
+owner doğrudan kanıttır; CNAME üzerinden query adına taşınan aday ayrı
+`cname_derived` provenance, bounded zincir ve zincirin minimum TTL'sini taşır.
+PTR ve negatif/orphan response association üretmez. Her aday network fingerprint
+ve DNS client IP ile scope edilir; lookup yalnız `RESOLVED` connection network
+scope ve explicit client IP için exact eşleşme yapar. `UNKNOWN`/`AMBIGUOUS`
+scope'tan ağ tahmini yapılmaz. Lookup `CORRELATED`/`AMBIGUOUS`/`UNKNOWN` ve
+0..N aday döndürür; connection hostname ya da process ilişkisi iddia etmez.
+TTL=0 gözlem olarak dönse de aktif cache'e girmez. Runtime expiry monotonic'tir;
+UTC response zamanı kanıt olarak kalır. Varsayılan retention üst sınırı 3600 s,
+global 2048, scope başına IP 32 ve domain 32 adaydır. Süre dolanlar önce
+temizlenir, kapasitede en eski/yenilenmemiş aday deterministik tahliye edilir.
+Duplicate yeni observation time ile coalesce olur; kapasite kaybı sticky,
+sanitize aggregate service stats içinde görünür. Transaction alanları yalnız
+geçici evidence reference'dır; kalıcı DNS result ID ve SQLite NS-063 işidir.
+
 Destination IP/domain canonical value object'leri ile local ASN/country enrichment source, dataset version, lookup subject, freshness ve unknown taşır. Ülke/ASN maliciousness verdict değildir. Executable hash local, on-demand, bounded file I/O'dur. Signer adapter NS-067 offline spike sonucunda uygunsa NS-068'de eklenir; signed=trusted veya unsigned=malicious kuralı kurulmaz. Cloud reputation M15'te ayrıca user-controlled port/adapter sınırıdır; hiçbir yerel path, raw history veya payload bu sınırdan kendiliğinden çıkmaz.
 
 ### 18.3 Baseline, risk ve incident

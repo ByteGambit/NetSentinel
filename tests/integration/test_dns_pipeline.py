@@ -14,6 +14,8 @@ from netsentinel.application.services.dns_history import DnsHistoryWriter
 from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.domain.devices import NetworkContext, NetworkInterfaceKind
 from netsentinel.domain.dns import DnsTransactionStatus
+from netsentinel.domain.connections import ConnectionNetworkScope, NetworkAttributionMethod, NetworkScopeStatus
+from netsentinel.domain.dns import DnsAssociationStatus
 from netsentinel.infrastructure.scapy_capture import _packet_observation
 from netsentinel.infrastructure.sqlite.database import SQLiteDatabase
 from netsentinel.infrastructure.sqlite.dns_repository import SQLiteDnsHistoryRepository, SQLiteDnsHistorySessionFactory
@@ -90,6 +92,13 @@ def test_synthetic_dns_packet_live_consumer_writer_restart_read_model(tmp_path):
             sleep(.01)
         assert writer.health_snapshot().persisted == 1
         assert writer.health_snapshot().accepted == 1  # duplicate response is suppressed
+        scope = ConnectionNetworkScope(NetworkScopeStatus.RESOLVED, context.fingerprint,
+                                       context.interface_id, context.interface_index,
+                                       NetworkAttributionMethod.LOCAL_ADDRESS_MATCH)
+        association = service.dns_associations.lookup_by_ip(
+            "192.0.2.99", network_scope=scope, client_ip="192.0.2.20")
+        assert association.status is DnsAssociationStatus.CORRELATED
+        assert [candidate.domain for candidate in association.candidates] == ["example.com."]
         capture.observations.append(_packet_observation(dns_response(), context, AT + timedelta(seconds=1)))
         capture.observations.append(_packet_observation(dns_query(), context, AT + timedelta(seconds=2)))
         service.refresh()

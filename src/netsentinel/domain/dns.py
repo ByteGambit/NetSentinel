@@ -218,3 +218,87 @@ class DnsHistoryRecord:
             raise TypeError("id must be a UUID")
         if not isinstance(self.transaction, DnsTransaction):
             raise TypeError("transaction must be a DnsTransaction")
+
+
+class DnsAssociationProvenance(str, Enum):
+    DIRECT_ANSWER = "direct_answer"
+    CNAME_DERIVED = "cname_derived"
+
+
+class DnsAssociationStatus(str, Enum):
+    UNKNOWN = "unknown"
+    CORRELATED = "correlated"
+    AMBIGUOUS = "ambiguous"
+
+
+@dataclass(frozen=True, slots=True)
+class DomainAssociation:
+    """A DNS answer candidate, never a connection hostname or process claim.
+
+    `ttl` is the observed effective chain TTL. `retention_seconds` may be
+    shorter due to the runtime cap; expiry itself uses a monotonic clock.
+    The transaction tuple is a local, non-durable evidence reference.
+    """
+
+    domain: str
+    ip: str
+    record_type: DnsRecordType
+    provenance: DnsAssociationProvenance
+    queried_domain: str
+    answer_name: str
+    cname_chain: tuple[str, ...]
+    observed_at: datetime
+    ttl: int
+    answer_ttl: int
+    retention_seconds: int
+    network_fingerprint: str
+    client_ip: str
+    server_ip: str
+    transport: DnsTransport
+    transaction_id: int
+    query_at: datetime
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "domain", canonical_dns_name(self.domain))
+        object.__setattr__(self, "queried_domain", canonical_dns_name(self.queried_domain))
+        object.__setattr__(self, "answer_name", canonical_dns_name(self.answer_name))
+        if self.record_type not in (DnsRecordType.A, DnsRecordType.AAAA):
+            raise ValueError("association requires an A or AAAA answer")
+        parsed = ip_address(self.ip)
+        if parsed.version != (4 if self.record_type is DnsRecordType.A else 6):
+            raise ValueError("association IP family does not match answer")
+        object.__setattr__(self, "ip", str(parsed))
+        if self.provenance is DnsAssociationProvenance.DIRECT_ANSWER:
+            if self.domain != self.answer_name or self.cname_chain:
+                raise ValueError("direct association must name its answer")
+        elif self.provenance is DnsAssociationProvenance.CNAME_DERIVED:
+            if len(self.cname_chain) < 2 or len(self.cname_chain) > MAX_DNS_ANSWERS + 1:
+                raise ValueError("derived association requires a bounded chain")
+            chain = tuple(canonical_dns_name(name) for name in self.cname_chain)
+            object.__setattr__(self, "cname_chain", chain)
+            if chain[0] != self.domain or chain[-1] != self.answer_name or len(set(chain)) != len(chain):
+                raise ValueError("CNAME chain endpoints or cycle are invalid")
+        else:
+            raise TypeError("provenance must be a DNS association provenance")
+        for field in ("observed_at", "query_at"):
+            value = getattr(self, field)
+            if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() != timedelta(0):
+                raise ValueError(f"{field} must be UTC-aware")
+            object.__setattr__(self, field, value.astimezone(UTC))
+        if any(type(value) is not int or value < 0 for value in (self.ttl, self.answer_ttl, self.retention_seconds)):
+            raise ValueError("TTL values must be nonnegative integers")
+        if self.ttl > 0xFFFFFFFF or self.answer_ttl > 0xFFFFFFFF or self.retention_seconds > self.ttl:
+            raise ValueError("TTL values are inconsistent")
+        if len(self.network_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in self.network_fingerprint):
+            raise ValueError("network_fingerprint must be a SHA-256 hex digest")
+        for field in ("client_ip", "server_ip"):
+            object.__setattr__(self, field, str(ip_address(getattr(self, field))))
+        if not isinstance(self.transport, DnsTransport) or type(self.transaction_id) is not int or not 0 <= self.transaction_id <= 65535:
+            raise ValueError("DNS transaction reference is invalid")
+
+
+@dataclass(frozen=True, slots=True)
+class DnsAssociationLookup:
+    status: DnsAssociationStatus
+    candidates: tuple[DomainAssociation, ...]
+    capacity_loss: bool = False

@@ -25,6 +25,7 @@ from netsentinel.application.services.devices import DeviceRegistryService
 from netsentinel.application.services.baselines import GatewayBaselineService
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.dns import DnsTrackingService
+from netsentinel.application.services.dns_association import DnsAssociationService
 from netsentinel.application.services.dns_history import DnsHistoryWriter
 from netsentinel.application.services.traffic_metrics import TrafficMetricsService, TrafficMetricsSnapshot
 from netsentinel.application.services.vlan import VlanSummaryService
@@ -95,6 +96,7 @@ class DeviceInventoryService:
         alerts: AlertService | None = None,
         dns_writer: DnsHistoryWriter | None = None,
         dns_tracking: DnsTrackingService | None = None,
+        dns_associations: DnsAssociationService | None = None,
         traffic_metrics: TrafficMetricsService | None = None,
         traffic_detector: TrafficRateDetector | None = None,
         traffic_observed_clock: Callable[[], datetime] | None = None,
@@ -113,6 +115,7 @@ class DeviceInventoryService:
         self._alerts = alerts
         self._dns_writer = dns_writer
         self._dns_tracking = dns_tracking or DnsTrackingService()
+        self._dns_associations = dns_associations or DnsAssociationService()
         self._traffic_metrics = traffic_metrics or TrafficMetricsService()
         self._traffic_detector = traffic_detector or TrafficRateDetector()
         self._traffic_observed_clock = traffic_observed_clock or (lambda: datetime.now(UTC))
@@ -124,6 +127,11 @@ class DeviceInventoryService:
         if self._dns_writer is not None:
             self._dns_writer.start()
         self._selected: str | None = None
+
+    @property
+    def dns_associations(self) -> DnsAssociationService:
+        """Thread-safe runtime DNS evidence for future read workers."""
+        return self._dns_associations
 
     def refresh(
         self,
@@ -211,6 +219,10 @@ class DeviceInventoryService:
                     if self._dns_writer is not None and observation.dns is not None:
                         try:
                             for transaction in self._dns_tracking.observe(observation):
+                                try:
+                                    self._dns_associations.observe(transaction)
+                                except Exception:
+                                    observation_failed = True
                                 self._dns_writer.submit(transaction)
                         except Exception:
                             observation_failed = True
@@ -280,6 +292,10 @@ class DeviceInventoryService:
         if self._dns_writer is not None:
             try:
                 for transaction in self._dns_tracking.expire():
+                    try:
+                        self._dns_associations.observe(transaction)
+                    except Exception:
+                        observation_failed = True
                     self._dns_writer.submit(transaction)
             except Exception:
                 observation_failed = True
