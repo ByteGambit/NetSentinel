@@ -579,7 +579,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 | M10 Packaging, Hardening & Test | NS-047–NS-051 | 5 |
 | **Toplam** | **NS-001–NS-051** | **51** |
 
-## Yeni faz taskları — M11–M17 planlandı, M18 conditional
+## Yeni faz taskları — M11 tamamlandı, M12–M17 planlandı, M18 conditional
 
 NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni taskların hepsi başlangıçta ⬜ Planlandı durumundadır. Bütün yeni işlerde domain framework bağımsız, application ports/adapters ayrımı korunur; queue/state/storage bounded, persisted zaman UTC-aware, runtime rolling window monotonic, SQL parameterized, GUI thread blocking I/O içermez. Davranış testleri default offline/deterministic; gerçek Windows/capture/admin testleri yalnız explicit marker ve yetkili ortamla çalışır. Yeni migration 009 sonrasına append-only eklenir.
 
@@ -686,7 +686,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-061 — Process/connection event-source spike
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-01; [NO-GO araştırma kararı](research/NS-061-process-connection-event-sources.md)).
 - **Amaç:** Polling dışı lifecycle kaynağının maliyet ve doğruluğunu belirlemek.
 - **Yapılacaklar:** Process ETW start/end/rundown ile network event schema/permission/loss/session ownership incele; production boundary kararı üret.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, src/netsentinel/domain/ contract proposal, tests/fixtures/, docs/ARCHITECTURE.md.
@@ -1193,7 +1193,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 | Milestone | Task aralığı | Sayı | Durum |
 |---|---:|---:|---|
-| M11 Process & Connection Telemetry Foundations | NS-052–NS-061 | 10 | Planlandı |
+| M11 Process & Connection Telemetry Foundations | NS-052–NS-061 | 10 | ✅ COMPLETE |
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | Planlandı; NS-068 conditional adapter |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | Planlandı |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | Planlandı |

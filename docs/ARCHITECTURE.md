@@ -1540,4 +1540,6 @@ NS-059 TCP EStats/ETW/WFP per-flow bytes; NS-060 DNS-process attribution; NS-061
 
 NS-059 araştırmasının [NO-GO kararı](research/NS-059-per-flow-byte-telemetry.md), varsayılan standard-user modda EStats enable yetkisi ve UDP kapsamı yokluğu ile ETW/WFP doğruluk ve bakım sınırlarına dayanır. Bu karar production adapter veya ürün contract'ı eklemez.
 
+NS-061 [event-source araştırmasının NO-GO kararı](research/NS-061-process-connection-event-sources.md) mevcut standard-user ürün için polling-only mimarisini korur. Bu hostta ilgili ETW oturum başlatma denemeleri access denied oldu; classic process/TCP-IP event teslimi ve elevated davranış doğrulanmadı. Gelecekte ayrıca yetkilendirilmiş bir çalışma ancak hybrid event evidence + psutil reconciliation yaklaşımını değerlendirebilir. NS-056 session/lifecycle UUID'leri, `INITIAL` ve `COMPLETE`/`REDUCED`/`FAILED` sözleşmesi ETW `connid` veya event arrival order ile değiştirilmez; üretim portu/collector eklenmedi.
+
 M18 response ancak M17/NS-099 tamamlanıp explicit response GO kararı verilince başlar. İlk akış explicit action → preview → confirmation → narrow NetSentinel-owned firewall rule → audit → undo/expiry'dir. Automatic blocking/elevation ve unrelated rule değişimi yoktur.

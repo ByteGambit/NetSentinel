@@ -229,15 +229,15 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
-## Yeni faz: M11–M17 planlandı; M18 conditional
+## Yeni faz: M11 tamamlandı; M12–M17 planlandı, M18 conditional
 
-**Durum:** M1–M10 tamamlandı. M11–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M11 tamamlandı. M12–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
 ### M11 — Process & Connection Telemetry Foundations
 
-- **Durum:** ⬜ Planlandı (NS-052–NS-061).
+- **Durum:** ✅ COMPLETE (NS-052–NS-061; NS-059, NS-060 ve NS-061 belgelenmiş NO-GO spike sonuçları).
 - **Amaç:** Connection'ı yapan process'i ve gözlemin sınırlarını daha güvenilir göstermek.
 - **Ana teslimatlar:** Executable path, best-effort parent context, field-level availability; observation/lifecycle identity, telemetry quality, conservative network scope, history freshness/restart gap semantics. NS-059 per-flow bytes, NS-060 DNS-process attribution, NS-061 process/connection event-source ölçümlü spike'ları.
 - **Açık kapsam dışı:** Per-flow bytes release requirement değildir; production ETW/WFP collector, byte UI, genel risk ve firewall yoktur. Spike sonucu production taskını otomatik eklemez.

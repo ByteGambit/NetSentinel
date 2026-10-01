@@ -472,6 +472,8 @@ NS-059–061 kontrollü spike'ları Windows EStats/ETW privilege, session owners
 
 NS-059 [araştırma kararı](research/NS-059-per-flow-byte-telemetry.md) NO-GO'dur. Salt-okunur EStats probe bile collection'ın kapalı olduğunu gösterebilir; `SetPerTcp[6]ConnectionEStats` bir sistem state değişimidir ve NetSentinel başka uygulamanın etkinleştirdiği collection'ı kapatmaz. Bu task ETW session, WFP filter veya driver oluşturmadı.
 
+NS-061 [event-source araştırma kararı](research/NS-061-process-connection-event-sources.md) mevcut ürün için NO-GO'dur. Bu hostun medium-integrity standart kullanıcı token'ı ile üç sınırlı ETW session denemesi access denied oldu; başarıyla açılmış session, canlı payload veya elevated doğrulama yoktur. NetSentinel otomatik elevation yapmaz; gelecekteki event kaynağı ancak ayrı task ve yetki/gizlilik incelemesiyle ele alınır. Command line, UserSID ve raw ETW payload varsayılan portable telemetry veya diagnostics'e girmez. Yalnız doğrulanmış NetSentinel-owned session kapatılabilir.
+
 ### M18 conditional response ve rollback
 
 M18, **M17 tamamlanmadan, NS-099 gate geçmeden ve explicit response GO kararı verilmeden başlatılamaz.** Automatic blocking ve automatic elevation yasaktır. Gelecekte ilk model explicit user action → target/scope/profile/expiry preview → confirmation → dar NetSentinel-owned Windows Firewall rule → audit → undo/expiry'dir. Program path kuralı PID veya hash engeliymiş gibi; destination IP kuralı domain/CDN engeliymiş gibi gösterilmez. Yetki yoksa degraded sonuç açıkça görünür; supported local monitoring/trust devam eder.
