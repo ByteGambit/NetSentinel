@@ -470,6 +470,8 @@ API key normal config, DB evidence, log, diagnostics, export veya UI error text'
 
 NS-059–061 kontrollü spike'ları Windows EStats/ETW privilege, session ownership, buffer/loss, rate ve shutdown etkilerini ölçer. Kernel ETW veya TCP EStats enable işlemleri yüksek yetki gerektirebilir; read-only oldukları varsayılmaz. Uygulama otomatik admin elevation, service/driver installation veya kullanıcı grup üyeliği değişikliği yapmaz. ETW event'lerinin command line/UserSID gibi gereksiz alanları portable boundary'ye taşınmaz. WFP custom callout varsayılan çözüm değildir. Spike GO sonucu production izin veya implementasyon yetkisi sayılmaz; ayrı plan ve threat model gerekir. Per-flow ölçüm yoksa `unknown` gösterilir, sıfır veya interface toplamı connection'a atfedilmez.
 
+NS-059 [araştırma kararı](research/NS-059-per-flow-byte-telemetry.md) NO-GO'dur. Salt-okunur EStats probe bile collection'ın kapalı olduğunu gösterebilir; `SetPerTcp[6]ConnectionEStats` bir sistem state değişimidir ve NetSentinel başka uygulamanın etkinleştirdiği collection'ı kapatmaz. Bu task ETW session, WFP filter veya driver oluşturmadı.
+
 ### M18 conditional response ve rollback
 
 M18, **M17 tamamlanmadan, NS-099 gate geçmeden ve explicit response GO kararı verilmeden başlatılamaz.** Automatic blocking ve automatic elevation yasaktır. Gelecekte ilk model explicit user action → target/scope/profile/expiry preview → confirmation → dar NetSentinel-owned Windows Firewall rule → audit → undo/expiry'dir. Program path kuralı PID veya hash engeliymiş gibi; destination IP kuralı domain/CDN engeliymiş gibi gösterilmez. Yetki yoksa degraded sonuç açıkça görünür; supported local monitoring/trust devam eder.

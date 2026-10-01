@@ -664,7 +664,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-059 — Per-flow byte telemetry spike
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** TCP/UDP flow-byte ölçümünün privilege, doğruluk ve maliyetini karara bağlamak.
 - **Yapılacaklar:** TCP EStats, ETW ve WFP seçeneklerini kontrollü PoC/matrisle değerlendir; ölçüm anlamını ve GO/NO-GO kararını belgele.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, tests/fixtures/, docs/ARCHITECTURE.md, docs/SECURITY.md.

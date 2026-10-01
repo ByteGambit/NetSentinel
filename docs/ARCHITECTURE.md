@@ -1538,4 +1538,6 @@ Diagnostics yeni process field coverage, association ambiguity, baseline learnin
 
 NS-059 TCP EStats/ETW/WFP per-flow bytes; NS-060 DNS-process attribution; NS-061 process/connection event sources için ölçümlü research/spike'tır. Belgelenmiş GO da NO-GO da başarılı task çıktısıdır. Production ETW/WFP collector, privileged helper, flow-byte model veya UI ancak spike sonrası **ayrı planning pass ve yeni task** ile eklenebilir. M11 per-flow bytes gerektirmez. psutil per-connection upload/download sağlamaz: interface counter'ı flow counter gibi gösterilmez, ölçüm yoksa `unknown` gösterilir, `0` değil.
 
+NS-059 araştırmasının [NO-GO kararı](research/NS-059-per-flow-byte-telemetry.md), varsayılan standard-user modda EStats enable yetkisi ve UDP kapsamı yokluğu ile ETW/WFP doğruluk ve bakım sınırlarına dayanır. Bu karar production adapter veya ürün contract'ı eklemez.
+
 M18 response ancak M17/NS-099 tamamlanıp explicit response GO kararı verilince başlar. İlk akış explicit action → preview → confirmation → narrow NetSentinel-owned firewall rule → audit → undo/expiry'dir. Automatic blocking/elevation ve unrelated rule değişimi yoktur.
