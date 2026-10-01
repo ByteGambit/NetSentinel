@@ -23,6 +23,7 @@ from netsentinel.application.services.dns_history import (
     DnsHistoryRetentionService, DnsHistoryWriter, DnsRetentionConfig,
 )
 from netsentinel.application.services.dns_association import DnsAssociationService
+from netsentinel.application.services.destination_context import DestinationContextResolver
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
@@ -37,6 +38,7 @@ from netsentinel.infrastructure.psutil_processes import (
 )
 from netsentinel.infrastructure.windows_network import WindowsNetworkContextProvider
 from netsentinel.infrastructure.windows_privileges import is_process_elevated
+from netsentinel.infrastructure.local_destination_dataset import LocalDestinationDataset
 from netsentinel.infrastructure.scapy_capture import ScapyCaptureWorker
 from netsentinel.infrastructure.sqlite import (
     SQLiteDatabase,
@@ -301,6 +303,13 @@ def runtime_config_path() -> Path:
     """Return the user-local central config location without creating it."""
 
     return default_database_path().parent / "config.json"
+
+
+def create_destination_context_resolver(config: AppConfig | None = None) -> DestinationContextResolver:
+    """Create on a caller-owned worker; configured dataset loading may read 16 MiB."""
+
+    settings = config or AppConfig()
+    return DestinationContextResolver(LocalDestinationDataset(settings.destination_dataset_path))
 
 
 def collect_diagnostics(

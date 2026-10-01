@@ -20,6 +20,7 @@ from netsentinel.domain.connections import (
     ProcessInfo,
     TransportProtocol,
 )
+from netsentinel.domain.destination_context import DestinationContext
 from netsentinel.domain.devices import (
     DeviceIdentity, DeviceProfile, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
@@ -32,12 +33,24 @@ from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
     CaptureHealthSnapshot,
+    DestinationDatasetDiagnostic,
 )
 
 
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class DestinationContextProvider(Protocol):
+    """Local dataset lookup for canonical public IPs only; never performs network I/O."""
+
+    @property
+    def generation(self) -> int: ...
+
+    def lookup(self, ip: str) -> DestinationContext: ...
+
+    def diagnostic(self) -> DestinationDatasetDiagnostic: ...
 
 
 class DnsHistoryRepositoryError(RuntimeError):

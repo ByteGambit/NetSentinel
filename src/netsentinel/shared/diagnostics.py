@@ -332,6 +332,42 @@ class DatabaseStatus(str, Enum):
     NOT_CHECKED = "not_checked"
 
 
+class DestinationDatasetStatus(str, Enum):
+    NOT_CONFIGURED = "not_configured"
+    AVAILABLE = "available"
+    INVALID_DATASET = "invalid_dataset"
+    LOAD_FAILED = "load_failed"
+    UNSUPPORTED_VERSION = "unsupported_version"
+
+
+@dataclass(frozen=True, slots=True)
+class DestinationDatasetDiagnostic:
+    """Sanitized local dataset health; no path, IP, row, or exception text."""
+
+    status: DestinationDatasetStatus
+    record_count: int = 0
+    source_name: str | None = None
+    source_version: str | None = None
+    last_reload_error: DestinationDatasetStatus | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, DestinationDatasetStatus):
+            raise TypeError("invalid destination dataset status")
+        if type(self.record_count) is not int or not 0 <= self.record_count <= 100_000:
+            raise ValueError("invalid destination record count")
+        if self.status is DestinationDatasetStatus.AVAILABLE:
+            if self.source_name is None or self.source_version is None:
+                raise ValueError("available dataset requires source identity")
+        elif self.record_count or self.source_name is not None or self.source_version is not None:
+            raise ValueError("unavailable dataset cannot report source or records")
+        if self.last_reload_error is not None and self.last_reload_error not in {
+            DestinationDatasetStatus.INVALID_DATASET,
+            DestinationDatasetStatus.LOAD_FAILED,
+            DestinationDatasetStatus.UNSUPPORTED_VERSION,
+        }:
+            raise ValueError("invalid reload error")
+
+
 @dataclass(frozen=True, slots=True)
 class DatabaseDiagnostic:
     """Sanitized DB result. No path, SQL, or exception text."""
@@ -375,6 +411,7 @@ class DiagnosticsSnapshot:
 
 
 __all__ = (
+    "DestinationDatasetStatus", "DestinationDatasetDiagnostic",
     "CaptureCapabilityReason",
     "CaptureCapabilitySnapshot",
     "CaptureCounters",

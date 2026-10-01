@@ -87,8 +87,14 @@ class AppConfig:
     log_max_bytes: int = 1_048_576
     log_backups: int = 3
     onboarding_completed: bool = False
+    destination_dataset_path: str | None = None
 
     def __post_init__(self) -> None:
+        if self.destination_dataset_path is not None:
+            path = self.destination_dataset_path
+            if (not isinstance(path, str) or not path or len(path) > 4096
+                    or any(ord(char) < 32 for char in path) or path.startswith("\\\\")):
+                raise ValueError("destination_dataset_path must be a bounded local path")
         if type(self.onboarding_completed) is not bool:
             raise ValueError("onboarding_completed must be a boolean")
         for name in ("polling_interval", "shutdown_timeout"):

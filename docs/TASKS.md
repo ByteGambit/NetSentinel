@@ -732,7 +732,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-065 — Local ASN/country enrichment
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı.
 - **Amaç:** Cloud kullanmadan destination hakkında ek context vermek.
 - **Yapılacaklar:** Source/version/lisans bilgili local dataset port/adapter ve bounded cache tanımla; public/private/unknown ayrımı yap.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/, src/netsentinel/shared/diagnostics.py, tests/unit/.
