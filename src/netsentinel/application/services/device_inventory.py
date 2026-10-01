@@ -219,11 +219,12 @@ class DeviceInventoryService:
                     if self._dns_writer is not None and observation.dns is not None:
                         try:
                             for transaction in self._dns_tracking.observe(observation):
+                                associations = ()
                                 try:
-                                    self._dns_associations.observe(transaction)
+                                    associations = self._dns_associations.observe(transaction)
                                 except Exception:
                                     observation_failed = True
-                                self._dns_writer.submit(transaction)
+                                self._dns_writer.submit(transaction, associations=associations)
                         except Exception:
                             observation_failed = True
                         continue
@@ -292,11 +293,12 @@ class DeviceInventoryService:
         if self._dns_writer is not None:
             try:
                 for transaction in self._dns_tracking.expire():
+                    associations = ()
                     try:
-                        self._dns_associations.observe(transaction)
+                        associations = self._dns_associations.observe(transaction)
                     except Exception:
                         observation_failed = True
-                    self._dns_writer.submit(transaction)
+                    self._dns_writer.submit(transaction, associations=associations)
             except Exception:
                 observation_failed = True
 

@@ -97,11 +97,14 @@ def test_duplicate_retry_duplicate_response_and_new_transaction() -> None:
     clock.value = 2
     result, = service.observe(packet(response=True, at=BASE + timedelta(seconds=2)))
     assert result.retry_count == 1 and result.latency_seconds == 2
+    assert result.evidence_id is not None
     assert service.observe(packet(response=True, at=BASE + timedelta(seconds=2))) == ()
     assert service.observe(packet()) == ()  # captured query replay cannot reopen
     assert service.pending_count == 0
     service.observe(packet(at=BASE + timedelta(seconds=3)))
     assert service.pending_count == 1  # a later query can reuse the TCP/UDP ID
+    later, = service.observe(packet(response=True, at=BASE + timedelta(seconds=4)))
+    assert later.evidence_id != result.evidence_id
 
 
 def test_unmatched_and_response_before_query_are_preserved_without_fabrication() -> None:
@@ -109,6 +112,7 @@ def test_unmatched_and_response_before_query_are_preserved_without_fabrication()
     unmatched, = service.observe(packet(response=True))
     assert unmatched.status is Status.UNMATCHED_RESPONSE
     assert unmatched.query_at is None and unmatched.response_at == BASE
+    assert service.observe(packet(response=True)) == ()  # same captured orphan replay
     assert service.pending_count == 0
     service.observe(packet(at=BASE + timedelta(seconds=2)))
     older, = service.observe(packet(response=True, at=BASE + timedelta(seconds=1)))

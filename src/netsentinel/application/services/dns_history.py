@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 from netsentinel.application.ports import (
     DnsHistoryRepositoryError, DnsHistoryRetentionRepository, DnsHistoryWriteSession,
 )
-from netsentinel.domain.dns import DnsHistoryRecord, DnsTransaction
+from netsentinel.domain.dns import DnsHistoryRecord, DnsTransaction, DomainAssociation
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,10 +91,15 @@ class DnsHistoryWriter:
             self._thread.start()
             return True
 
-    def submit(self, transaction: DnsTransaction | DnsHistoryRecord) -> UUID | None:
+    def submit(
+        self, transaction: DnsTransaction | DnsHistoryRecord,
+        *, associations: tuple[DomainAssociation, ...] = (),
+    ) -> UUID | None:
         if isinstance(transaction, DnsTransaction):
-            record = DnsHistoryRecord(self._id_factory(), transaction)
+            record = DnsHistoryRecord(self._id_factory(), transaction, associations)
         elif isinstance(transaction, DnsHistoryRecord):
+            if associations:
+                raise ValueError("record already carries its associations")
             record = transaction
         else:
             raise TypeError("DNS history requires a portable transaction or record")
@@ -224,6 +229,8 @@ class DnsCleanupResult:
     row_deleted: int
     chunks: int
     interrupted: bool
+    association_age_deleted: int = 0
+    association_row_deleted: int = 0
 
 
 class DnsHistoryRetentionService:
@@ -231,8 +238,10 @@ class DnsHistoryRetentionService:
 
     def __init__(self, repository: DnsHistoryRetentionRepository, *,
                  config: DnsRetentionConfig | None = None,
+                 association_repository: DnsHistoryRetentionRepository | None = None,
                  clock: Callable[[], datetime] | None = None) -> None:
         self._repository = repository
+        self._association_repository = association_repository
         self._config = config or DnsRetentionConfig()
         self._clock = clock or (lambda: datetime.now(UTC))
 
@@ -241,26 +250,29 @@ class DnsHistoryRetentionService:
         if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() != timedelta(0):
             raise ValueError("retention clock must be UTC-aware")
         cutoff = now - timedelta(days=self._config.retention_days)
-        counts = [0, 0]
+        counts = [[0, 0], [0, 0]]
         chunks = 0
-        for phase in range(2):
-            while True:
-                if stop_requested is not None and stop_requested():
-                    return DnsCleanupResult(*counts, chunks, True)
-                try:
-                    deleted = (
-                        self._repository.delete_before(cutoff, self._config.chunk_size)
-                        if phase == 0 else
-                        self._repository.delete_oldest_over_limit(self._config.max_rows, self._config.chunk_size)
-                    )
-                except Exception:
-                    raise DnsHistoryRepositoryError("DNS history cleanup failed.") from None
-                if type(deleted) is not int or not 0 <= deleted <= self._config.chunk_size:
-                    raise DnsHistoryRepositoryError("DNS history cleanup returned an invalid count.")
-                if deleted == 0:
-                    break
-                counts[phase] += deleted
-                chunks += 1
-                if deleted < self._config.chunk_size:
-                    break
-        return DnsCleanupResult(*counts, chunks, False)
+        for repository_index, repository in enumerate((self._repository, self._association_repository)):
+            if repository is None:
+                continue
+            for phase in range(2):
+                while True:
+                    if stop_requested is not None and stop_requested():
+                        return DnsCleanupResult(*counts[0], chunks, True, *counts[1])
+                    try:
+                        deleted = (
+                            repository.delete_before(cutoff, self._config.chunk_size)
+                            if phase == 0 else
+                            repository.delete_oldest_over_limit(self._config.max_rows, self._config.chunk_size)
+                        )
+                    except Exception:
+                        raise DnsHistoryRepositoryError("DNS history cleanup failed.") from None
+                    if type(deleted) is not int or not 0 <= deleted <= self._config.chunk_size:
+                        raise DnsHistoryRepositoryError("DNS history cleanup returned an invalid count.")
+                    if deleted == 0:
+                        break
+                    counts[repository_index][phase] += deleted
+                    chunks += 1
+                    if deleted < self._config.chunk_size:
+                        break
+        return DnsCleanupResult(*counts[0], chunks, False, *counts[1])

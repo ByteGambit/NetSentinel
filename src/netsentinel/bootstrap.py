@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from os import PathLike
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 from netsentinel.application.engine import MonitoringEngine
 from netsentinel.application.events import EventDispatcher
@@ -21,6 +22,7 @@ from netsentinel.application.services.dns_config import DnsConfigMonitoringServi
 from netsentinel.application.services.dns_history import (
     DnsHistoryRetentionService, DnsHistoryWriter, DnsRetentionConfig,
 )
+from netsentinel.application.services.dns_association import DnsAssociationService
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
@@ -50,6 +52,7 @@ from netsentinel.infrastructure.sqlite.alert_repository import SQLiteAlertReposi
 from netsentinel.infrastructure.sqlite.dns_repository import (
     SQLiteDnsHistoryRepository, SQLiteDnsHistorySessionFactory,
 )
+from netsentinel.infrastructure.sqlite.dns_association_repository import SQLiteDnsAssociationRepository
 from netsentinel.shared.config import AppConfig, ConfigLoadResult, HistoryRetentionConfig, load_config_file
 from netsentinel.shared.diagnostics import DatabaseDiagnostic, DatabaseStatus, DiagnosticsSnapshot
 from netsentinel.shared.logging import configure_logging, log_event
@@ -169,6 +172,7 @@ def create_dns_history_retention_service(
 ) -> DnsHistoryRetentionService:
     return DnsHistoryRetentionService(
         create_dns_history_repository(database_path=database_path), config=config,
+        association_repository=SQLiteDnsAssociationRepository(SQLiteDatabase(database_path)),
     )
 
 
@@ -254,6 +258,12 @@ def create_device_inventory_service_factory(
     def create_service() -> DeviceInventoryService:
         contexts = create_network_context_provider()
         database = SQLiteDatabase(database_path)
+        associations = DnsAssociationService()
+        try:
+            now = datetime.now(UTC)
+            associations.restore(SQLiteDnsAssociationRepository(database).active_for_restore(now_utc=now), now_utc=now)
+        except Exception:
+            associations.mark_restore_unavailable()
         return DeviceInventoryService(
             contexts,
             SQLiteDeviceRepository(database),
@@ -261,6 +271,7 @@ def create_device_inventory_service_factory(
             GatewayBaselineService(SQLiteGatewayBaselineRepository(database), contexts),
             AlertService(SQLiteAlertRepository(database)),
             dns_writer=create_dns_history_writer(database_path=database_path, config=config),
+            dns_associations=associations,
             profiles=SQLiteDeviceProfileRepository(database),
             vlan_summary=VlanSummaryService(SQLiteVlanSummaryRepository(database)),
         )

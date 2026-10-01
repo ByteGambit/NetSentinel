@@ -19,6 +19,7 @@ from netsentinel.domain.dns import DnsAssociationStatus
 from netsentinel.infrastructure.scapy_capture import _packet_observation
 from netsentinel.infrastructure.sqlite.database import SQLiteDatabase
 from netsentinel.infrastructure.sqlite.dns_repository import SQLiteDnsHistoryRepository, SQLiteDnsHistorySessionFactory
+from netsentinel.infrastructure.sqlite.dns_association_repository import SQLiteDnsAssociationRepository
 from netsentinel.infrastructure.sqlite.repositories import SQLiteDeviceRepository
 from netsentinel.shared.diagnostics import (CaptureCapabilityReason, CaptureCapabilitySnapshot,
     CaptureCounters, CaptureHealthSnapshot, CaptureState, CapabilityStatus)
@@ -116,6 +117,11 @@ def test_synthetic_dns_packet_live_consumer_writer_restart_read_model(tmp_path):
             DnsTransactionStatus.TIMED_OUT,
         }
         completed = next(row for row in rows if row.transaction.status is DnsTransactionStatus.COMPLETED)
+        assert completed.transaction.evidence_id == association.candidates[0].evidence_id
+        assert completed.transaction.evidence_id is not None
+        persisted = SQLiteDnsAssociationRepository(database).get_by_evidence_id(completed.transaction.evidence_id)
+        assert persisted and persisted[0].evidence_id == completed.transaction.evidence_id
+        assert SQLiteDnsHistoryRepository(database).get_by_evidence_id(completed.transaction.evidence_id) == completed
         assert completed.transaction.questions[0].name == "example.com."
         assert len(completed.transaction.answers) == 4
         assert all(not hasattr(row.transaction, "payload") and not hasattr(row.transaction, "packet") for row in rows)

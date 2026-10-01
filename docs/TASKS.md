@@ -710,7 +710,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-063 — Association persistence ve canonical DNS IDs
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-01).
 - **Amaç:** Association reference'larını restart sonrası izlenebilir tutmak.
 - **Yapılacaklar:** DNS result ID'sini origin'den writer/consumer'a taşı; bounded SQLite repository ve retention/ref semantics ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/dns.py, src/netsentinel/application/services/dns_history.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/bootstrap.py, tests/integration/.

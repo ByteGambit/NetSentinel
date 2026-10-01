@@ -160,6 +160,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="history_observation_gaps",
             sql=_read_resource("011_history_observation_gaps.sql", 11, "history_observation_gaps"),
         ),
+        Migration(
+            version=12,
+            name="dns_association_evidence",
+            sql=_read_resource("012_dns_association_evidence.sql", 12, "dns_association_evidence"),
+        ),
     )
 
 

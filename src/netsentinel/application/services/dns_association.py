@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
 from math import isfinite
 from threading import RLock
@@ -64,6 +65,11 @@ class DnsAssociationService:
         self._last_now = 0.0
         self._expired = 0
         self._evicted = 0
+        self._restoration_failed = False
+
+    def mark_restore_unavailable(self) -> None:
+        with self._lock:
+            self._restoration_failed = True
 
     def observe(self, transaction: DnsTransaction) -> tuple[DomainAssociation, ...]:
         """Accept only matched, successful, complete response answer evidence."""
@@ -77,6 +83,7 @@ class DnsAssociationService:
                 or transaction.response_code != 0 or transaction.truncated
                 or not transaction.answers or transaction.response_at is None
                 or transaction.query_at is None
+                or transaction.evidence_id is None
             ):
                 return ()
             result: list[DomainAssociation] = []
@@ -99,6 +106,7 @@ class DnsAssociationService:
                         client_ip=transaction.client_ip, server_ip=transaction.server_ip,
                         transport=transaction.transport, transaction_id=transaction.transaction_id,
                         query_at=transaction.query_at,
+                        evidence_id=transaction.evidence_id,
                     )
                     result.append(association)
                     self._retain(association, now)
@@ -115,10 +123,30 @@ class DnsAssociationService:
                             client_ip=transaction.client_ip, server_ip=transaction.server_ip,
                             transport=transaction.transport, transaction_id=transaction.transaction_id,
                             query_at=transaction.query_at,
+                            evidence_id=transaction.evidence_id,
                         )
                         result.append(direct)
                         self._retain(direct, now)
             return tuple(result)
+
+    def restore(self, associations: tuple[DomainAssociation, ...], *, now_utc: datetime | None = None) -> None:
+        """Rebuild monotonic deadlines from bounded UTC evidence after restart."""
+        current = now_utc or datetime.now(UTC)
+        if current.tzinfo is None or current.utcoffset() != timedelta(0):
+            raise ValueError("restore clock must be UTC-aware")
+        if len(associations) > self._global_limit:
+            raise ValueError("restore batch exceeds the association bound")
+        with self._lock:
+            now = self._now()
+            self._expire(now)
+            for item in sorted(associations, key=lambda value: value.observed_at):
+                if not isinstance(item, DomainAssociation) or item.retention_seconds == 0:
+                    continue
+                # A clock moved backwards cannot extend the original TTL.
+                age = (current - item.observed_at).total_seconds()
+                if age < 0 or age >= item.retention_seconds:
+                    continue
+                self._retain(item, now, remaining=item.retention_seconds - age)
 
     def lookup_by_ip(
         self, ip: str, *, network_scope: ConnectionNetworkScope,
@@ -131,7 +159,7 @@ class DnsAssociationService:
         client = str(ip_address(client_ip)) if client_ip is not None else None
         with self._lock:
             self._expire(self._now())
-            loss = self._evicted > 0
+            loss = self._evicted > 0 or self._restoration_failed
             if network_scope.status is not NetworkScopeStatus.RESOLVED or client is None:
                 return DnsAssociationLookup(DnsAssociationStatus.UNKNOWN, (), loss)
             candidates = tuple(
@@ -153,7 +181,7 @@ class DnsAssociationService:
     def stats(self) -> DnsAssociationStats:
         with self._lock:
             self._expire(self._now())
-            return DnsAssociationStats(len(self._items), self._expired, self._evicted, self._evicted > 0)
+            return DnsAssociationStats(len(self._items), self._expired, self._evicted, self._evicted > 0 or self._restoration_failed)
 
     def _reachable(
         self, origin: str, answers: tuple[DnsAnswer, ...],
@@ -186,7 +214,7 @@ class DnsAssociationService:
                     stack.append((edge.value, (*path, edge.value), min(ttl, edge.ttl)))
         return tuple(found)
 
-    def _retain(self, association: DomainAssociation, now: float) -> None:
+    def _retain(self, association: DomainAssociation, now: float, *, remaining: float | None = None) -> None:
         key: _Key = (
             association.network_fingerprint, association.client_ip,
             association.domain, association.ip, association.provenance,
@@ -210,7 +238,7 @@ class DnsAssociationService:
                 victim = next(key for key, (item, _) in self._items.items() if predicate(item))
                 del self._items[victim]
                 self._evicted += 1
-        self._items[key] = (association, now + association.retention_seconds)
+        self._items[key] = (association, now + (remaining if remaining is not None else association.retention_seconds))
 
     def _expire(self, now: float) -> None:
         for key, (_, deadline) in tuple(self._items.items()):

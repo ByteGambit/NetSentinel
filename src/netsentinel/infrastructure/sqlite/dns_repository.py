@@ -15,19 +15,23 @@ from netsentinel.application.ports import (
     DnsHistoryDataCorrupt, DnsHistoryQuery, DnsHistoryQueryCancelled, DnsHistoryRepositoryError,
 )
 from netsentinel.domain.dns import (
-    DnsAnswer, DnsHistoryRecord, DnsQuestion, DnsRecordType, DnsTransaction,
-    DnsTransactionStatus, DnsTransport,
+    DnsAnswer, DnsEvidenceId, DnsEvidenceSourceStatus, DnsHistoryRecord,
+    DnsQuestion, DnsRecordType, DnsTransaction, DnsTransactionStatus,
+    DnsTransport,
 )
 from netsentinel.infrastructure.sqlite.database import SQLiteAdapterError, SQLiteDatabase, transaction
 from netsentinel.infrastructure.sqlite.repositories import (
     datetime_to_epoch_microseconds as to_us, epoch_microseconds_to_datetime as from_us,
+)
+from netsentinel.infrastructure.sqlite.dns_association_repository import (
+    insert_association as _insert_association, prune_associations as _prune_associations,
 )
 
 _COLUMNS = (
     "id, status, network_fingerprint, transport, client_ip, client_port, "
     "server_ip, server_port, transaction_id, qname, questions_json, "
     "query_at_utc_us, response_at_utc_us, event_at_utc_us, latency_us, "
-    "response_code, truncated, answers_json, retry_count"
+    "response_code, truncated, answers_json, retry_count, evidence_id"
 )
 
 
@@ -55,6 +59,7 @@ def _encode(record: DnsHistoryRecord) -> tuple[object, ...]:
         to_us(event_at),
         round(tx.latency_seconds * 1_000_000) if tx.latency_seconds is not None else None,
         tx.response_code, int(tx.truncated), answers, tx.retry_count,
+        str(tx.evidence_id) if tx.evidence_id is not None else None,
     )
 
 
@@ -76,6 +81,7 @@ def _decode(row: sqlite3.Row) -> DnsHistoryRecord:
             latency_seconds=row["latency_us"] / 1_000_000 if row["latency_us"] is not None else None,
             response_code=row["response_code"], truncated=bool(row["truncated"]),
             answers=answers, retry_count=row["retry_count"],
+            evidence_id=DnsEvidenceId(UUID(row["evidence_id"])) if row["evidence_id"] is not None else None,
         )
         if row["qname"] != (questions[0].name if questions else None):
             raise ValueError("inconsistent qname")
@@ -108,18 +114,45 @@ class SQLiteDnsHistoryRepository:
             raise ValueError("batch size must be between 1 and 500")
         values = tuple(_encode(record) for record in records)
         with transaction(connection):
-            for value in values:
+            for record, value in zip(records, values, strict=True):
                 cursor = connection.execute(
                     f"INSERT INTO dns_history ({_COLUMNS}) VALUES ({','.join('?' for _ in value)}) "
-                    "ON CONFLICT(id) DO NOTHING",
+                    "ON CONFLICT DO NOTHING",
                     value,
                 )
                 if cursor.rowcount == 0:
                     existing = connection.execute(
-                        f"SELECT {_COLUMNS} FROM dns_history WHERE id = ?", (value[0],)
+                        f"SELECT {_COLUMNS} FROM dns_history WHERE id = ? OR evidence_id = ?",
+                        (value[0], value[-1]),
                     ).fetchone()
-                    if existing is None or tuple(existing) != value:
+                    if existing is None or (existing["id"] == value[0] and tuple(existing) != value) or (
+                        existing["id"] != value[0] and tuple(existing)[1:] != value[1:]
+                    ):
                         raise ValueError("record identity conflict")
+                for index, association in enumerate(record.associations):
+                    _insert_association(connection, association, index)
+            _prune_associations(connection)
+
+    def get_by_evidence_id(self, evidence_id: DnsEvidenceId) -> DnsHistoryRecord | None:
+        if not isinstance(evidence_id, DnsEvidenceId):
+            raise TypeError("evidence_id must be a DnsEvidenceId")
+        try:
+            with self._database.connection() as connection:
+                row = connection.execute(
+                    f"SELECT {_COLUMNS} FROM dns_history WHERE evidence_id = ?", (str(evidence_id),)
+                ).fetchone()
+            return _decode(row) if row is not None else None
+        except DnsHistoryDataCorrupt:
+            raise
+        except (SQLiteAdapterError, sqlite3.Error, TypeError, ValueError):
+            raise DnsHistoryRepositoryError("DNS evidence could not be read.") from None
+
+    def source_status(self, evidence_id: DnsEvidenceId | None) -> DnsEvidenceSourceStatus:
+        """A missing source can have expired or failed to persist; never infer a negative DNS result."""
+        if evidence_id is None:
+            return DnsEvidenceSourceStatus.UNKNOWN_LEGACY
+        return (DnsEvidenceSourceStatus.AVAILABLE if self.get_by_evidence_id(evidence_id) is not None
+                else DnsEvidenceSourceStatus.SOURCE_UNAVAILABLE)
 
     def get(self, record_id: UUID) -> DnsHistoryRecord | None:
         if not isinstance(record_id, UUID):

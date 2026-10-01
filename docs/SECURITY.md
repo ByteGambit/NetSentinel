@@ -252,6 +252,17 @@ geçmiş yine okunur. Ekran DoH/DoT ve mDNS görünürlük sınırını açıkç
 DNS adları hassas gezinti metadata'sı olabilir; kayıtlar yerel SQLite retention
 politikasına tabidir. Hata ekranı SQL, DB yolu veya traceback göstermez.
 
+NS-063 DNS result'a origin'de canonical UUID verir; history storage UUID'si
+ayrıdır. Yerel association tablosu yalnız canonical domain/IP, bounded CNAME
+zinciri, provenance, network/client scope, UTC observed/expiry ve TTL tutar.
+PID, process adı/path, connection hostname, raw packet ve payload eklenmez.
+Resolver semantic association key değildir. Tablo yazma sırasında 100.000
+satır hard cap, manuel DNS retention'da 30 gün/100.000 satır sınırı kullanır;
+sorgular zorunlu limit taşır. Eski history satırındaki NULL evidence ID gerçek
+origin kanıtıymış gibi doldurulmaz. Source retention veya write failure sonrası
+eksik kaynak, DNS observation yokluğu şeklinde yorumlanmaz. Hata diagnostics'i
+domain/IP/DB yolu/SQL içermez; veri yerel SQLite dışına gönderilmez.
+
 ## 5. Veri gizliliği ve saklama
 
 NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabilir.

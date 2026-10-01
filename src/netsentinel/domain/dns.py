@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field as data_field
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from ipaddress import ip_address
 import re
-from uuid import UUID
+from uuid import UUID, uuid4
 
 
 MAX_DNS_QUESTIONS = 4
@@ -37,6 +37,20 @@ class DnsTransactionStatus(str, Enum):
     TIMED_OUT = "timed_out"
     EVICTED = "evicted"
     UNMATCHED_RESPONSE = "unmatched_response"
+
+
+@dataclass(frozen=True, slots=True)
+class DnsEvidenceId:
+    """Origin identity of one normalized DNS transaction outcome."""
+
+    value: UUID
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, UUID):
+            raise TypeError("DNS evidence ID must be a UUID")
+
+    def __str__(self) -> str:
+        return str(self.value)
 
 
 def canonical_dns_name(value: str) -> str:
@@ -165,8 +179,11 @@ class DnsTransaction:
     truncated: bool
     answers: tuple[DnsAnswer, ...]
     retry_count: int
+    evidence_id: DnsEvidenceId | None = data_field(default_factory=lambda: DnsEvidenceId(uuid4()))
 
     def __post_init__(self) -> None:
+        if self.evidence_id is not None and not isinstance(self.evidence_id, DnsEvidenceId):
+            raise TypeError("evidence_id must be a DnsEvidenceId or unknown")
         if not isinstance(self.status, DnsTransactionStatus):
             raise TypeError("status must be a DnsTransactionStatus")
         if not isinstance(self.transport, DnsTransport):
@@ -212,12 +229,24 @@ class DnsHistoryRecord:
 
     id: UUID
     transaction: DnsTransaction
+    associations: tuple[DomainAssociation, ...] = data_field(default=(), compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, UUID):
             raise TypeError("id must be a UUID")
         if not isinstance(self.transaction, DnsTransaction):
             raise TypeError("transaction must be a DnsTransaction")
+        if not isinstance(self.associations, tuple) or len(self.associations) > 512 or not all(
+            isinstance(item, DomainAssociation) and item.evidence_id == self.transaction.evidence_id
+            for item in self.associations
+        ):
+            raise ValueError("associations must refer to the transaction evidence")
+
+
+class DnsEvidenceSourceStatus(str, Enum):
+    AVAILABLE = "available"
+    UNKNOWN_LEGACY = "unknown_legacy"
+    SOURCE_UNAVAILABLE = "source_unavailable"
 
 
 class DnsAssociationProvenance(str, Enum):
@@ -257,8 +286,11 @@ class DomainAssociation:
     transport: DnsTransport
     transaction_id: int
     query_at: datetime
+    evidence_id: DnsEvidenceId = data_field(default_factory=lambda: DnsEvidenceId(uuid4()))
 
     def __post_init__(self) -> None:
+        if not isinstance(self.evidence_id, DnsEvidenceId):
+            raise TypeError("evidence_id must be a DnsEvidenceId")
         object.__setattr__(self, "domain", canonical_dns_name(self.domain))
         object.__setattr__(self, "queried_domain", canonical_dns_name(self.queried_domain))
         object.__setattr__(self, "answer_name", canonical_dns_name(self.answer_name))

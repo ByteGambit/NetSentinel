@@ -9,9 +9,10 @@ from heapq import heappop, heappush
 from math import isfinite
 from time import monotonic
 from typing import Callable
+from uuid import uuid4
 
 from netsentinel.domain.dns import (
-    DnsObservation, DnsQuestion, DnsTrafficKind, DnsTransaction,
+    DnsEvidenceId, DnsObservation, DnsQuestion, DnsTrafficKind, DnsTransaction,
     DnsTransactionStatus, DnsTransport,
 )
 from netsentinel.domain.observations import PacketObservation
@@ -22,6 +23,7 @@ _Key = tuple[str, DnsTransport, str, int, str, int, int, tuple[DnsQuestion, ...]
 
 @dataclass(slots=True)
 class _Pending:
+    evidence_id: DnsEvidenceId
     query_at: datetime
     last_query_at: datetime
     started: float
@@ -77,14 +79,18 @@ class DnsTrackingService:
             key = self._key(packet.network_fingerprint, dns)
             if not dns.questions:
                 if dns.is_response:
-                    outcomes.append(self._result(key, DnsTransactionStatus.UNMATCHED_RESPONSE,
-                                                 response_at=packet.observed_at, dns=dns))
+                    recent = self._recent.get(key)
+                    if recent is None or packet.observed_at > recent[1]:
+                        self._remember(key, now, packet.observed_at)
+                        outcomes.append(self._result(key, DnsTransactionStatus.UNMATCHED_RESPONSE,
+                                                     response_at=packet.observed_at, dns=dns))
                 return tuple(outcomes)
             if dns.is_response:
                 pending = self._pending.get(key)
                 if pending is None or packet.observed_at < pending.query_at:
                     recent = self._recent.get(key)
                     if recent is None or packet.observed_at > recent[1]:
+                        self._remember(key, now, packet.observed_at)
                         outcomes.append(self._result(key, DnsTransactionStatus.UNMATCHED_RESPONSE,
                                                      response_at=packet.observed_at, dns=dns))
                     return tuple(outcomes)
@@ -112,7 +118,7 @@ class DnsTrackingService:
             if len(self._pending) >= self._limit:
                 oldest_key, oldest = self._pending.popitem(last=False)
                 outcomes.append(self._result(oldest_key, DnsTransactionStatus.EVICTED, pending=oldest))
-            pending = _Pending(packet.observed_at, packet.observed_at, now, now + self._timeout, 0)
+            pending = _Pending(DnsEvidenceId(uuid4()), packet.observed_at, packet.observed_at, now, now + self._timeout, 0)
             self._pending[key] = pending
             self._schedule(key, pending, now)
             return tuple(outcomes)
@@ -186,6 +192,7 @@ class DnsTrackingService:
             truncated=dns.truncated if dns is not None else False,
             answers=dns.answers if dns is not None else (),
             retry_count=pending.retry_count if pending is not None else 0,
+            evidence_id=pending.evidence_id if pending is not None else DnsEvidenceId(uuid4()),
         )
 
 

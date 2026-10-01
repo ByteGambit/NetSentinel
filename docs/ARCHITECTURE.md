@@ -1531,8 +1531,49 @@ global 2048, scope başına IP 32 ve domain 32 adaydır. Süre dolanlar önce
 temizlenir, kapasitede en eski/yenilenmemiş aday deterministik tahliye edilir.
 Duplicate yeni observation time ile coalesce olur; DNS server kimlik değildir,
 son gözlemin resolver provenance'ı tutulur. Kapasite kaybı sticky,
-sanitize aggregate service stats içinde görünür. Transaction alanları yalnız
-geçici evidence reference'dır; kalıcı DNS result ID ve SQLite NS-063 işidir.
+sanitize aggregate service stats içinde görünür. Transaction alanları DNS wire
+bağlamıdır; kalıcı source reference NS-063'te `DnsEvidenceId` ile sağlanır.
+
+### NS-063 Association persistence ve canonical DNS IDs
+
+`DnsEvidenceId`, bir normalized klasik DNS transaction sonucunun UUID kimliğidir;
+domain, IP, resolver, process veya association kimliği değildir. Tracker ilk
+pending query kabulünde bir ID oluşturur ve retry'de korur. Matched response,
+timeout veya eviction bu pending ID ile tek sonuç üretir; completed response
+replay'i yeni sonuç üretmez. Unmatched response için sonuç anında ID oluşturulur;
+aynı timestamp'li replay yakın completion penceresinde bastırılır. Daha sonraki
+gerçek sorgu/yanıt, içerik aynı olsa bile yeni ID alır. Parser, history writer,
+repository ve UI ID üretmez.
+
+DNS history'nin UUID `id` kolonu storage row kimliği olarak kalır. Migration 012
+nullable ve unique `evidence_id` ekler. Eski satırlarda `NULL` pipeline origin'i
+bilinmediği anlamına gelir; migration backfill yapmaz. Aynı evidence ID ile
+writer retry'si yeni row açmaz, farklı içerik kimlik çakışması olarak reddedilir.
+`source_status` mevcut kaynak, legacy unknown ve artık bulunamayan kaynak
+(retention veya yazma hatası olabilir) durumlarını ayırır.
+
+`dns_associations` her DNS result'taki ayrı domain/IP/provenance/CNAME zinciri
+için source `evidence_id` ve result içi bounded sıra taşır. Aynı result iki A cevabı verirse iki association
+satırı aynı evidence ID'ye bağlanır. Semantic key'e resolver girmez; farklı
+resolver'dan sonraki gerçek gözlem ayrı source ID ile saklanır, runtime aday
+güncelliği coalesce edilir. DNS writer'ın bounded kuyruğu ve worker-owned
+bağlantısı history ile association'ları aynı transaction'da yazar; capture,
+dispatcher ve GUI callback'lerinde DB I/O yoktur. Association yazısı başarısızsa
+runtime gözlem korunur, writer'ın sanitized failure sayacı/kodu artar.
+
+Association satırları yalnız bounded canonical metadata, DIRECT/CNAME provenance,
+en çok 9 elemanlı CNAME zinciri, network/client scope, UTC observed/expiry ve
+gözlenen TTL taşır. Monotonic deadline DB'ye yazılmaz. Restart'ta worker en
+fazla 2048 fresh satırı UTC üzerinden okur; geçmişe kaymış wall clock ve süresi
+geçmiş/TTL=0 satırlar aktif olmaz. Kalan süre yeni monotonic deadline'a çevrilir;
+memory'nin 2048 global ve 32 scope/IP/domain sınırları korunur. Restore hatası
+capacity loss olarak işaretlenir. Association tablosu writer transaction'ında
+100.000 row hard cap uygular; manuel DNS retention 30 gün/100.000 row/500
+chunk politikasını association'lara da uygular. Source history ile association
+arasında FK/cascade yoktur: source silinince ilerideki reference lookup
+`source_unavailable` olur, kaynak sonsuza kadar tutulmaz. Read API source ID ile
+512, scope+client+IP için semantic olarak coalesced en çok 32 aday ve restart
+için 2048 satırla sınırlıdır.
 
 Destination IP/domain canonical value object'leri ile local ASN/country enrichment source, dataset version, lookup subject, freshness ve unknown taşır. Ülke/ASN maliciousness verdict değildir. Executable hash local, on-demand, bounded file I/O'dur. Signer adapter NS-067 offline spike sonucunda uygunsa NS-068'de eklenir; signed=trusted veya unsigned=malicious kuralı kurulmaz. Cloud reputation M15'te ayrıca user-controlled port/adapter sınırıdır; hiçbir yerel path, raw history veya payload bu sınırdan kendiliğinden çıkmaz.
 
