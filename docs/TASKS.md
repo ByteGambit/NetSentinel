@@ -789,7 +789,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-070 — Bounded behavior feature accumulator
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE.
 - **Amaç:** Process behavior için ölçüm kalitesine bağlı deterministic özet toplamak.
 - **Yapılacaklar:** Destination IP/port, protocol, observed appearance frequency ve diversity için monotonic bucket/capacity accumulator ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/shared/diagnostics.py, tests/unit/.

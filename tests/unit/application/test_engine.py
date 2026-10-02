@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from threading import Event, Lock, enumerate as enumerate_threads
 from time import monotonic
@@ -268,6 +269,32 @@ def test_consecutive_polling_rounds_preserve_lifecycle_event_order() -> None:
         50_003,
         50_002,
     ]
+
+
+def test_engine_feeds_behavior_from_tracker_rounds() -> None:
+    first = snapshot(observed_at=T0)
+    first = replace(first, process=replace(
+        first.process,
+        executable_path=r"C:\Apps\browser.exe",
+        executable_path_status=ProcessInfoStatus.AVAILABLE,
+    ))
+    second = replace(first, local_endpoint=Endpoint("192.0.2.10", 50_001), observed_at=T1)
+    collector = SequenceCollector(((first,), (first, second)))
+    tick = [0.0]
+    engine = MonitoringEngine(
+        collector=collector,
+        enricher=PassthroughEnricher(),
+        tracker=ConnectionTrackingService(clock=lambda: T0),
+        polling_interval=1.0,
+        monotonic_clock=lambda: tick[0],
+    )
+    engine._poll_once()
+    assert engine.behavior_features.snapshot().scopes[0].observed_appearances == 0
+    tick[0] = 1.0
+    engine._poll_once()
+    result = engine.behavior_features.snapshot().scopes[0]
+    assert result.observed_appearances == 1
+    assert result.monitored_seconds == 1
 
 
 def test_slow_round_never_overlaps_and_records_overrun() -> None:

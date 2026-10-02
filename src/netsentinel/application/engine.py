@@ -20,6 +20,7 @@ from netsentinel.application.ports import (
     NetworkContextProvider,
 )
 from netsentinel.application.services.connection_network_scope import ConnectionNetworkScopeResolver
+from netsentinel.application.services.behavior_features import BehaviorFeatureAccumulator
 from netsentinel.domain.connections import (
     ConnectionLifecycleEvent,
     ConnectionSnapshot,
@@ -99,6 +100,7 @@ class MonitoringEngine:
         persistence: PersistencePipeline | None = None,
         dns_config_poller: DnsConfigPoller | None = None,
         network_context_provider: NetworkContextProvider | None = None,
+        behavior_accumulator: BehaviorFeatureAccumulator | None = None,
     ) -> None:
         if (
             isinstance(polling_interval, bool)
@@ -127,6 +129,9 @@ class MonitoringEngine:
         self._shutdown_timeout = float(shutdown_timeout)
         self._clock = clock if clock is not None else (lambda: datetime.now(UTC))
         self._monotonic = monotonic_clock if monotonic_clock is not None else monotonic
+        self.behavior_features = behavior_accumulator or BehaviorFeatureAccumulator(
+            polling_interval=float(polling_interval), monotonic_clock=self._monotonic,
+        )
         self._thread_name = thread_name
         self._persistence = persistence
         self._dns_config_poller = dns_config_poller
@@ -403,6 +408,8 @@ class MonitoringEngine:
             return
 
         observation = getattr(self._tracker, "last_round", None)
+        if isinstance(observation, ConnectionRoundObservation):
+            self.behavior_features.observe_round(observation, events, enriched)
         subscriber_failures = (
             self._dispatcher.publish(observation).failed
             if isinstance(observation, ConnectionRoundObservation)
@@ -432,6 +439,7 @@ class MonitoringEngine:
     def _publish_failed_observation(self) -> None:
         record_failure = getattr(self._tracker, "record_failure", None)
         observation = record_failure(observed_at=self._utc_now()) if callable(record_failure) else ConnectionRoundObservation(self._session_id, self._utc_now(), ObservationQuality.FAILED)
+        self.behavior_features.observe_round(observation)
         self._dispatcher.publish(observation)
         with self._lock:
             self._health = replace(self._health, counters=replace(
