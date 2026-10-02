@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from netsentinel.application.services.statistics import StatisticsService
+from netsentinel.application.services.executable_signer import ExecutableSignerService
 from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.device_profile import DeviceProfileCoordinator
@@ -83,6 +84,7 @@ class MainWindow(QMainWindow):
         statistics: StatisticsService | None = None,
         history_queries: HistoryQueryCoordinator | None = None,
         destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
+        signer_service: ExecutableSignerService | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
@@ -145,6 +147,7 @@ class MainWindow(QMainWindow):
                 model=self.connections_model,
                 parent=self.content,
                 destination_queries=destination_queries[0] if destination_queries else None,
+                signer_service=signer_service,
             ),
             PageId.HISTORY: HistoryView(history_queries, destination_queries=destination_queries[1] if destination_queries else None, parent=self.content),
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory, profiles=device_profiles),

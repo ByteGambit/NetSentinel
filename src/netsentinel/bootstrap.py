@@ -33,6 +33,8 @@ from netsentinel.application.services.retention import HistoryRetentionService
 from netsentinel.application.services.processes import ProcessMetadataEnricher
 from netsentinel.application.services.executable_hash import ExecutableHashService
 from netsentinel.infrastructure.local_executable_hasher import LocalFileExecutableHasher
+from netsentinel.application.services.executable_signer import ExecutableSignerService
+from netsentinel.infrastructure.windows_executable_signer import WindowsExecutableSigner
 from netsentinel.infrastructure.psutil_connections import (
     PsutilConnectionCollector,
 )
@@ -91,6 +93,12 @@ def create_executable_hash_service() -> ExecutableHashService:
     """Create a dormant, local-only on-demand hasher; no polling hook."""
 
     return ExecutableHashService(LocalFileExecutableHasher())
+
+
+def create_executable_signer_service() -> ExecutableSignerService:
+    """Create dormant offline signer capability for an explicit detail request."""
+
+    return ExecutableSignerService(WindowsExecutableSigner())
 
 
 def create_desktop_engine(
@@ -424,6 +432,7 @@ __all__ = (
     "create_history_query_service_factory",
     "create_monitoring_engine",
     "create_executable_hash_service",
+    "create_executable_signer_service",
     "create_network_context_provider",
     "create_packet_capture",
 )

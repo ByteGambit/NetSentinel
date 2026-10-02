@@ -22,6 +22,7 @@ from netsentinel.domain.connections import (
 )
 from netsentinel.domain.destination_context import DestinationContext
 from netsentinel.domain.executable_hash import ExecutableHash
+from netsentinel.domain.executable_signer import ExecutableSigner
 from netsentinel.domain.devices import (
     DeviceIdentity, DeviceProfile, GatewayBaseline, GatewayBaselineChange, IdentityBinding, NetworkContext,
 )
@@ -223,6 +224,12 @@ class ExecutableHasher(Protocol):
 
     def hash(self, path: str, *, is_cancelled: Callable[[], bool]) -> ExecutableHash:
         """Return portable file-content evidence or a typed failure."""
+
+
+class ExecutableSignerVerifier(Protocol):
+    """Blocking local verification; only the application worker invokes it."""
+
+    def verify(self, path: str, *, is_cancelled: Callable[[], bool]) -> ExecutableSigner: ...
 
 
 class NetworkContextCollectionError(RuntimeError):
@@ -667,4 +674,5 @@ __all__ = (
     "PacketCaptureTransientError",
     "ProcessMetadataResolver",
     "ExecutableHasher",
+    "ExecutableSignerVerifier",
 )

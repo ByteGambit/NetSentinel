@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import QModelIndex, Qt
-from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
 from netsentinel.domain.connections import ProcessInfo
+from netsentinel.domain.executable_signer import ExecutableSigner, SignerAvailability
 from netsentinel.presentation.models.connections import (
     ConnectionColumn,
     ConnectionRole,
@@ -78,6 +79,18 @@ class ConnectionDetailsWidget(QGroupBox):
         destination_scroll.setMaximumHeight(240)
         destination_scroll.setWidget(self.destination)
         layout.addWidget(destination_scroll)
+        signer_group = QGroupBox("Local executable signature", self)
+        signer_layout = QVBoxLayout(signer_group)
+        self.signer_button = QPushButton("Check disk file signature", signer_group)
+        self.signer_button.setObjectName("checkExecutableSignature")
+        self.signer_text = QLabel("On-demand local evidence; no file has been checked.", signer_group)
+        self.signer_text.setObjectName("executableSignatureEvidence")
+        self.signer_text.setTextFormat(Qt.TextFormat.PlainText)
+        self.signer_text.setWordWrap(True)
+        self.signer_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        signer_layout.addWidget(self.signer_button)
+        signer_layout.addWidget(self.signer_text)
+        layout.addWidget(signer_group)
         self.clear()
 
     def value_text(self, field: str) -> str:
@@ -91,6 +104,7 @@ class ConnectionDetailsWidget(QGroupBox):
         for label in self.value_labels.values():
             label.setText(MISSING_VALUE)
         self.destination.clear()
+        self.signer_text.setText("On-demand local evidence; no file has been checked.")
 
     def set_connection(self, index: QModelIndex) -> None:
         if not index.isValid() or index.model() is None:
@@ -134,6 +148,23 @@ class ConnectionDetailsWidget(QGroupBox):
         if isinstance(process, ProcessInfo):
             for key, value in process_context_text(process).items():
                 self.value_labels[key].setText(value)
+
+    def set_signer_result(self, result: ExecutableSigner) -> None:
+        if result.availability is not SignerAvailability.AVAILABLE:
+            self.signer_text.setText(f"Verification: {result.availability.value.replace('_', ' ')}")
+            return
+        signer = result.signer
+        self.signer_text.setText("\n".join((
+            f"Signature source: {result.kind.value}",
+            f"Signature validation: {result.validation.value.replace('_', ' ')}",
+            f"Local Windows trust: {result.local_trust.value.replace('_', ' ')}",
+            f"Revocation: {result.revocation.value.replace('_', ' ')}",
+            f"Signer subject: {signer.subject if signer and signer.subject else 'Unknown'}",
+            f"Issuer: {signer.issuer if signer and signer.issuer else 'Unknown'}",
+            f"Certificate SHA-256: {signer.certificate_sha256 if signer and signer.certificate_sha256 else 'Unknown'}",
+            f"Timestamp countersigner present: {('yes' if result.timestamp_present else 'no') if result.timestamp_present is not None else 'unknown'}",
+            "Evidence is for the current disk file, not the loaded process image or application safety.",
+        )))
 
 
 def _safe_raw(value: object | None) -> str:

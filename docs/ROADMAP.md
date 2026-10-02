@@ -229,9 +229,9 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
-## Yeni faz: M11 tamamlandı; M12–M17 planlandı, M18 conditional
+## Yeni faz: M11–M12 tamamlandı; M13–M17 planlandı, M18 conditional
 
-**Durum:** M1–M11 tamamlandı. M12–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M12 tamamlandı. M13–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -245,7 +245,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M12 — Local Destination Context & Attribution
 
-- **Durum:** ⬜ Planlandı (NS-062–NS-068); NS-068 signer adapter spike'a bağlı, zorunlu çıkış kapısı değil.
+- **Durum:** ✅ COMPLETE (2026-10-02; NS-062–NS-068). NS-067 GO kararıyla conditional NS-068 adapter uygulandı.
 - **Amaç:** Destination hakkında yerel kanıt sağlarken belirsizliği korumak.
 - **Ana teslimatlar:** Bounded DNS/domain association, canonical reference; UI'da directly observed/correlated/ambiguous/unknown; source/version içeren yerel ASN/country context; bounded on-demand executable hash; offline signer spike ve olumluysa conditional adapter.
 - **Açık kapsam dışı:** Kesin DNS→process→connection nedenselliği, cloud reputation, otomatik dataset download, TLS inspection.

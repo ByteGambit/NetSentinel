@@ -8,6 +8,7 @@ from PyQt6.QtCore import (
     QModelIndex,
     QItemSelectionModel,
     QSignalBlocker,
+    QTimer,
     Qt,
     pyqtSlot,
 )
@@ -28,6 +29,8 @@ from PyQt6.QtWidgets import (
 )
 
 from netsentinel.domain.connections import ConnectionState, TransportProtocol
+from netsentinel.domain.connections import ProcessInfo
+from netsentinel.application.services.executable_signer import ExecutableSignerService, SignerSubmission
 from netsentinel.domain.connections import ConnectionNetworkScope
 from netsentinel.application.services.destination_evidence import live_request, DestinationEvidenceResult
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
@@ -55,6 +58,7 @@ class ConnectionsView(QWidget):
         model: ConnectionsTableModel | None = None,
         parent: QWidget | None = None,
         *, destination_queries: DestinationQueryCoordinator | None = None,
+        signer_service: ExecutableSignerService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("connectionsPage")
@@ -66,6 +70,11 @@ class ConnectionsView(QWidget):
         self.proxy_model = ConnectionsFilterProxyModel(self)
         self._selected_row_id: ConnectionRowId | None = None
         self.destination_queries = destination_queries
+        self.signer_service = signer_service
+        self._signer_submission: SignerSubmission | None = None
+        self._signer_timer = QTimer(self)
+        self._signer_timer.setInterval(100)
+        self._signer_timer.timeout.connect(self._poll_signer)
         self._destination_generation: int | None = None
         self._selection_syncing = False
         self._selected_row_removing = False
@@ -176,6 +185,8 @@ class ConnectionsView(QWidget):
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
         self.details = ConnectionDetailsWidget(self)
+        self.details.signer_button.clicked.connect(self._request_signer)
+        self.details.signer_button.setEnabled(signer_service is not None)
 
         table_frame = QFrame(self)
         table_layout = QVBoxLayout(table_frame)
@@ -375,6 +386,8 @@ class ConnectionsView(QWidget):
     ) -> None:
         if self._selection_syncing:
             return
+        self._signer_submission = None
+        self._signer_timer.stop()
         if not current.isValid():
             self._selected_row_id = None
             self.details.clear()
@@ -389,6 +402,35 @@ class ConnectionsView(QWidget):
         self._selected_row_id = row_id
         self.details.set_connection(current.siblingAtColumn(0))
         self._request_destination(current)
+
+    def _request_signer(self) -> None:
+        if self.signer_service is None or self._selected_row_id is None:
+            return
+        row = self._find_proxy_row(self._selected_row_id)
+        if row is None:
+            return
+        process = self.proxy_model.data(self.proxy_model.index(row, 0), int(ConnectionRole.PROCESS_INFO))
+        if not isinstance(process, ProcessInfo):
+            return
+        self._signer_submission = self.signer_service.request(process)
+        self.details.signer_text.setText("Checking local disk file…")
+        self._signer_timer.start()
+        self._poll_signer()
+
+    def _poll_signer(self) -> None:
+        submission = self._signer_submission
+        if submission is None or not submission.future.done():
+            return
+        self._signer_timer.stop()
+        self._signer_submission = None
+        if self._selected_row_id is None:
+            return
+        row = self._find_proxy_row(self._selected_row_id)
+        if row is None:
+            return
+        process = self.proxy_model.data(self.proxy_model.index(row, 0), int(ConnectionRole.PROCESS_INFO))
+        if isinstance(process, ProcessInfo) and submission.matches(process):
+            self.details.set_signer_result(submission.future.result())
 
     def _on_proxy_data_changed(
         self,

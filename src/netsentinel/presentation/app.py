@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QIcon, QPixmap
 
 from netsentinel.application.services.statistics import StatisticsService
+from netsentinel.application.services.executable_signer import ExecutableSignerService
 from netsentinel.presentation.bridge import EngineEventSource, QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator, DeviceServiceFactory
 from netsentinel.presentation.device_profile import DeviceProfileCoordinator, ProfileServiceFactory
@@ -54,11 +55,13 @@ class ApplicationLifecycle:
         dns_queries: DnsQueryCoordinator | None = None,
         capability_queries: CapabilityCoordinator | None = None,
         destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
+        signer_service: ExecutableSignerService | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
         self._history_queries = history_queries
         self._destination_queries = destination_queries or ()
+        self._signer_service = signer_service
         self._device_inventory = device_inventory
         self._device_profiles = device_profiles
         self._alert_queries = alert_queries
@@ -103,6 +106,8 @@ class ApplicationLifecycle:
                 self._history_queries.stop()
             for query in self._destination_queries:
                 query.stop()
+            if self._signer_service is not None:
+                self._signer_service.stop()
             if self._alert_queries is not None:
                 self._alert_queries.stop()
             if self._dns_queries is not None:
@@ -127,6 +132,7 @@ class ApplicationLifecycle:
             else self._history_queries.stop()
         )
         destination_stopped = all(tuple(query.stop() for query in self._destination_queries))
+        signer_stopped = True if self._signer_service is None else self._signer_service.stop()
         alerts_stopped = True if self._alert_queries is None else self._alert_queries.stop()
         dns_stopped = True if self._dns_queries is None else self._dns_queries.stop()
         devices_stopped = (
@@ -135,7 +141,7 @@ class ApplicationLifecycle:
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped and destination_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
+        self._shutdown_result = self._engine.stop() and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -154,6 +160,7 @@ class ApplicationShell:
     dns_queries: DnsQueryCoordinator | None = None
     capability_queries: CapabilityCoordinator | None = None
     destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None
+    signer_service: ExecutableSignerService | None = None
 
 
 def create_application(
@@ -162,6 +169,7 @@ def create_application(
     *,
     history_service_factory: HistoryServiceFactory | None = None,
     destination_service_factory: DestinationServiceFactory | None = None,
+    signer_service: ExecutableSignerService | None = None,
     device_service_factory: DeviceServiceFactory | None = None,
     profile_service_factory: ProfileServiceFactory | None = None,
     alert_service_factory: AlertServiceFactory | None = None,
@@ -201,12 +209,13 @@ def create_application(
     alert_queries = AlertQueryCoordinator(alert_service_factory) if alert_service_factory is not None else None
     dns_queries = DnsQueryCoordinator(dns_service_factory) if dns_service_factory is not None else None
     capability_queries = CapabilityCoordinator(capability_service_factory) if capability_service_factory is not None else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
         history_queries=history_queries,
         destination_queries=destination_queries,
+        signer_service=signer_service,
         device_inventory=device_inventory,
         device_profiles=device_profiles,
         alert_queries=alert_queries,
@@ -231,7 +240,7 @@ def create_application(
         capability_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service)
 
 
 def run_application(
@@ -257,6 +266,7 @@ def run_application(
             create_alert_query_service_factory,
             create_dns_query_service_factory,
             create_destination_evidence_service_factory,
+            create_executable_signer_service,
             create_capability_service_factory,
             runtime_config_path,
         )
@@ -274,6 +284,7 @@ def run_application(
         alert_service_factory = create_alert_query_service_factory()
         dns_service_factory = create_dns_query_service_factory()
         destination_service_factory = create_destination_evidence_service_factory(config=settings)
+        signer_service = create_executable_signer_service()
     else:
         history_service_factory = None
         device_service_factory = None
@@ -281,6 +292,7 @@ def run_application(
         alert_service_factory = None
         dns_service_factory = None
         destination_service_factory = None
+        signer_service = None
 
     shell = create_application(
         engine,
@@ -291,6 +303,7 @@ def run_application(
         alert_service_factory=alert_service_factory,
         dns_service_factory=dns_service_factory,
         destination_service_factory=destination_service_factory,
+        signer_service=signer_service,
         capability_service_factory=capability_service_factory,
     )
     onboarding = None

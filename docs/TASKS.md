@@ -579,7 +579,7 @@ Bu belge planlanan uygulama işlerinin kaynak kaydıdır. Tasklar geliştirme s�
 | M10 Packaging, Hardening & Test | NS-047–NS-051 | 5 |
 | **Toplam** | **NS-001–NS-051** | **51** |
 
-## Yeni faz taskları — M11 tamamlandı, M12–M17 planlandı, M18 conditional
+## Yeni faz taskları — M11–M12 tamamlandı, M13–M17 planlandı, M18 conditional
 
 NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni taskların hepsi başlangıçta ⬜ Planlandı durumundadır. Bütün yeni işlerde domain framework bağımsız, application ports/adapters ayrımı korunur; queue/state/storage bounded, persisted zaman UTC-aware, runtime rolling window monotonic, SQL parameterized, GUI thread blocking I/O içermez. Davranış testleri default offline/deterministic; gerçek Windows/capture/admin testleri yalnız explicit marker ve yetkili ortamla çalışır. Yeni migration 009 sonrasına append-only eklenir.
 
@@ -765,7 +765,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-068 — Signer adapter — conditional
 
-- **Durum:** ⬜ Conditional plan; NS-067 GO bekleniyor.
+- **Durum:** ✅ COMPLETE (2026-10-02; NS-067 GO sonrası offline adapter ve detail UI).
 - **Amaç:** Olumlu spike sonrası offline signer context sağlamak.
 - **Yapılacaklar:** Yalnız NS-067 GO ile typed WinTrust adapter/worker/cache ve detail UI ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/, src/netsentinel/application/ports.py, src/netsentinel/presentation/, tests/unit/, tests/gui/.
@@ -1194,7 +1194,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 | Milestone | Task aralığı | Sayı | Durum |
 |---|---:|---:|---|
 | M11 Process & Connection Telemetry Foundations | NS-052–NS-061 | 10 | ✅ COMPLETE |
-| M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | Planlandı; NS-068 conditional adapter |
+| M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | Planlandı |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | Planlandı |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Planlandı; kullanıcı için default disabled |

@@ -1575,7 +1575,7 @@ arasında FK/cascade yoktur: source silinince ilerideki reference lookup
 512, scope+client+IP için semantic olarak coalesced en çok 32 aday ve restart
 için 2048 satırla sınırlıdır.
 
-Destination IP/domain canonical value object'leri ile local ASN/country enrichment source, dataset version, lookup subject, freshness ve unknown taşır. Ülke/ASN maliciousness verdict değildir. Executable hash local, on-demand, bounded file I/O'dur. Signer adapter NS-067 offline spike sonucunda uygunsa NS-068'de eklenir; signed=trusted veya unsigned=malicious kuralı kurulmaz. Cloud reputation M15'te ayrıca user-controlled port/adapter sınırıdır; hiçbir yerel path, raw history veya payload bu sınırdan kendiliğinden çıkmaz.
+Destination IP/domain canonical value object'leri ile local ASN/country enrichment source, dataset version, lookup subject, freshness ve unknown taşır. Ülke/ASN maliciousness verdict değildir. Executable hash local, on-demand, bounded file I/O'dur. NS-068 signer adapter NS-067 GO sonucuyla eklenmiştir; signed=trusted veya unsigned=malicious kuralı kurulmaz. Cloud reputation M15'te ayrıca user-controlled port/adapter sınırıdır; hiçbir yerel path, raw history veya payload bu sınırdan kendiliğinden çıkmaz.
 
 NS-066 `ExecutableHashService` yalnız açık `ProcessInfo` isteğinde iş planlar; poller,
 dispatcher ve Qt thread'i dosya okumaz. `ExecutableHasher` portunun yerel adapter'ı
@@ -1594,6 +1594,29 @@ PID+create_time ve path snapshot'ı taşır; create_time yoksa process'e bağlı
 hash isteği `unavailable` olur. Tüketici sonucu güncel metadata ile eşleştirmelidir.
 Hash ne process identity ne de güvenlik kararıdır. NS-066 DB, history ve UI
 şemasını değiştirmez; otomatik executable taraması yapmaz.
+
+NS-068 `ExecutableSignerService` yalnız Connections detail içindeki açık kullanıcı
+isteğiyle çalışır. `ExecutableSignerVerifier` portu blocking Windows çağrılarını
+tek daemon worker'a taşır; 64 benzersiz pending path, bir aktif iş ve 2 saniye
+bounded shutdown beklemesi vardır. Aynı pending/active path istekleri tek
+future'ı paylaşır. Windows adapter'ın cache'i 128 girişli LRU ve en fazla 60
+saniyelik TTL kullanır; key device/file ID, size, mtime_ns ve ID yoksa path
+içerir. Catalog/trust store değişiklikleri TTL bitene kadar sonucu etkileyebilir.
+Dosya açılmadan önce, açık handle ve doğrulamadan sonra metadata eşleştirilir;
+değişim sonucu yayımlanmaz. Metadata çakışması veya doğrulama sonrası mutation
+için atomik garanti yoktur. Process PID+create_time/path token'ı seçili aktif
+satırla yeniden eşleşmeden GUI sonucu göstermez. Geçmiş kayıtların imzası
+bugünkü aynı path'ten yeniden türetilmez; DB migration yoktur.
+
+Infrastructure `WinVerifyTrust` embedded yolunu ve Windows catalog admin/SIP
+hash yolunu ayrı kullanır. Catalog member hash NS-066 raw SHA-256 değildir.
+`WinTrust` state, catalog/admin context ve Python file handle native sınırda
+kapanır. Portable sonuç kind, validation, local trust, revocation (bu policy'de
+daima `not_checked`), signer subject/issuer/certificate SHA-256 ve yalnız
+counter-signer presence kanıtı taşır. Timestamp zamanı veya timestamp validity
+çıkarılmaz. Primary signer raporlanır; secondary signature enumeration ve
+expired+timestamped fixture doğrulaması bu taskta yapılmadı. Bunlar mevcut
+sonucu evrensel signer/trust kanıtına dönüştürmez.
 
 NS-065 temelinde `DestinationContextResolver` public IP'yi local `DestinationContextProvider` portuna yönlendirir; private/special adresler portu çağırmadan `not_applicable` olur. Yerel TSV adapter sınırlandırılmış dosyayı açık yükleme çağrısında IPv4/IPv6 prefix indeksine çevirir; runtime lookup yalnız bellek kullanır ve en uzun prefix'i seçer. Sonuç kaynak adı/sürümü/lisansı ve UTC yükleme zamanını taşır. En fazla 4096 IP için cache dataset generation değişince temizlenir. Varsayılan dataset yoktur; dosya hatası typed/sanitized diagnostic üretir. Yükleme `create_destination_context_resolver` çağrısında yapılır ve GUI worker'ında çağrılmalıdır; NS-064 UI entegrasyonu ayrı kalır. Format, limitler ve lisans kararı [local dataset sözleşmesinde](LOCAL_DESTINATION_DATASET.md) kayıtlıdır.
 
