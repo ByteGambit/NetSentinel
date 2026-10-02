@@ -279,17 +279,13 @@ try {
 }
 ```
 
-Validation: `pytest -q tests/unit/research/test_ns067_wintrust_probe.py`:
-**6 passed**; `pytest -q --ignore=tests/gui`: **879 passed, 5 deselected**;
-`pytest -q tests/gui -k 'not test_real_sqlite_migration_repository_worker_and_three_pages'`:
-**219 passed, 1 deselected**; excluded GUI test by itself **1 passed**.
-`ruff check src tests tools/research/ns067_wintrust_probe.py`: **passed**.
-Tam `pytest -q` iki koşuda da GUI `test_real_sqlite_migration_repository_worker_and_three_pages`
-sırasında Windows/Qt access violation ile process exit 1 verdi; aynı test
-tek başına geçti. Bu araştırma değişiklikleri GUI/runtime koduna dokunmaz.
-`mypy` başlangıçta Windows Application Control policy'nin `librt.internal`
-DLL'ini engellemesi nedeniyle çalışmadı; type-check sonucu **unverified**.
-`git diff --check`: passed.
+Validation (aynı Windows ortamı, offscreen Qt):
+
+- `.venv\Scripts\python.exe -m pytest -q tests/unit/research/test_ns067_wintrust_probe.py tests/gui/test_engine_bridge.py`: **20 passed**.
+- `.venv\Scripts\python.exe -m pytest -q`: iki ardışık koşuda **1099 passed, 5 deselected**. İlk iki tam koşu `test_real_sqlite_migration_repository_worker_and_three_pages` sırasında Qt access violation ile düşmüştü. Aynı ortamda önceki `802789d52dd23f0fe9cb80b7d49c4c6e96800d88` commit'inin tam koşusu da aynı testte çöktü; dolayısıyla NS-067 kaynaklı bir regression değildi. `QtEngineBridge.destroyed` üzerindeki geçici lambda yerine `state.detach` doğrudan bağlandı. Var olan QObject destruction testi ve iki tam koşu bu yaşam döngüsü düzeltmesinden sonra geçti.
+- `.venv\Scripts\ruff.exe check src tests tools/research/ns067_wintrust_probe.py tools/research/ns067_pure_mypy.py`: **passed**.
+- `.venv\Scripts\python.exe tools/research/ns067_pure_mypy.py`: **Success: no issues found in 16 source files**. Sürüm: **mypy 2.3.1 (compiled: no)**. Windows Application Control `librt.internal` DLL'ini engellediği için bu kaynak tabanlı launcher, mypy'nin kurulu Python kaynaklarını çalıştırır; yalnızca geçici/no-incremental cache için Python writer sağlar ve binary read çağrılarında hata verir. Güvenlik politikası veya engellenen DLL değiştirilmedi. Kasıtlı `str` → `int` assignment hatasıyla negatif kontrol exit 1 verdi.
+- `git diff --check`: **passed**.
 
 [WinVerifyTrust]: https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust
 [WINTRUST_DATA]: https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data

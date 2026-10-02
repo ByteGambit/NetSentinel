@@ -267,7 +267,7 @@ class QtEngineBridge(QObject):
         # The cleanup target has no strong reference to this QObject.  The Qt
         # destruction hook covers deleteLater(); finalize covers Python GC.
         state = self._state
-        self.destroyed.connect(lambda _object=None: state.detach())
+        self.destroyed.connect(state.detach)
         self._finalizer = finalize(self, state.detach)
 
     @property

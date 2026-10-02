@@ -754,7 +754,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-067 — Offline Authenticode spike
 
-- **Durum:** ✅ Tamamlandı — [GO kararı ve sınırlamalar](research/NS-067-offline-authenticode.md).
+- **Durum:** ✅ Tamamlandı — [GO kararı, sınırlamalar ve doğrulama](research/NS-067-offline-authenticode.md).
 - **Amaç:** Signer lookup'ın offline ve izin davranışını belirlemek.
 - **Yapılacaklar:** WinTrust/catalog/revocation/timestamp/caching/timeout matrix'i kontrollü Windows harness ile ölç.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/ research harness, tests/fixtures/, docs/SECURITY.md.
