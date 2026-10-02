@@ -778,7 +778,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-069 — Stable application identity policy
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-02; typed path-known application scope, conservative unknown ve artifact revision policy).
 - **Amaç:** Process instance'dan farklı cross-run baseline scope'u tanımlamak.
 - **Yapılacaklar:** Canonical path-known application key, unknown/revision policy ve typed identity comparison oluştur.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, tests/unit/.
