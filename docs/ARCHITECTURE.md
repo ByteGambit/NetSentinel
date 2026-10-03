@@ -1844,6 +1844,32 @@ ML/time-of-day veya diagnostics/config değişikliği yoktur. Tam threshold, qua
 restart/reset ve caller sınırları [NS-073 policy](FREQUENCY_DIVERSITY_POLICY.md)
 belgesindedir. NS-074/075 ve M14 ayrı tasklardır.
 
+#### NS-074 — Periodicity evidence detector
+
+`evaluate_periodicity` bounded immutable sequence üzerinden saf interval/jitter
+evidence üretir; `PeriodicityService` her tracker turunda explicit monotonic time
+ile yalnız COMPLETE/loss-free OBSERVED open appearance'larını toplar. Key NS-069
+canonical application + exact revision + resolved network scope, known process
+instance (PID/create-time) ve canonical remote IP/port/protocol'dür. INITIAL,
+update, close ve long-lived poll'lar appearance değildir. FAILED/REDUCED/loss,
+delayed round ve session/clock epoch kırılması sequence'i reset eder; recovery
+minimum interval'ı yeniden oluşturur. Restart monotonic history restore etmez.
+
+Policy **1**: minimum 5, retained maximum 32 interval, global 128 scope; raw median
+base, max normalized residual ve max(1 s, %5) jitter tolerance. En fazla 3× missed
+multiple uyumu için strict direct-interval majority gerekir; missed event kanıtı
+değildir. Polling quantization/aliasing limitation her sonuçta kalır; base <= 3×
+polling cadence resolution-limited olur. Updater/telemetry/sync davranışı yalnız
+düşük güvenlik anlamlı context'tir; beacon/C2 veya güvenlik verdict'i yoktur.
+
+Oldest accepted-touch scope eviction, bounded recent lifecycle dedup, 10800 s
+inactivity ve 86400 s horizon explicit'tir. RLock altında memory-only state;
+engine/composition, UI, persistence, risk/alert, config/diagnostics veya I/O
+entegrasyonu yoktur. NS-072/073 ayrı contributor kalır. SQLite **014**, summary
+ve feature policy **1** korunur; NS-075 başlamaz, M13 tamamlanmaz. Contract,
+threshold/reset/quality/aliasing sınırları ve doğrulama
+[NS-074 policy](PERIODICITY_POLICY.md) belgesindedir.
+
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.

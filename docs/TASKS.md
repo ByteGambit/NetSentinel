@@ -833,7 +833,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-074 — Periodicity evidence detector
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-03). Pure typed interval/jitter detector ve bounded runtime appearance service, policy v1; monitoring gap/reduced/session reset, polling aliasing/resolution ve conservative missed-multiple semantics offline testlerle doğrulandı. Updater yalnız düşük güvenlik anlamlı context; [policy ve doğrulama](PERIODICITY_POLICY.md). Engine/UI/alert/risk/persistence entegrasyonu yok.
 - **Amaç:** Düzenli observed connection appearances için interval/jitter kanıtı üretmek.
 - **Yapılacaklar:** Minimum interval ve bounded sequence kullanan detector ekle; gap/reset davranışını tanımla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/detectors/, src/netsentinel/domain/alerts.py, tests/unit/application/detectors/.
