@@ -35,6 +35,9 @@ from netsentinel.domain.dns import (
 )
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.domain.risk_evidence import RiskEvidenceBatch
+from netsentinel.domain.risk_assessment import (
+    AssessmentHistory, AssessmentRead, AssessmentSave, AssessmentSnapshot, RiskAssessmentKey,
+)
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
     CaptureHealthSnapshot,
@@ -45,6 +48,18 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class RiskAssessmentRepository(Protocol):
+    """Blocking assessment history port; call from a worker, never the GUI."""
+
+    def save(self, key: RiskAssessmentKey, snapshot: AssessmentSnapshot, assessed_at: datetime) -> AssessmentSave: ...
+
+    def latest(self, assessment_id: str) -> AssessmentRead: ...
+
+    def history(self, assessment_id: str, *, limit: int = 8) -> AssessmentHistory: ...
+
+    def cleanup(self, now: datetime) -> int: ...
 
 
 class RiskEvidenceConsumer(Protocol):

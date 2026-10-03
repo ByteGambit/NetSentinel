@@ -1,5 +1,15 @@
 # Güvenlik ve güvenli kullanım
 
+NS-078 risk assessment history yalnız yerelde saklanan bounded davranış/güvenlik
+metadata'sıdır. Minimum snapshot canonical subject/scope/reference, policy/contract
+version, score ve contributor açıklamasını tutar; raw packet/DNS payload, command
+line, process environment, executable bytes, secrets veya full source object graph
+saklamaz. Mevcut controlled application identity dışında ayrı raw path alanı yoktur.
+Source retention assessment açıklamasını silmez veya tarihsel score'u değiştirmez;
+kaynağın expired-or-unavailable/unresolved durumu ayrı görünür. Saklama bütçeleri
+ve explicit cleanup kuralları [NS-078 belgesinde](RISK_ASSESSMENT_PERSISTENCE.md).
+Upload, reputation request, notification, suppression veya response eklenmemiştir.
+
 ## 1. Güvenlik yaklaşımı
 
 NS-047 yerel config dosyasını en çok 16 KiB olarak okur. Geçersiz alanlar

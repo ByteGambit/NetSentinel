@@ -2005,6 +2005,26 @@ severity/confidence/score/fingerprint context'i aynen kalır, runtime path'e
 bağlanmaz. Persistence, revisions, UI ve preferences eklenmedi; SQLite **014**.
 Frozen mapping/correlation/severity decisions: [NS-077 policy](RISK_SCORING_POLICY.md).
 
+#### NS-078 — Versioned assessment persistence
+
+`RiskAssessmentKey` original observation reference/time ve typed scope/subject'ten
+stable logical ID üretir. `RiskAssessmentRevision`, explicit UTC assessment time
+ve minimum immutable explanation snapshot taşır; revision occurrence değildir.
+Evidence contract, producer/scoring policy, freshness, score/severity, quality,
+confidence, applied/excluded contributors ve adjustment nedenleri tarihsel kalır.
+Read mevcut scorer'ı çalıştırmaz. Canonical content fingerprint timestamp'ten
+bağımsız duplicate no-op sağlar; retained eski içeriğin retry'si latest'i değiştirmez.
+
+Schema **015** additive logical assessment/revision tablolarını ekler. Scoped
+worker-owned connection'da kısa `BEGIN IMMEDIATE` append/dedup/retention atomiktir;
+yerel monotonik revision numarası per-assessment pruning sonrası korunur.
+Source tablolarına FK yoktur; source erişimi snapshot'tan ayrı typed
+available/expired-or-unavailable/unresolved olarak okunur. Legacy alert read ve
+lifecycle korunur; generic assessment uydurulmaz. 8 revision/assessment, 512
+assessment, 64 KiB snapshot, 30 gün explicit cleanup ve 128 revision/chunk sınırı
+vardır. NS-079/runtime/GUI/queue entegrasyonu eklenmez. Format/corruption, retention
+ve ownership ayrıntıları: [NS-078 persistence](RISK_ASSESSMENT_PERSISTENCE.md).
+
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.

@@ -879,7 +879,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-078 — Versioned assessment persistence
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-03). Stable logical identity, append-only revision ve minimum bounded snapshot; schema 015, retention-safe source states ve typed corruption/restart/legacy regression testleri tamamlandı. [Sözleşme ve doğrulama](RISK_ASSESSMENT_PERSISTENCE.md). NS-079 başlatılmadı.
 - **Amaç:** Risk assessment'ı original gözlemden ayrı revision olarak tutmak.
 - **Yapılacaklar:** Assessment/revision repository, minimum bounded evidence snapshot ve legacy read mapping ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.

@@ -175,6 +175,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="behavior_baselines",
             sql=_read_resource("014_behavior_baselines.sql", 14, "behavior_baselines"),
         ),
+        Migration(
+            version=15,
+            name="risk_assessments",
+            sql=_read_resource("015_risk_assessments.sql", 15, "risk_assessments"),
+        ),
     )
 
 
