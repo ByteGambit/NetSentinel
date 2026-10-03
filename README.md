@@ -15,9 +15,20 @@ Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı ge
 - Windows'ta sınırlı yetkiyle çalışmak desteklenir; eksik yetenekler arayüzde açıkça gösterilir.
 - Her milestone küçük, bağımsız ve test edilebilir tasklara bölünür.
 
-## Next phase — planned, not implemented
+## Behavioral baseline (NS-075)
 
-M1–M10 ve NS-001–NS-051 tamamlandı; M11–M17 planlandı. Ürün sorusu “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context ve explainable detection.
+M13 tamamlandı. Connections → Selected connection → **Behavior baseline**;
+learning state, monitored coverage, observed connection appearances ve bounded
+retained destination/port/protocol özetini gösterir. **Reset learned baseline**
+yalnız onaylanan application/revision/network scope'unu siler. Bu gözlenen
+öğrenmedir; READY bir güvenlik hükmü değildir ve reset trust/preferences'i
+değiştirmez. Current window ve retained learned reference ayrı görünür. Detector
+pipeline'ı henüz bağlı olmadığından mevcut olmayan evidence açık gösterilir.
+[NS-075 uygulama ve kabul raporu](docs/BASELINE_DETAIL_UI.md).
+
+## Next phase — M14–M17 planned, not implemented
+
+M1–M13 ve NS-001–NS-075 tamamlandı; M14–M17 planlandı. Ürün sorusu “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context ve explainable detection.
 
 Planlanan dilimler richer process context, belirsizliği açık gösteren destination attribution, deterministic behavioral baseline, explainable risk ve incident timeline'dır. Per-flow bytes ve ETW önce spike ile değerlendirilecek; mevcut Connections ekranında per-flow upload/download yoktur. Threat intelligence varsayılan kapalı destekleyici evidence'dır. Manual response yalnız M17/NS-099 sonrası explicit GO ile başlayabilecek conditional M18'dir. Ayrıntılar [yol haritasında](docs/ROADMAP.md) ve [task listesinde](docs/TASKS.md) bulunur.
 
@@ -30,7 +41,7 @@ Planlanan dilimler richer process context, belirsizliği açık gösteren destin
 | [Ürün tanımı](docs/PRODUCT.md) | Amaç, kullanıcı senaryoları, özellikler ve kapsam dışı konular |
 | [Mimari](docs/ARCHITECTURE.md) | Katmanlar, modüller, veri akışı, concurrency ve klasör planı |
 | [Güvenlik](docs/SECURITY.md) | Yetkiler, packet capture riskleri, veri güvenliği ve güvenli kullanım |
-| [Yol haritası](docs/ROADMAP.md) | Tamamlanmış M1–M10, planlanan M11–M17 ve conditional M18 |
+| [Yol haritası](docs/ROADMAP.md) | Tamamlanmış M1–M13, planlanan M14–M17 ve conditional M18 |
 | [Task listesi](docs/TASKS.md) | NS-001'den başlayan uygulanabilir işler, bağımlılıklar ve test yöntemleri |
 | [Release readiness](docs/RELEASING.md) | NS-051 PR kalite kapıları, 1.0 kapsam karşılaştırması ve release checklist |
 

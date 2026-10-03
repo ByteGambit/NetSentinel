@@ -29,6 +29,7 @@ from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
 from netsentinel.application.services.behavior_baseline import BaselineWriter, BehaviorBaselineService
+from netsentinel.application.services.baseline_detail import BaselineDetailService
 from netsentinel.infrastructure.sqlite.behavior_baselines import baseline_repository_session
 from netsentinel.shared.config import BehaviorBaselineConfig
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
@@ -412,6 +413,15 @@ def create_device_profile_service_factory(
         return DeviceProfileService(SQLiteDeviceProfileRepository(database))
 
     return create_service
+
+
+def create_baseline_detail_service_factory(engine: MonitoringEngine) -> Callable[[], BaselineDetailService]:
+    """Share existing memory owners; no new SQLite connection or detector pipeline."""
+    def create() -> BaselineDetailService:
+        if engine.behavior_baselines is None:
+            raise RuntimeError("baseline service unavailable")
+        return BaselineDetailService(engine.behavior_baselines, engine.behavior_features)
+    return create
 
 
 def create_gateway_baseline_service(

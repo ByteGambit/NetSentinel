@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import QModelIndex, Qt
-from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
 
 from netsentinel.domain.connections import ProcessInfo
 from netsentinel.domain.executable_signer import ExecutableSigner, SignerAvailability
@@ -17,6 +17,8 @@ from netsentinel.presentation.process_context import (
 )
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 from netsentinel.presentation.destination_context import DestinationEvidenceWidget
+from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.presentation.widgets.baseline_detail import BaselineDetailWidget
 
 
 _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
@@ -36,7 +38,7 @@ _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
 class ConnectionDetailsWidget(QGroupBox):
     """Render one proxy row without exposing Python/internal values."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, baseline_queries: BaselineQueryCoordinator | None = None) -> None:
         super().__init__("Selected connection", parent)
         self.setObjectName("connectionDetails")
         self.setAccessibleName("Connection details")
@@ -63,7 +65,8 @@ class ConnectionDetailsWidget(QGroupBox):
             self.value_labels[key] = value
             form.addRow(f"{title}:", value)
 
-        layout = QVBoxLayout(self)
+        connection_content = QWidget(self)
+        layout = QVBoxLayout(connection_content)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
         layout.addWidget(self.status_label)
@@ -91,6 +94,14 @@ class ConnectionDetailsWidget(QGroupBox):
         signer_layout.addWidget(self.signer_button)
         signer_layout.addWidget(self.signer_text)
         layout.addWidget(signer_group)
+        self.baseline = BaselineDetailWidget(baseline_queries, self)
+        self.tabs = QTabWidget(self)
+        self.tabs.setAccessibleName("Selected connection detail sections")
+        self.tabs.setAccessibleDescription("Connection context and observed behavior baseline")
+        self.tabs.addTab(connection_content, "Connection")
+        self.tabs.addTab(self.baseline, "Behavior baseline")
+        outer = QVBoxLayout(self)
+        outer.addWidget(self.tabs)
         self.clear()
 
     def value_text(self, field: str) -> str:
@@ -104,6 +115,7 @@ class ConnectionDetailsWidget(QGroupBox):
         for label in self.value_labels.values():
             label.setText(MISSING_VALUE)
         self.destination.clear()
+        self.baseline.clear()
         self.signer_text.setText("On-demand local evidence; no file has been checked.")
 
     def set_connection(self, index: QModelIndex) -> None:

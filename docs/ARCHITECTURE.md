@@ -1870,6 +1870,64 @@ ve feature policy **1** korunur; NS-075 başlamaz, M13 tamamlanmaz. Contract,
 threshold/reset/quality/aliasing sınırları ve doğrulama
 [NS-074 policy](PERIODICITY_POLICY.md) belgesindedir.
 
+#### NS-075 — Baseline detail ve reset UI
+
+Connections detayındaki **Behavior baseline** sekmesi application
+`BaselineDetailService` read modelini kullanır. `BaselineQueryCoordinator` aynı
+destination query pattern'ine göre bir daemon worker ve en çok bir pending/latest
+request tutar; result/failure Qt signal ile GUI thread'ine gelir. NS-071 zaten
+worker'da restore edilmiş baseline snapshot'ını sağlar; NS-075 ayrı SQLite read
+veya write bağlantısı açmaz. Composition root mevcut baseline/feature owner'larını
+paylaşır. History ve top-level navigation genişletilmez.
+
+Read model canonical application identity + exact known/unknown revision +
+resolved network fingerprint kullanır. Unknown/provisional application ve
+unknown/ambiguous network için persistent reference ödünç alınmaz; reset disabled
+kalır. GUI resolver metadata'yı I/O yapmadan kullanır: desktop otomatik hash
+hesaplamadığından mevcut live revision unknown olabilir. Typed request known
+revision'ı ayrı scope olarak destekler. PID/ad persistent identity değildir.
+
+Tüm NS-071 lifecycle states, policy-derived warm-up progress, observed connection
+appearances, monitored coverage ve quality/gap/loss görünür. Learned reference,
+uncommitted RAM tail içerebilen cumulative aggregate'tir; current accumulator
+window ayrı memory-only bölümdür. Persistence timestamp current tail'in durable
+kaydı gibi sunulmaz. Destination/port preview en çok **8**, protocol preview en
+çok **2** değer tutar; sıra deterministic, portlar sayısal sıralıdır. Retained
+diversity exact lifetime unique total değildir. Kapasite/overflow ve reduced/
+unknown appearance ayrı açıklanır.
+
+Typed novelty/frequency/diversity/periodicity evidence mapper exact scope,
+destination ve periodicity için process instance + remote port/protocol eşleşmesini
+korur. NS-072–074 engine'e bağlı olmadığı için default provider evidence üretmez.
+Query, sonradan öğrenilmiş snapshot'tan geçmiş FIRST_SEEN veya runtime timing
+kanıtı uydurmaz. Absent evidence normal/irregular hükmü değildir; polling
+resolution ve benign updater/sync sınırları görünür. Pipeline/alert/risk integration
+bu taska eklenmez.
+
+Selection request ve logical row identity birlikte izlenir. A→B→A eski sonucu
+generation + immutable request karşılaştırması eler. Aynı logical row model
+refresh'inde query tekrar edilmez. En fazla bir unresolved query ve bir coalesced
+pending request vardır; görünür panel 5 saniyede bir memory snapshot yeniler,
+ayrıca explicit Refresh bulunur. DB polling storm yoktur. Qt widgets yalnız GUI
+thread'inde değişir; coordinator stop generation invalidation yapar, widget
+timer'larını durdurur ve varsayılan 2 saniyelik join ile late result'ı düşürür.
+
+Reset dialog exact application/revision/network'i ve silinen learned reference'i
+açıklar; trust/preferences, connection history ve current runtime observations
+ayrı kalır. Cancel varsayılan/Escape sonucudur ve command üretmez. Command yalnız
+NS-071 memory API'sine submit olur. `reset_with_result` acceptance yanında typed
+completion Future verir; receipt yalnız reset bayraklı writer transaction'ının
+başarı/hatasında tamamlanır. Coalesced newer learning summary reset'i taşıyabilir;
+eski reset sequence daha yeni receipt'i tamamlayamaz. Aynı pending scope duplicate
+aynı receipt'i paylaşır; receipt map en fazla scope capacity (default 128) tutar.
+Queue reject state'i sıfırlamaz. Failure dirty retry'ı korur; shutdown/timeout
+unconfirmed receipt'i UNAVAILABLE yapar. Başarı sonrası panel yeniden query eder,
+cached READY'yi tutmaz. Repository owner hâlâ yalnız NS-071 writer'dır.
+
+Yeni schema, raw event storage, diagnostics dump, network/cloud lookup, risk UI,
+mark-normal, AlertService veya automatic reset yoktur. SQLite **014**, summary ve
+feature policy **1** kalır. [Kabul ve test raporu](BASELINE_DETAIL_UI.md).
+
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.

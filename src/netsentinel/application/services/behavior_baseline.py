@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Callable
+from concurrent.futures import Future
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from enum import Enum
 from math import isfinite
 from threading import Condition, RLock, Thread, current_thread
 from time import monotonic
@@ -88,6 +90,18 @@ class BaselineCommand:
     summary: BaselineSummary | None
     sequence: int
     reset: bool = False
+
+
+class BaselineResetResult(str, Enum):
+    COMPLETED = "completed"
+    FAILED = "failed"
+    UNAVAILABLE = "unavailable"
+
+
+@dataclass(frozen=True, slots=True)
+class BaselineResetSubmission:
+    accepted: bool
+    completion: Future[BaselineResetResult]
 
 
 class BaselineWriter:
@@ -275,6 +289,7 @@ class BehaviorBaselineService:
         self._invalid = 0
         self._resets = 0
         self._sequence = 0
+        self._reset_completions: dict[BehaviorScopeKey, tuple[int, Future[BaselineResetResult]]] = {}
         self._due: float | None = None
         writer.on_load = self.restore
         writer.on_write = self._acknowledge
@@ -445,22 +460,42 @@ class BehaviorBaselineService:
 
     def reset(self, scope: BehaviorScopeKey) -> bool:
         """Idempotent exact-scope reset; acceptance is not durable completion."""
+        return self.reset_with_result(scope).accepted
+
+    def reset_with_result(self, scope: BehaviorScopeKey) -> BaselineResetSubmission:
+        """Resolve completion only after the writer's exact-scope transaction."""
         with self._lock:
+            prior = self._reset_completions.get(scope)
+            if prior is not None:
+                return BaselineResetSubmission(True, prior[1])
+            completion: Future[BaselineResetResult] = Future()
+            if len(self._reset_completions) >= self.capacity.scopes:
+                completion.set_result(BaselineResetResult.UNAVAILABLE)
+                return BaselineResetSubmission(False, completion)
             self._sequence += 1
             if scope.identity_restart_stable:
                 validate_baseline_scope(scope)
                 command = BaselineCommand(scope, None, self._sequence, True)
                 if not self._writer.submit(command):
-                    return False
+                    completion.set_result(BaselineResetResult.UNAVAILABLE)
+                    return BaselineResetSubmission(False, completion)
+                self._reset_completions[scope] = (self._sequence, completion)
             self._install(scope, _Learning(None, BaselineOrigin.RESET, sequence=self._sequence, reset=scope.identity_restart_stable))
             if scope.identity_restart_stable:
                 self._dirty.add(scope)
             self._resets += 1
-            return True
+            if not scope.identity_restart_stable:
+                completion.set_result(BaselineResetResult.COMPLETED)
+            return BaselineResetSubmission(True, completion)
 
     def _acknowledge(self, command: BaselineCommand, success: bool) -> None:
         with self._lock:
             self._storage = BaselineStorageState.AVAILABLE if success else BaselineStorageState.UNAVAILABLE
+            if command.reset:
+                pending = self._reset_completions.get(command.scope)
+                if pending is not None and command.sequence >= pending[0]:
+                    del self._reset_completions[command.scope]
+                    pending[1].set_result(BaselineResetResult.COMPLETED if success else BaselineResetResult.FAILED)
             entry = self._records.get(command.scope)
             if entry is None or entry.sequence != command.sequence:
                 return
@@ -493,7 +528,12 @@ class BehaviorBaselineService:
 
     def stop(self, timeout: float | None = None) -> bool:
         self.checkpoint(force=True)
-        return self._writer.stop(timeout)
+        stopped = self._writer.stop(timeout)
+        with self._lock:
+            for _, completion in self._reset_completions.values():
+                completion.set_result(BaselineResetResult.UNAVAILABLE)
+            self._reset_completions.clear()
+        return stopped
 
     def _now(self) -> datetime:
         stamp = self._clock()

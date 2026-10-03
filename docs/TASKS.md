@@ -844,7 +844,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-075 — Baseline detail ve reset UI
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-03). Connections detayında worker-backed Behavior baseline sekmesi; exact application/revision/network scope, lifecycle/warm-up/coverage/quality ve bounded retained feature preview. Confirm/Cancel ve scoped durable reset completion, generation/coalescing, selection stability ve bounded shutdown offline testlerle doğrulandı; [uygulama ve kabul raporu](BASELINE_DETAIL_UI.md). M13 tamamlandı; M14/NS-076 başlatılmadı.
 - **Amaç:** Öğrenme/coverage/features'i kullanıcıya göstermek ve reset sağlamak.
 - **Yapılacaklar:** Worker-backed read model, scoped explicit reset command ve learning/ready/insufficient UI ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.
@@ -1195,7 +1195,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 |---|---:|---:|---|
 | M11 Process & Connection Telemetry Foundations | NS-052–NS-061 | 10 | ✅ COMPLETE |
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
-| M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | Planlandı |
+| M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | Planlandı |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Planlandı; kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |

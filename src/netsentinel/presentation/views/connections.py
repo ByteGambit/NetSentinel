@@ -34,6 +34,8 @@ from netsentinel.application.services.executable_signer import ExecutableSignerS
 from netsentinel.domain.connections import ConnectionNetworkScope
 from netsentinel.application.services.destination_evidence import live_request, DestinationEvidenceResult
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
+from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.application.services.baseline_detail import baseline_detail_request
 from netsentinel.presentation.bridge import BridgeHealthSnapshot
 from netsentinel.presentation.models.connection_filter import (
     ConnectionsFilterProxyModel,
@@ -59,6 +61,7 @@ class ConnectionsView(QWidget):
         parent: QWidget | None = None,
         *, destination_queries: DestinationQueryCoordinator | None = None,
         signer_service: ExecutableSignerService | None = None,
+        baseline_queries: BaselineQueryCoordinator | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("connectionsPage")
@@ -184,7 +187,7 @@ class ConnectionsView(QWidget):
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
-        self.details = ConnectionDetailsWidget(self)
+        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries)
         self.details.signer_button.clicked.connect(self._request_signer)
         self.details.signer_button.setEnabled(signer_service is not None)
 
@@ -401,6 +404,7 @@ class ConnectionsView(QWidget):
             return
         self._selected_row_id = row_id
         self.details.set_connection(current.siblingAtColumn(0))
+        self._request_baseline(current)
         self._request_destination(current)
 
     def _request_signer(self) -> None:
@@ -504,7 +508,25 @@ class ConnectionsView(QWidget):
             self._selection_syncing = False
         if not self._paused:
             self.details.set_connection(index)
+            self._request_baseline(index)
             self._request_destination(index)
+
+    def _request_baseline(self, index: QModelIndex) -> None:
+        first = index.siblingAtColumn(0)
+        process = self.proxy_model.data(first, int(ConnectionRole.PROCESS_INFO))
+        network = self.proxy_model.data(first, int(ConnectionRole.NETWORK_SCOPE))
+        remote = self.proxy_model.data(first, int(ConnectionRole.RAW_REMOTE_ADDRESS))
+        remote_port = self.proxy_model.data(first, int(ConnectionRole.RAW_REMOTE_PORT))
+        protocol = self.proxy_model.data(first, int(ConnectionRole.RAW_PROTOCOL))
+        if not isinstance(process, ProcessInfo):
+            self.details.baseline.clear()
+            return
+        if not isinstance(network, ConnectionNetworkScope):
+            network = ConnectionNetworkScope.unknown()
+        self.details.baseline.select(baseline_detail_request(process, network, remote if isinstance(remote, str) else None,
+                                     remote_port if isinstance(remote_port, int) else None,
+                                     TransportProtocol(protocol) if isinstance(protocol, str) else None),
+                                     self._selected_row_id)
 
     def _request_destination(self, index: QModelIndex) -> None:
         first = index.siblingAtColumn(0)

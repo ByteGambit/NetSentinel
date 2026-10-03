@@ -27,6 +27,7 @@ from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.device_profile import DeviceProfileCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
+from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
 from netsentinel.presentation.capability_query import CapabilityCoordinator
@@ -85,6 +86,7 @@ class MainWindow(QMainWindow):
         history_queries: HistoryQueryCoordinator | None = None,
         destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
         signer_service: ExecutableSignerService | None = None,
+        baseline_queries: BaselineQueryCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         device_profiles: DeviceProfileCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
@@ -147,6 +149,7 @@ class MainWindow(QMainWindow):
                 model=self.connections_model,
                 parent=self.content,
                 destination_queries=destination_queries[0] if destination_queries else None,
+                baseline_queries=baseline_queries,
                 signer_service=signer_service,
             ),
             PageId.HISTORY: HistoryView(history_queries, destination_queries=destination_queries[1] if destination_queries else None, parent=self.content),

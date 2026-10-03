@@ -422,7 +422,14 @@ restore veya repair edilmez. Retention/eviction geçmişin eksik olduğunu göst
 eksik baseline “never seen” veya zararsızlık kanıtı değildir. Offline/restart gap
 monitored süreye çevrilmez. Scoped reset yalnız learning reference'i temizler,
 trust/mark-normal değildir; backend queue kabulü durable delete garantisi değildir,
-write failure/dirty completion izlenmelidir. NS-071 reset UI eklemez.
+write failure/dirty completion izlenmelidir. NS-075 Connections detayındaki
+explicit confirmation yalnız gösterilen application + revision + network scope'u
+sıfırlar. Cancel command, DB write veya dirty-state mutation üretmez. Completion
+receipt, reset bayrağını taşıyan exact-scope writer transaction'ının sonucunu
+bildirir; eski sequence yeni reset'i tamamlanmış gösteremez. UI storage failure'ı
+typed/sanitized gösterir; accepted/failure sonrası backend retry olabileceğini
+açıklar. Raw exception, feature listesi, path veya hash loglanmaz. Text plain text
+ve bounded preview'dır; trust, mark-normal veya automatic allowlist eklenmez.
 
 Diagnostics yalnız aggregate sayı ve typed storage/lifecycle durumu taşır;
 executable key/path, IP, hash, feature değerleri ve raw SQL/exception loglanmaz.

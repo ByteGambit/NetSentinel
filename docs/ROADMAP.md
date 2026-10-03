@@ -229,9 +229,9 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
-## Yeni faz: M11–M12 tamamlandı; M13–M17 planlandı, M18 conditional
+## Yeni faz: M11–M13 tamamlandı; M14–M17 planlandı, M18 conditional
 
-**Durum:** M1–M12 tamamlandı. M13–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M13 tamamlandı. M14–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -253,7 +253,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M13 — Deterministic Behavioral Baseline
 
-- **Durum:** ⬜ Planlandı (NS-069–NS-075).
+- **Durum:** ✅ COMPLETE (NS-069–NS-075, 2026-10-03). Learning/ready/insufficient-quality, novelty/rarity, frequency/diversity ve periodicity explanation sözleşmeleri; deterministic clock, warm-up/gap/eviction/restart/capacity testleri ve bounded memory/disk kuralları doğrulandı. NS-075 observed learning UI ve confirmed scoped reset tamamlandı; [exit doğrulaması](BASELINE_DETAIL_UI.md). NS-072–074 runtime detector pipeline'ı henüz engine'e bağlı değildir; UI bulunmayan evidence'ı açık gösterir, snapshot'tan geçmiş observation kanıtı üretmez. M14/NS-076 başlatılmadı.
 - **Amaç:** Uygulama davranışındaki yeniliği measurement quality ile açıklamak.
 - **Ana teslimatlar:** Instance'dan ayrı cross-run application identity; destination IP/port, protocol, observed appearance frequency ve destination diversity için bounded deterministic baseline; ASN varsa ek context; novelty/frequency/diversity/periodicity evidence; learning/quality UI.
 - **Açık kapsam dışı:** ML/AI anomaly model, ilk sürümde time-of-day alert, byte-derived behavior, kesin beacon hükmü.

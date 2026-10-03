@@ -21,6 +21,7 @@ from netsentinel.presentation.history_query import (
     HistoryServiceFactory,
 )
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator, DestinationServiceFactory
+from netsentinel.presentation.baseline_query import BaselineQueryCoordinator, BaselineDetailServiceFactory
 from netsentinel.presentation.alert_query import AlertQueryCoordinator, AlertServiceFactory
 from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFactory
 from netsentinel.presentation.capability_query import CapabilityCoordinator
@@ -56,12 +57,14 @@ class ApplicationLifecycle:
         capability_queries: CapabilityCoordinator | None = None,
         destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
         signer_service: ExecutableSignerService | None = None,
+        baseline_queries: BaselineQueryCoordinator | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
         self._history_queries = history_queries
         self._destination_queries = destination_queries or ()
         self._signer_service = signer_service
+        self._baseline_queries = baseline_queries
         self._device_inventory = device_inventory
         self._device_profiles = device_profiles
         self._alert_queries = alert_queries
@@ -81,6 +84,8 @@ class ApplicationLifecycle:
         if self._start_requested:
             return False
         self._start_requested = True
+        if self._baseline_queries is not None:
+            self._baseline_queries.start()
         if self._history_queries is not None:
             self._history_queries.start()
         for query in self._destination_queries:
@@ -101,6 +106,8 @@ class ApplicationLifecycle:
         try:
             return self._engine.start()
         except BaseException:
+            if self._baseline_queries is not None:
+                self._baseline_queries.stop()
             self._bridge.stop()
             if self._history_queries is not None:
                 self._history_queries.stop()
@@ -126,6 +133,7 @@ class ApplicationLifecycle:
         if self._shutdown_requested:
             return bool(self._shutdown_result)
         self._shutdown_requested = True
+        baseline_stopped = True if self._baseline_queries is None else self._baseline_queries.stop()
         history_stopped = (
             True
             if self._history_queries is None
@@ -141,7 +149,7 @@ class ApplicationLifecycle:
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
+        self._shutdown_result = self._engine.stop() and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -161,6 +169,7 @@ class ApplicationShell:
     capability_queries: CapabilityCoordinator | None = None
     destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None
     signer_service: ExecutableSignerService | None = None
+    baseline_queries: BaselineQueryCoordinator | None = None
 
 
 def create_application(
@@ -170,6 +179,7 @@ def create_application(
     history_service_factory: HistoryServiceFactory | None = None,
     destination_service_factory: DestinationServiceFactory | None = None,
     signer_service: ExecutableSignerService | None = None,
+    baseline_service_factory: BaselineDetailServiceFactory | None = None,
     device_service_factory: DeviceServiceFactory | None = None,
     profile_service_factory: ProfileServiceFactory | None = None,
     alert_service_factory: AlertServiceFactory | None = None,
@@ -209,13 +219,15 @@ def create_application(
     alert_queries = AlertQueryCoordinator(alert_service_factory) if alert_service_factory is not None else None
     dns_queries = DnsQueryCoordinator(dns_service_factory) if dns_service_factory is not None else None
     capability_queries = CapabilityCoordinator(capability_service_factory) if capability_service_factory is not None else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service)
+    baseline_queries = BaselineQueryCoordinator(baseline_service_factory) if baseline_service_factory else None
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
         history_queries=history_queries,
         destination_queries=destination_queries,
         signer_service=signer_service,
+        baseline_queries=baseline_queries,
         device_inventory=device_inventory,
         device_profiles=device_profiles,
         alert_queries=alert_queries,
@@ -223,6 +235,8 @@ def create_application(
         capability_queries=capability_queries,
     )
     bridge.setParent(window)
+    if baseline_queries is not None:
+        baseline_queries.setParent(window)
     if history_queries is not None:
         history_queries.setParent(window)
     if destination_queries is not None:
@@ -240,7 +254,7 @@ def create_application(
         capability_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries)
 
 
 def run_application(
@@ -254,6 +268,7 @@ def run_application(
     config_path = None
     config_issues = False
     capability_service_factory = None
+    baseline_service_factory = None
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
@@ -268,6 +283,7 @@ def run_application(
             create_destination_evidence_service_factory,
             create_executable_signer_service,
             create_capability_service_factory,
+            create_baseline_detail_service_factory,
             runtime_config_path,
         )
 
@@ -277,6 +293,7 @@ def run_application(
         config_issues = bool(loaded.issues)
         first_run = not settings.onboarding_completed
         engine = create_desktop_engine(config=settings)
+        baseline_service_factory = create_baseline_detail_service_factory(engine)
         capability_service_factory = create_capability_service_factory(engine, config=settings)
         history_service_factory = create_history_query_service_factory()
         device_service_factory = create_device_inventory_service_factory(config=settings)
@@ -305,6 +322,7 @@ def run_application(
         destination_service_factory=destination_service_factory,
         signer_service=signer_service,
         capability_service_factory=capability_service_factory,
+        baseline_service_factory=baseline_service_factory,
     )
     onboarding = None
     if first_run:
