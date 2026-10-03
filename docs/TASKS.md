@@ -800,7 +800,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-071 — Baseline persistence/lifecycle
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-03). Summary/feature policy v1 ve append-only 014 migration; bounded cumulative learning, 20 sample + 600 monitored saniye warm-up, 30/90 gün stale/expiry, scoped reset ve coalesced worker checkpoint. Restart gap/monotonic reconstruction, corrupt/version/policy mismatch, retention/quota, startup/reset/write yarışları ve failure semantics offline testlerle doğrulandı.
 - **Amaç:** Learning state'i restart sonrasında bounded korumak.
 - **Yapılacaklar:** Versioned aggregate repository, warm-up/minimum samples, expiry/reset ve disk limitleri ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.

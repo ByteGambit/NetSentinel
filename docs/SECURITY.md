@@ -405,6 +405,29 @@ NetSentinel'in topladığı IP, hostname, DNS ve process bilgileri hassas olabil
 - Uygulamanın bildiğinden yeni schema version'ı yazma modunda reddedilir. Otomatik
   downgrade, tablo silme veya version geri çekme uygulanmaz.
 
+### NS-071 yerel davranış öğrenme verisi
+
+Behavior baseline yalnız yerel SQLite'ta versioned, bounded summary olarak
+tutulur. Stable canonical executable key, varsa SHA-256 revision, resolved
+network fingerprint, en çok 64 destination IP/32 port/2 protocol aggregate'i,
+sample/coverage/quality sayaçları ve UTC zamanlar hassas metadata'dır. PID/ad
+kalıcı application identity değildir; provisional ve unresolved session scope
+restart boyunca saklanmaz. Raw event/poll/bucket/payload history, cloud isteği
+ve history upload eklenmemiştir.
+
+En fazla 512 row ve row başına 16 KiB feature payload vardır; 90 günlük expiry
+cleanup en çok 64 row transaction'larla ilerler. 30 günlük stale reference veya
+clock anomaly READY sayılmaz. Corrupt/version/policy mismatch otomatik trusted
+restore veya repair edilmez. Retention/eviction geçmişin eksik olduğunu gösterir;
+eksik baseline “never seen” veya zararsızlık kanıtı değildir. Offline/restart gap
+monitored süreye çevrilmez. Scoped reset yalnız learning reference'i temizler,
+trust/mark-normal değildir; backend queue kabulü durable delete garantisi değildir,
+write failure/dirty completion izlenmelidir. NS-071 reset UI eklemez.
+
+Diagnostics yalnız aggregate sayı ve typed storage/lifecycle durumu taşır;
+executable key/path, IP, hash, feature değerleri ve raw SQL/exception loglanmaz.
+Bu learning state güvenlik verdict'i veya forensic bütünlük garantisi değildir.
+
 ## 6. Güven sınırları ve tehditler
 
 ### Güvenilmeyen girdiler

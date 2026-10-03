@@ -20,6 +20,8 @@ from netsentinel.domain.connections import (
     ProcessInfo,
     TransportProtocol,
 )
+from netsentinel.domain.behavior_baseline import BaselineLoad, BaselineSummary
+from netsentinel.domain.behavior_features import BehaviorScopeKey
 from netsentinel.domain.destination_context import DestinationContext
 from netsentinel.domain.executable_hash import ExecutableHash
 from netsentinel.domain.executable_signer import ExecutableSigner
@@ -42,6 +44,16 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class BaselineRepository(Protocol):
+    """Blocking operations; owned exclusively by the baseline worker."""
+
+    def load(self, limit: int) -> BaselineLoad: ...
+
+    def write(self, summary: BaselineSummary | None, scope: BehaviorScopeKey, *, reset: bool = False) -> int: ...
+
+    def cleanup(self, now: datetime) -> int: ...
 
 
 class DestinationContextProvider(Protocol):

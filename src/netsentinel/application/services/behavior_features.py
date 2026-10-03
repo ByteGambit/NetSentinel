@@ -112,8 +112,12 @@ class BehaviorFeatureAccumulator:
         round_observation: ConnectionRoundObservation,
         events: Iterable[ConnectionLifecycleEvent] = (),
         snapshots: Iterable[ConnectionSnapshot] = (),
-    ) -> None:
-        """Apply quality and opened events from the same tracker round."""
+    ) -> tuple[BehaviorFeatureSnapshot, ...]:
+        """Apply a round and return bounded learning contributions, without buckets.
+
+        Contributions contain only this round's eligible samples and coverage.
+        NS-071 can accumulate them without differencing a rotating window.
+        """
         if not isinstance(round_observation, ConnectionRoundObservation):
             raise TypeError("round_observation must be ConnectionRoundObservation")
         tick = self._clock()
@@ -126,6 +130,13 @@ class BehaviorFeatureAccumulator:
             self._last_tick = tick
             index = int(tick // self.capacity.bucket_seconds)
             self._rotate(index)
+            deltas: dict[BehaviorScopeKey, _ScopeState] = {}
+            def delta(scope: BehaviorScopeKey) -> _Bucket:
+                if scope not in deltas:
+                    if len(deltas) >= self.capacity.scopes:
+                        del deltas[next(iter(deltas))]
+                    deltas[scope] = _ScopeState()
+                return self._bucket(deltas[scope], 0)
             visible: set[BehaviorScopeKey] = set()
             if round_observation.quality is ObservationQuality.COMPLETE:
                 scoped = {
@@ -135,6 +146,7 @@ class BehaviorFeatureAccumulator:
                 }
                 for scope in sorted(scoped, key=self._sort_key):
                     self._state(scope, tick)
+                    delta(scope)
                     visible.add(scope)
                 visible.intersection_update(self._scopes)
             if round_observation.quality is ObservationQuality.COMPLETE:
@@ -146,6 +158,7 @@ class BehaviorFeatureAccumulator:
                             state = self._scopes.get(scope)
                             if state is not None:
                                 self._bucket(state, index).monitored += min(elapsed, self._polling_interval)
+                                delta(scope).monitored += min(elapsed, self._polling_interval)
                                 if elapsed > self._polling_interval:
                                     state.gap_seen = True
                     else:
@@ -160,7 +173,7 @@ class BehaviorFeatureAccumulator:
                 for state in self._scopes.values():
                     state.capacity_loss = True
             if round_observation.quality is ObservationQuality.FAILED:
-                return
+                return ()
             for event in events:
                 if not isinstance(event, ConnectionOpened):
                     continue
@@ -171,6 +184,7 @@ class BehaviorFeatureAccumulator:
                     self._skipped_unknown += 1
                     continue
                 state = self._state(scope, tick)
+                contribution = delta(scope)
                 if round_observation.quality is ObservationQuality.REDUCED:
                     state.gap_seen = True
                 if round_observation.discarded_observations:
@@ -179,16 +193,29 @@ class BehaviorFeatureAccumulator:
                     continue
                 bucket = self._bucket(state, index)
                 bucket.appearances += 1
+                contribution.appearances += 1
                 if round_observation.quality is ObservationQuality.REDUCED:
                     bucket.reduced += 1
+                    contribution.reduced += 1
                 remote = event.snapshot.remote_endpoint
                 if remote is None:
                     bucket.unknown_destinations += 1
+                    contribution.unknown_destinations += 1
                 else:
                     self._count(state.destinations, bucket.destinations, remote.address, self.capacity.destinations, bucket, "other_destinations", state)
                     self._count(state.ports, bucket.ports, remote.port, self.capacity.ports, bucket, "other_ports", state)
+                    self._count(deltas[scope].destinations, contribution.destinations, remote.address, self.capacity.destinations, contribution, "other_destinations", deltas[scope])
+                    self._count(deltas[scope].ports, contribution.ports, remote.port, self.capacity.ports, contribution, "other_ports", deltas[scope])
                 self._count(state.protocols, bucket.protocols, event.snapshot.protocol, self.capacity.protocols, bucket, "other_protocols", state)
+                self._count(deltas[scope].protocols, contribution.protocols, event.snapshot.protocol, self.capacity.protocols, contribution, "other_protocols", deltas[scope])
             self._previous_visible.intersection_update(self._scopes)
+            result = []
+            for key, value in sorted(deltas.items(), key=lambda item: self._sort_key(item[0])):
+                state = self._scopes.get(key)
+                value.gap_seen = state.gap_seen if state is not None else True
+                value.capacity_loss |= state.capacity_loss if state is not None else True
+                result.append(self._snapshot_scope(key, value))
+            return tuple(result)
 
     def snapshot(self) -> BehaviorAccumulatorSnapshot:
         with self._lock:

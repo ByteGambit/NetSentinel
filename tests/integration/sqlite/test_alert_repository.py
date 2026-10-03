@@ -151,7 +151,7 @@ def test_existing_version_four_database_upgrades_to_alert_schema(tmp_path):
     alerts = service(path, [T0])
     assert alerts.query(AlertQuery(limit=10)) == ()
     with SQLiteDatabase(path).connection() as upgraded:
-        assert upgraded.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 13
+        assert upgraded.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 14
         assert upgraded.execute("SELECT 1 FROM sqlite_master WHERE name = 'alerts'").fetchone() is not None
 
 

@@ -18,6 +18,34 @@ DEFAULT_MAX_HISTORY_ROWS = 100_000
 DEFAULT_CLEANUP_CHUNK_SIZE = 500
 
 
+@dataclass(frozen=True, slots=True)
+class BehaviorBaselineConfig:
+    """Explicit NS-071 local learning, storage and checkpoint budgets."""
+
+    minimum_samples: int = 20
+    minimum_monitored_seconds: float = 600.0
+    stale_days: int = 30
+    retention_days: int = 90
+    checkpoint_interval: float = 30.0
+    max_rows: int = 512
+    load_limit: int = 128
+    cleanup_chunk_size: int = 64
+
+    def __post_init__(self) -> None:
+        for name, ceiling in (("minimum_samples", 1_000_000), ("stale_days", 3650),
+                              ("retention_days", 3650), ("max_rows", 512),
+                              ("load_limit", 128), ("cleanup_chunk_size", 64)):
+            value = getattr(self, name)
+            if type(value) is not int or not 1 <= value <= ceiling:
+                raise ValueError(f"{name} is outside its bounded policy")
+        for name, ceiling in (("minimum_monitored_seconds", 86_400), ("checkpoint_interval", 3600)):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or not 1 <= value <= ceiling:
+                raise ValueError(f"{name} must be finite and bounded")
+        if self.retention_days <= self.stale_days or self.load_limit > self.max_rows:
+            raise ValueError("retention must exceed staleness; load must fit row quota")
+
+
 def _require_positive_int(value: int, field_name: str) -> None:
     if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError(f"{field_name} must be an integer")

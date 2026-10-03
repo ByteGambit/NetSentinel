@@ -28,6 +28,9 @@ from netsentinel.application.services.destination_evidence import DestinationEvi
 from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.dns_history_query import DnsHistoryQueryService
 from netsentinel.application.services.history import ConnectionHistoryPersistence
+from netsentinel.application.services.behavior_baseline import BaselineWriter, BehaviorBaselineService
+from netsentinel.infrastructure.sqlite.behavior_baselines import baseline_repository_session
+from netsentinel.shared.config import BehaviorBaselineConfig
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
 from netsentinel.application.services.retention import HistoryRetentionService
 from netsentinel.application.services.processes import ProcessMetadataEnricher
@@ -134,6 +137,12 @@ def create_desktop_engine(
         dispatcher, writer, checkpoint_interval=settings.history_checkpoint_interval,
     )
     database = SQLiteDatabase(database_path)
+    baseline_config = BehaviorBaselineConfig()
+    baselines = BehaviorBaselineService(
+        BaselineWriter(lambda: baseline_repository_session(database, baseline_config),
+                       shutdown_timeout=shutdown_timeout),
+        config=baseline_config, polling_interval=polling_interval,
+    )
     network_context_provider = create_network_context_provider()
     dns_config = DnsConfigMonitoringService(
         network_context_provider,
@@ -148,6 +157,7 @@ def create_desktop_engine(
         polling_interval=polling_interval,
         shutdown_timeout=shutdown_timeout,
         persistence=persistence,
+        behavior_baselines=baselines,
         dns_config_poller=dns_config,
     )
 

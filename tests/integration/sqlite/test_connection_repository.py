@@ -126,7 +126,7 @@ def test_repository_uses_fresh_migrated_temporary_database(
     with database.connection() as connection:
         assert connection.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 13
+        ).fetchone()[0] == 14
 
 
 def test_open_insert_and_lookup_round_trip_ipv4_process_and_timestamps(

@@ -1642,6 +1642,105 @@ M14'te detector typed, bounded `RiskEvidence` üretir; pure domain scoring polic
 
 M16 `Incident` ile observation/assessment/alert references arasındaki ilişkiyi açıklar; `Alert`in yerine geçmez. Correlation window, process/lifecycle/destination identity ve relation reason typed/bounded olur. Aynı remote IP tek başına merge sebebi değildir. Open/ack/resolved/reopen ve evidence append idempotent, restart-safe ve retention-aware olmalıdır. GUI timeline observation time ile assessment time'ı ayırır. Mevcut process creation telemetry yoktur: yalnız `process observed` gibi gözleme uygun dil kullanılabilir.
 
+#### NS-071 — Baseline persistence/lifecycle
+
+NS-071, NS-070 rolling snapshot'ından fark almaz. Accumulator her tracker
+turunda yalnız o turun eligible appearance ve monitored coverage katkısını
+immutable, bounded snapshot olarak döndürür. `BehaviorBaselineService` bunları
+bir kez kümülatif learning aggregate'e ekler. Poll sayısı sample değildir;
+INITIAL appearance eklemez, FAILED sample/coverage eklemez, REDUCED yalnız
+gerçek OBSERVED appearance ekler. Lifetime aggregate ve 60 × 12 runtime bucket
+ayrıdır; bucket, monotonic tick, polling round veya raw event SQLite'a yazılmaz.
+
+Migration **013 → 014**, `014_behavior_baselines.sql`, yalnız
+`behavior_baselines` ve tek satırlık `behavior_baseline_storage` ekler.
+Application key, known SHA-256 revision veya explicit unknown için boş SQL
+sentinel, resolved network fingerprint ve version/time/policy kolonları
+normalized'dır. Payload deterministic, exact alanlı bounded JSON feature
+aggregate'idir; arbitrary object dump değildir. Summary format **1** ve feature
+policy **1**, SQLite schema version 014'ten ayrıdır. Compatibility key ayrıca
+NS-070 kapasite/window değerleri, polling interval, warm-up ve stale/expiry
+policy'sini içerir. Değişen anlam sessizce yeniden yorumlanmaz.
+
+Kalıcı kapsam yalnız canonical NS-069 `winpath:v1:` stable identity + resolved
+NS-057 fingerprint'tir. PID/ad kalıcı identity değildir. Known hash A, B ve
+unknown revision ayrı scope'tur; unknown known'a taşınmaz. Provisional instance
+ve unknown/ambiguous session network bellekte `session_only` kalır. Scope query
+ve reset application + revision + network exact anahtarını kullanır.
+
+`BehaviorBaselineConfig` varsayılan warm-up eşiği **20 eligible appearance +
+600 monitored saniye**dir. Hiç sample/coverage yoksa `learning`, eşiklerden biri
+eksikse `insufficient_data` olur. Capacity/overflow loss, reduced appearance
+ve unknown destination `insufficient_quality` üretir. READY yalnız iki eşik ve
+bu quality koşulları sağlandığında mümkündür; risk, trust veya normal hükmü
+değildir. `gap_seen` korunur; gap'in kendisi historical öğrenmeyi silmez, gap
+aralığı coverage'a eklenmez. Kalite kaybı olan aggregate explicit reset ile
+yeniden öğrenilir; key listeleri eksiksiz historical knowledge sayılmaz.
+
+Son gerçek UTC gözlemden **30 gün** sonra `stale`, **90 gün** sonra `expired`
+olur. Negatif age veya persisted time'ın gelecekte görünmesi `clock_anomaly`
+üretir. Gözlem/query/checkpoint ile saptanan stale/expired/clock anomaly runtime
+içinde sticky'dir; yeni gözlem eski referansı kendiliğinden READY yapmaz, reset
+gerektirir. Büyük ileri sıçrama O(1) age karşılaştırmasıdır. Gelecek summary
+version `unsupported_version`, feature/config uyuşmazlığı `policy_mismatch`,
+malformed/impossible veri `corrupt` döner; bunlar restore edilmez veya otomatik
+onarılıp overwrite edilmez. Scope bile geçersizse read sonucu scope taşımadan
+CORRUPT döner ve eksik knowledge conservative unavailable kalır.
+
+Restart'ta en fazla **128** yakın summary worker'da yüklenir; NS-070 default
+memory sınırları (64 app, app başına 4 scope, toplam 128; scope başına 64 IP,
+32 port, 2 protocol) korunur. Startup I/O sırasında gelen live katkılar bir
+kez merge edilir; o sırada kabul edilmiş reset eski restore'u engeller.
+Geçerli historical aggregate ve monitored duration korunur, gap işaretlenir.
+Yeni accumulator boş bucket ve fresh monotonic continuity ile başlar. Sekiz
+saat offline olmak sekiz saat coverage veya empty/normal window üretmez.
+Same-process stop/start da persisted sample'ı tekrar toplamaz. Pre-014 history
+ve DNS satırlarından baseline türetilmez.
+
+`BaselineRepository` blocking portunu yalnız **netsentinel-baseline-writer**
+daemon worker çağırır; SQLite bağlantısı bu worker'da açılır/kapanır. Constructor,
+engine/GUI producer ve snapshot/reset API'si DB I/O yapmaz. Monotonic schedule
+varsayılan **30 saniye** checkpoint üretir; persisted checkpoint UTC'dir.
+Scope başına latest summary coalesce edilir; **128 pending scope + 1 active**
+iş vardır. Queue dolarsa producer beklemez, dirty summary sonraki checkpoint
+için kalır; reset enqueue kabul edilmezse memory reset uygulanmaz.
+
+Service lock checkpoint/reset submission sırasını belirler. Monoton artan
+sequence eski pending checkpoint'i reddeder; reset bayrağı coalescing'de
+korunur. Worker önce delete, ardından varsa reset sonrası yeni aggregate'i
+yazar. Önceki active write resetten önce biter; resetten sonra eski state'i
+diriltemez. Scoped reset idempotenttir ve diğer revision/network/app'a dokunmaz.
+Bool başarı **queue acceptance** anlamındadır; durable completion için dirty
+count ve storage state izlenir. Write failure reset/summary retry'ını dirty
+tutar. Reset mark-normal/trust değildir; GUI NS-075'e bırakılmıştır.
+
+Disk hard cap **512 summary row**, application key en fazla **4096 UTF-8 byte**,
+payload en fazla **16 KiB**dir (en çok 8 MiB payload; bounded kolonlar ve SQLite
+page/WAL overhead ayrıca). SQL CHECK ve insert quota trigger bunu korur.
+Repository load limit 1–128'dir; size SQL'de de sınırlandırılıp parse öncesi
+kontrol edilir. Sayaçlar 63-bit, monitored aggregate 1e12 saniye sınırını
+aşacaksa katkı reddedilip capacity loss işaretlenir. IP, port, enum, distinct
+map kapasitesi/diversity, sample totals, identity, revision ve UTC doğrulanır.
+
+Retention worker başlangıcında, her write sonrasında ve idle iken 30 saniyede
+bir, **en fazla 64 row/transaction** siler. 90 günlük expired rows ve quota
+fazlası deterministic oldest-observation/key sırasıyla temizlenir. Quota'da bir
+yeni scope normalde bir eski scope'u tahliye eder. Tek bounded metadata satırı
+retention/eviction loss'u restart boyunca korur; unlimited tombstone yoktur.
+Eksik/atlanmış scope `unavailable`/`previous_unavailable` olur, “never seen”
+kanıtı sayılmaz. Elde tutulan geçerli scope'un kendi quality'si korunur; explicit
+reset sonrası yeniden öğrenilmiş scope sonraki restart'ta taşınabilir.
+
+Graceful shutdown dirty summary için final flush dener; worker join varsayılan
+**2 saniye** ile sınırlıdır. Timeout queued işi bırakır; in-flight SQLite çağrı
+zorla kesilmez ve dönünce daemon kapanır. Yaşayan worker'ın yerine ikincisi
+başlatılmaz. Crash/final flush yokluğunda son committed checkpoint geri gelir;
+kayıp RAM tail gözlenmiş inactivity sayılmaz. DB/load/write failure NS-070 veya
+connection dispatch'i durdurmaz; storage availability boş baseline'dan ayrıdır.
+`BaselineDiagnostics` yalnız aggregate loaded/dirty/pending/checkpoint/failure/
+rejection/invalid/cleanup/reset/loss sayılarını taşır; path, hash, IP, features,
+SQL veya raw exception içermez. Detector, risk/alert ve GUI eklenmemiştir.
+
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.

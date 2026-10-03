@@ -99,7 +99,7 @@ def test_existing_observations_upgrade_without_mutation_and_schema_is_metadata_o
     repo = SQLiteDeviceProfileRepository(upgraded)
     assert repo.get_for_device(device.device_id) is None
     with upgraded.connection() as connection:
-        assert default_migration_runner().current_version(connection) == 13
+        assert default_migration_runner().current_version(connection) == 14
         assert connection.execute("SELECT COUNT(*) FROM devices").fetchone()[0] == 1
         assert connection.execute("SELECT COUNT(*) FROM device_bindings").fetchone()[0] == 1
         columns = {row[1] for table in ("device_profiles", "device_profile_members")

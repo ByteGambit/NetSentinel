@@ -170,6 +170,11 @@ def builtin_migrations() -> tuple[Migration, ...]:
             name="connection_network_scope",
             sql=_read_resource("013_connection_network_scope.sql", 13, "connection_network_scope"),
         ),
+        Migration(
+            version=14,
+            name="behavior_baselines",
+            sql=_read_resource("014_behavior_baselines.sql", 14, "behavior_baselines"),
+        ),
     )
 
 
