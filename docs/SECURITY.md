@@ -435,6 +435,26 @@ Diagnostics yalnız aggregate sayı ve typed storage/lifecycle durumu taşır;
 executable key/path, IP, hash, feature değerleri ve raw SQL/exception loglanmaz.
 Bu learning state güvenlik verdict'i veya forensic bütünlük garantisi değildir.
 
+### NS-076 bounded evidence sınırı
+
+Generic evidence yalnız immutable typed subject/scope/quality/references ve
+bounded symbolic producer kodları taşır. Arbitrary details/metadata/JSON/object,
+raw packet/DNS bytes, executable contents, command line, token/cookie veya
+free executable path alanı yoktur; genişletilmiş dataclass üzerinden ek payload
+da reddedilir. Path yalnız mevcut canonical, en çok 4096 UTF-8 byte NS-069
+application identity key'inde controlled local metadata olarak bulunabilir.
+Bu key, IP/MAC ve hash hâlâ hassas metadata'dır; contract bunları loglamaz veya
+network'e göndermez. Reference value yalnız UUID veya 64 karakter canonical
+SHA-256'dır, dosya yolu/URL değildir ve fetch/lookup başlatmaz.
+
+Evidence başına 8 reference/16 limitation ve batch başına 32 contributor hard
+cap vardır; duplicate, mutable collection ve overflow reject edilir. Legacy
+ARP context yalnız original typed kimlik/correlation verisini bounded olarak
+korur; eski score yeni scoring policy veya saldırı verdict'i değildir.
+Unknown/ambiguous network fingerprint üretmez; eksik measurement quality
+complete sayılmaz, FAILED collection finding olmaz. Persistence, export,
+cloud, GUI veya yeni alert yaratımı eklenmez.
+
 ## 6. Güven sınırları ve tehditler
 
 ### Güvenilmeyen girdiler

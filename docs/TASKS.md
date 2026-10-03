@@ -857,7 +857,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-076 — Generic risk evidence contract
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-03). Contract v1, immutable typed process/application/IPv4/IPv6 evidence, explicit host/resolved/unknown/ambiguous scope, ayrı quality/confidence, 8 reference/32 flat contributor hard cap ve semantics-preserving legacy ARP adapter tamamlandı. Legacy dedup/persistence regression ve M13 contract temsilleri offline doğrulandı; [contract ve kabul raporu](GENERIC_RISK_EVIDENCE.md). SQLite 014 değişmedi; NS-077 başlatılmadı, M14 tamamlanmadı.
 - **Amaç:** Process/IPv6/generic kaynaklar için bounded typed kanıt tanımlamak.
 - **Yapılacaklar:** Legacy ARP adapter, source/quality/reference ve explicit host/network/unknown scope için additive modeller ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/alerts.py, src/netsentinel/domain/, src/netsentinel/application/ports.py, tests/unit/domain/.

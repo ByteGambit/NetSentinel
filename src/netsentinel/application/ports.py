@@ -34,6 +34,7 @@ from netsentinel.domain.dns import (
     DnsHistoryRecord, DnsTransactionStatus, DnsTransport, canonical_dns_name,
 )
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
+from netsentinel.domain.risk_evidence import RiskEvidenceBatch
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
     CaptureHealthSnapshot,
@@ -44,6 +45,12 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class RiskEvidenceConsumer(Protocol):
+    """Local typed handoff only; no persistence, scoring or delivery guarantee."""
+
+    def consume(self, evidence: RiskEvidenceBatch) -> None: ...
 
 
 class BaselineRepository(Protocol):

@@ -1928,6 +1928,51 @@ Yeni schema, raw event storage, diagnostics dump, network/cloud lookup, risk UI,
 mark-normal, AlertService veya automatic reset yoktur. SQLite **014**, summary ve
 feature policy **1** kalır. [Kabul ve test raporu](BASELINE_DETAIL_UI.md).
 
+#### NS-076 — Generic risk evidence contract
+
+`domain.risk_evidence` additive, framework/I/O bağımsız contract **1** sağlar.
+Immutable `RiskEvidence`; bounded source enum, producer'a ait 64 karakterlik
+symbolic rule/reason/result kodları, optional producer policy version, UTC
+observation time, typed subject/scope/quality/confidence ve references taşır.
+Subject mevcut `ProcessIdentity`, `ApplicationIdentity`, `ApplicationRevision`,
+session/lifecycle UUID, canonical IPv4/IPv6 ve `MacAddress` kullanır. PID-only
+process kimliği session gerektirir; application adı veya PID kalıcı key olmaz.
+Path yalnız bounded canonical NS-069 identity key'inde bulunabilir; process
+metadata, command line veya ayrı free-path alanı yoktur.
+
+Scope `host`, resolved `network` veya `unknown` olur; sonuncusu NS-057
+`UNKNOWN` ve `AMBIGUOUS` durumlarını ayrı korur, fingerprint içermez.
+`EvidenceScope.from_connection` interface/route kesinliği eklemez. Observation
+quality `COMPLETE/REDUCED/FAILED` veya unreported `None`; inference limitations
+ve confidence ayrı alanlardır. FAILED yalnız limitation rolünde taşınabilir.
+Finding, observation ve limitation güvenlik verdict'i değildir. Reason/result
+kodları producer policy namespace'inde açıklama anahtarlarıdır, serbest kullanıcı
+metni değildir; açıklama için subject/reference veya legacy typed context kullanılır.
+
+Evidence başına en fazla **8** typed UUID/digest reference, **16** typed
+limitation; düz `RiskEvidenceBatch` başına **32** evidence contributor vardır.
+Tuple dışı collection, duplicate ve cap aşımı reddedilir; references/limitations
+ve contributor sırası normalize edilir. Recursive evidence tree ve arbitrary
+details/metadata/payload yoktur. `evidence_id`, contract version dahil canonical
+validated content'in SHA-256 değeridir: summary occurrence/content kimliğidir,
+DB row/alert/assessment ID veya legacy issue dedup fingerprint'i değildir.
+UTC observation time veya correlation context değişimi yeni content ID verir.
+Contract-version ve producer-policy-version farklıdır; bilinmeyen legacy version
+uydurulmaz. Referans, target'ın hâlâ saklandığını veya resolve edilebildiğini
+garanti etmez; persistence/retention çözümleme NS-078'e aittir.
+
+`application.services.risk_evidence.evidence_from_arp`, mevcut typed NS-026
+event/NS-027 correlation sonucunu taşır. `LegacyArpContext` kaynak nesneyi ve
+varsa correlation'ı, eski severity/confidence/score/breakdown/count/zamanlarıyla
+aynen korur; generic yeni score/severity hesaplamaz. Envelope-source mapping
+validate edilir, eski issue fingerprint typed reference olarak kalır.
+`RiskEvidenceConsumer` yalnız bounded local handoff protocol'üdür; runtime
+consumer veya engine/AlertService bağlantısı yoktur. NS-072/073/074 contract
+temsilleri test edilir; detector-specific ölçümler kendi mevcut typed
+modellerinde kalır, production M13 adapter/pipeline bu taskta eklenmez.
+Evidence **assessment veya score değildir**; schema **014** değişmez. Mapping,
+bounds ve test raporu: [NS-076 contract](GENERIC_RISK_EVIDENCE.md).
+
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.
