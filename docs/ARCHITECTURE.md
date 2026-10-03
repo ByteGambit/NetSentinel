@@ -1973,6 +1973,38 @@ modellerinde kalır, production M13 adapter/pipeline bu taskta eklenmez.
 Evidence **assessment veya score değildir**; schema **014** değişmez. Mapping,
 bounds ve test raporu: [NS-076 contract](GENERIC_RISK_EVIDENCE.md).
 
+#### NS-077 — Pure explainable scoring policy
+
+`domain.risk_scoring` contract v1 `RiskEvidenceBatch` ve explicit typed freshness
+ile immutable policy **1** alır: evidence → explained contributor → pure result.
+Skala **0..100 integer** review priority/concern düzeyidir; malware probability
+değildir. Score severity, capped severity, confidence, measurement quality ve
+availability ayrı alanlardır. Eksik freshness/stale/expired/unsupported evidence
+unknown/not-scored kalır; empty result severity veya safety verdict üretmez.
+Quality eksik/FAILED veya confidence eksik/low generic severity'yi LOW, REDUCED
+measurement MEDIUM ile sınırlar; evidence puanını benign diye azaltmaz.
+
+Typed correlation keys aynı application/revision/network activity burst'ünün
+novelty/frequency/diversity katkılarını max ile birleştirir; timing regularity
+ayrı family olarak stack eder. Aynı IP/expected/observed MAC geçişi ARP/gateway
+rule'larında max sayılır. Activity/periodicity/identity toplam cap'leri 40/30/70,
+global positive cap 100'dür. Same-time contradictory novelty unknown olur;
+duplicate evidence NS-076 tarafından reject edilir. Allocation ve explanations
+deterministic sıralıdır; bağımsız positive evidence score'u düşürmez.
+
+Yalnız explicit periodicity `BENIGN_SCHEDULE_COMPATIBLE` qualifier küçük -3
+calibration önerir; benign nedenin doğrulanması değildir. Global reduction en
+çok **min(5, positive subtotal // 4)** ve destekleyen applied periodicity points
+ile sınırlıdır. Trust/signer/country/ASN/known destination/suppression mitigation
+olmaz. Limitation-only evidence puan üretmez. Her contributor original typed
+evidence, raw/applied points, family/key, reason/adjustments ve policy version
+taşır; batch 32, result en çok 64 immutable contributor ile bounded'dır.
+
+Scorer DB/files/network/config/clock/Qt/AlertService çağırmaz. Legacy ARP
+severity/confidence/score/fingerprint context'i aynen kalır, runtime path'e
+bağlanmaz. Persistence, revisions, UI ve preferences eklenmedi; SQLite **014**.
+Frozen mapping/correlation/severity decisions: [NS-077 policy](RISK_SCORING_POLICY.md).
+
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.

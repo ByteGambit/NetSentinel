@@ -868,7 +868,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-077 — Pure explainable scoring policy
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-03).
 - **Amaç:** Deterministic contributor ve severity mapping oluşturmak.
 - **Yapılacaklar:** Versioned pure domain policy; correlated facts, negative contributor ve quality rules tanımla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, tests/unit/domain/.
