@@ -1813,7 +1813,36 @@ Service snapshot ile ilk appearance'ın FIRST_SEEN, mutation sonrasındaki
 appearance'ın artık FIRST_SEEN olmadığı offline test edilir. Yeni persistence,
 migration, UI, AlertService, risk/severity/malware verdict, diagnostics veya
 network lookup eklenmez. SQLite schema **014**, baseline summary ve feature
-policy **1** kalır. NS-073/074/075 ve M14 entegrasyonları ayrı tasklardır.
+policy **1** kalır. NS-074/075 ve M14 entegrasyonları ayrı tasklardır.
+
+#### NS-073 — Frequency/diversity rules
+
+`evaluate_frequency_diversity` iki ayrı rule evidence üreten saf detector'dır:
+`observed_appearance_frequency`, `destination_window_diversity`, policy **1**.
+Appearance rate eligible OBSERVED samples / NS-070 monitored coverage'dır;
+gerçek OS connect-event count değildir. Frequency reference NS-071 historical
+mean ve varsa comparable independent window upper range'idir. Diversity lifetime
+unique IP toplamından türetilmez: `BehaviorRangeLearner` aynı scope/session'da
+en çok sekiz clean independent reference window aggregate'i tutar. Bu supplement
+memory-only'dir; restart diversity reference warm-up gerektirir. Summary format
+**1**, feature policy **1**, SQLite schema **014** değişmez.
+
+READY lifecycle, exact application/revision/resolved-network scope, quality/loss
+gates, 120 s current coverage ve 20 current appearance gerekir. Frequency strict
+3× + >=10/min absolute floor; diversity strict 3× + >=10 retained IP ve en az üç
+comparable reference kullanır. Gap/reduced/loss current window güçlü comparison
+sayılmaz. `FrequencyDiversityService` explicit monotonic clock ile iki bağımsız
+elevated window'da confirmation ve 600 s scoped cooldown sağlar. Duplicate veya
+overlapping window count/emission artırmaz. Her servis 128 scope hard cap taşır;
+learner scope başına 8 sample, emission scope başına 2 rule state tutar.
+Eviction oldest accepted independent scope'tur; yeni scope unconfirmed başlar.
+
+Engine/composition integration yoktur. Future owner NS-072 pre-mutation novelty,
+NS-070 update, NS-073 post-mutation window vs prior learned reference sırasını
+serialize eder. Evidence persistence, GUI, AlertService, risk/score, packet/byte,
+ML/time-of-day veya diagnostics/config değişikliği yoktur. Tam threshold, quality,
+restart/reset ve caller sınırları [NS-073 policy](FREQUENCY_DIVERSITY_POLICY.md)
+belgesindedir. NS-074/075 ve M14 ayrı tasklardır.
 
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 

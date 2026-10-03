@@ -822,7 +822,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-073 — Frequency/diversity rules
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı (2026-10-03). İki ayrı pure typed rule, versioned threshold/quality gate, bounded reference learner ve independent-window confirmation/monotonic cooldown tamamlandı; [policy ve doğrulama](FREQUENCY_DIVERSITY_POLICY.md).
 - **Amaç:** Observed appearance rate ve destination diversity sapmasını açıklamak.
 - **Yapılacaklar:** Confirmation, quality gate, bounded scope/cooldown ile iki ilgili detector kuralı ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/detectors/, src/netsentinel/domain/alerts.py, tests/unit/application/detectors/.

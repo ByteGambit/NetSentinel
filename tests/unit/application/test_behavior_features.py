@@ -315,3 +315,64 @@ def test_provisional_instances_unknown_remote_and_burst_bounded() -> None:
     assert len(snapshot.scopes) <= 2
     assert snapshot.evicted_scopes >= 1
     assert all(not item.scope.identity_restart_stable for item in snapshot.scopes if item.scope.application_key.startswith("instance:"))
+
+
+@pytest.mark.parametrize("missing_quality", [ObservationQuality.FAILED, ObservationQuality.REDUCED])
+def test_ns073_consumes_real_tracker_counts_and_never_backfills_missing_rounds(missing_quality) -> None:
+    from netsentinel.application.detectors.frequency_diversity import evaluate_frequency_diversity
+    from netsentinel.domain.behavior_baseline import (
+        BaselineOrigin, BaselineSnapshot, BaselineState, BaselineStorageState, BaselineSummary,
+    )
+    from netsentinel.domain.behavior_features import FeatureCount
+    from netsentinel.domain.frequency_diversity import (
+        BehaviorClassification, BehaviorWindow, FrequencyDiversityInput,
+    )
+
+    clock = Clock()
+    tracker = ConnectionTrackingService(clock=lambda: UTC_START)
+    acc = BehaviorFeatureAccumulator(monotonic_clock=clock)
+    first = opened(tracker.session_id).snapshot
+    # INITIAL and long-lived polls add coverage, but no appearance samples.
+    for tick in range(121):
+        clock.tick = tick
+        snapshots = (replace(first, observed_at=UTC_START + timedelta(seconds=tick)),)
+        events = tracker.track(snapshots, observed_at=UTC_START + timedelta(seconds=tick))
+        acc.observe_round(tracker.last_round, events, snapshots)
+    clean = acc.snapshot().scopes[0]
+    assert (clean.observed_appearances, clean.monitored_seconds) == (0, 120)
+    historical = replace(clean, observed_appearances=120, monitored_seconds=3600,
+                         destinations=(FeatureCount("203.0.113.1", 120),),
+                         ports=(FeatureCount(443, 120),), protocols=(FeatureCount(TransportProtocol.TCP, 120),),
+                         destination_diversity=1, port_diversity=1, protocol_diversity=1)
+    baseline = BaselineSnapshot(clean.scope, BaselineState.READY, BaselineOrigin.NEW,
+                                BaselineStorageState.AVAILABLE,
+                                BaselineSummary(historical, UTC_START, UTC_START, "test-policy"))
+    current = BehaviorWindow(clean, tracker.session_id, 0, 120, UTC_START)
+    assert evaluate_frequency_diversity(FrequencyDiversityInput(current, baseline))[0].classification is BehaviorClassification.INSUFFICIENT_DATA
+    # Two missing rounds and recovery cannot add synthetic monitored time.
+    for tick in (121, 122):
+        clock.tick = tick
+        first = replace(first, observed_at=UTC_START + timedelta(seconds=tick))
+        if missing_quality is ObservationQuality.FAILED:
+            round_observation = tracker.record_failure(observed_at=UTC_START + timedelta(seconds=tick))
+            events = ()
+        else:
+            events = tracker.track((first,), quality=missing_quality, observed_at=UTC_START + timedelta(seconds=tick))
+            round_observation = tracker.last_round
+        acc.observe_round(round_observation, events, (first,))
+    clock.tick = 123
+    first = replace(first, observed_at=UTC_START + timedelta(seconds=123))
+    events = tracker.track((first,), observed_at=UTC_START + timedelta(seconds=123))
+    acc.observe_round(tracker.last_round, events, (first,))
+    recovered = acc.snapshot().scopes[0]
+    assert (recovered.observed_appearances, recovered.monitored_seconds) == (0, 120)
+    assert recovered.gap_seen
+    current = BehaviorWindow(recovered, tracker.session_id, 0, 123, UTC_START)
+    assert all(e.classification is BehaviorClassification.INSUFFICIENT_QUALITY for e in evaluate_frequency_diversity(FrequencyDiversityInput(current, baseline)))
+    # Observed disappearance and a new lifecycle count once, repeated polls do not.
+    for tick, snapshots in ((124, ()), (125, (first,)), (126, (first,))):
+        clock.tick = tick
+        snapshots = tuple(replace(item, observed_at=UTC_START + timedelta(seconds=tick)) for item in snapshots)
+        events = tracker.track(snapshots, observed_at=UTC_START + timedelta(seconds=tick))
+        acc.observe_round(tracker.last_round, events, snapshots)
+    assert acc.snapshot().scopes[0].observed_appearances == 1
