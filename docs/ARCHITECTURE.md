@@ -2045,8 +2045,19 @@ dedup değişmez. UNKNOWN/AMBIGUOUS scope için `016_alert_risk_scope.sql` mevcu
 alerts tablosunda network fingerprint'i nullable yapar; 001–015 değişmez.
 Evidence JSON yalnız küçük typed assessment reference taşır. Failure/eligibility,
 queue/shutdown, retention ve crash sınırları:
-[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-080/081/082/083 ve desktop
+[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-081/082/083 ve desktop
 delivery uygulanmamıştır; M14 tamamlanmış değildir.
+
+NS-080 immutable scoped preference modelleri, explicit permanent/timed lifetime,
+manual origin/reason ve CREATE/EDIT/REVOKE snapshot audit sağlar. Schema 017 iki
+ayrı policy tablosu ekler; device trust veya observed/risk stores'a dönüşüm yapmaz.
+`ScopedPreferenceRepository` portu ve blocking `ScopedPreferenceService`, worker
+sahipli kısa SQLite transaction kullanır. Expected revision stale edit'i engeller;
+revoke için audit kapasitesi ayrılır. Merkezi sınırlar 256 revoke edilmemiş/1024
+toplam preference, 64 revision/preference, 16384 audit row ve 100/64 list/history
+page'dir. Audit/aktif policy otomatik silinmez; doluluk typed CAPACITY_REACHED olur.
+Pure selector matcher yalnız exact AND scope primitive'idir; eligibility evaluation
+ve runtime wiring yoktur. [NS-080 contract ve kabul raporu](SCOPED_PREFERENCES.md).
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.
 

@@ -38,6 +38,9 @@ from netsentinel.domain.risk_evidence import RiskEvidenceBatch
 from netsentinel.domain.risk_assessment import (
     AssessmentHistory, AssessmentRead, AssessmentSave, AssessmentSnapshot, RiskAssessmentKey,
 )
+from netsentinel.domain.preferences import (
+    PreferenceDefinition, PreferenceOrigin, PreferencePage, PreferenceResult,
+)
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
     CaptureHealthSnapshot,
@@ -48,6 +51,27 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class ScopedPreferenceRepository(Protocol):
+    """Blocking local policy storage; commands belong on an owning worker."""
+
+    def create(self, preference_id: UUID, definition: PreferenceDefinition,
+               origin: PreferenceOrigin, now: datetime) -> PreferenceResult: ...
+
+    def edit(self, preference_id: UUID, expected_revision: int,
+             definition: PreferenceDefinition, origin: PreferenceOrigin,
+             now: datetime) -> PreferenceResult: ...
+
+    def revoke(self, preference_id: UUID, expected_revision: int, reason: str,
+               origin: PreferenceOrigin, now: datetime) -> PreferenceResult: ...
+
+    def get_current(self, preference_id: UUID) -> PreferenceResult: ...
+
+    def get_history(self, preference_id: UUID, *, limit: int = 32,
+                    before_revision: int | None = None) -> PreferencePage: ...
+
+    def list_current(self, *, limit: int = 100, after_id: UUID | None = None) -> PreferencePage: ...
 
 
 class RiskAssessmentRepository(Protocol):

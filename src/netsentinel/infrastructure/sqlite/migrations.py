@@ -182,6 +182,8 @@ def builtin_migrations() -> tuple[Migration, ...]:
         ),
         Migration(version=16, name="alert_risk_scope",
                   sql=_read_resource("016_alert_risk_scope.sql", 16, "alert_risk_scope")),
+        Migration(version=17, name="scoped_preferences",
+                  sql=_read_resource("017_scoped_preferences.sql", 17, "scoped_preferences")),
     )
 
 

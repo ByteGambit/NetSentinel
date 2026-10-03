@@ -901,7 +901,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-080 — Scoped preference/suppression storage
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Immutable typed selector/lifetime, explicit permanent, manual reason/origin, append-only CREATE/EDIT/REVOKE audit, optimistic concurrency ve bounded SQLite repository/service tamamlandı. Schema 016→017; 001–016 değişmedi. Legacy device trust ayrı; eligibility evaluation/runtime/GUI yok. [Contract ve kabul raporu](SCOPED_PREFERENCES.md). NS-081 başlatılmadı; M14 tamamlanmadı.
 - **Amaç:** Kullanıcı tercihini gözlemden ayrı saklamak.
 - **Yapılacaklar:** Application/destination/network/rule selector, expiry, reason, origin ve audit repository oluştur.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.

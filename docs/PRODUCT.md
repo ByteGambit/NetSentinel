@@ -17,6 +17,13 @@ NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve g�
 
 ## Yeni fazın ürün yönü (M11–M13 tamamlandı; M14–M17 planlandı)
 
+NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
+application/destination/network/rule için dar typed selector, explicit expiry veya
+permanent lifetime, reason/origin ve auditable edit/revoke saklanır. Kullanıcı
+tercihi observed baseline, device trust ve risk evidence'dan ayrıdır. Saklanan
+preference henüz alert/bildirim eligibility'sine uygulanmaz; evaluation NS-081,
+GUI/mark-normal NS-082 kapsamıdır. [Contract ve sınırlar](SCOPED_PREFERENCES.md).
+
 Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?”**
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.

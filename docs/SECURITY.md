@@ -1,5 +1,17 @@
 # Güvenlik ve güvenli kullanım
 
+NS-080 scoped preference selector ve reason'ları kullanıcının güvenlik kararlarını
+açığa çıkarabilir; yalnız yerel bounded SQLite policy/audit tablolarında tutulur.
+Reason en çok 512 karakter single-line plain text; control characters reddedilir.
+Origin MANUAL_USER typed semantic'tir; actor credential/path taşımaz. PID/name veya
+provisional instance kalıcı application selector olamaz; unknown/ambiguous ağ için
+fingerprint uydurulmaz. Süresiz lifetime yalnız explicit PERMANENT ile mümkündür.
+Edit/revoke eski snapshot'ları silmez; finite audit quota yeni edit/create'ı durdurur,
+revoke için yer ayırır. Diagnostics'e selector/path/IP/network/reason dump edilmez;
+upload, automatic trust, evidence deletion, risk-score değişimi veya notification
+suppression execution yoktur. Legacy device trust ayrı kalır. Yerel DB ve content
+fingerprint adli authenticity garantisi değildir; [NS-080 sözleşmesi](SCOPED_PREFERENCES.md).
+
 NS-078 risk assessment history yalnız yerelde saklanan bounded davranış/güvenlik
 metadata'sıdır. Minimum snapshot canonical subject/scope/reference, policy/contract
 version, score ve contributor açıklamasını tutar; raw packet/DNS payload, command

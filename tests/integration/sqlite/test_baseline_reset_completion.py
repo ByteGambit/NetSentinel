@@ -39,7 +39,7 @@ def test_sqlite_reset_completion_is_exact_application_network_revision_and_idemp
         with database.connection() as connection:
             remaining = {item.scope for item in SQLiteBaselineRepository(connection).load(128).records}
             assert remaining == {scopes[1], scopes[2], scopes[4]}
-            assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 16
+            assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 17
     finally:
         assert service.stop()
 
