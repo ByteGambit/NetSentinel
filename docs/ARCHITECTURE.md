@@ -1739,7 +1739,81 @@ kayıp RAM tail gözlenmiş inactivity sayılmaz. DB/load/write failure NS-070 v
 connection dispatch'i durdurmaz; storage availability boş baseline'dan ayrıdır.
 `BaselineDiagnostics` yalnız aggregate loaded/dirty/pending/checkpoint/failure/
 rejection/invalid/cleanup/reset/loss sayılarını taşır; path, hash, IP, features,
-SQL veya raw exception içermez. Detector, risk/alert ve GUI eklenmemiştir.
+SQL veya raw exception içermez. NS-071 detector, risk/alert ve GUI eklemez.
+
+#### NS-072 — Novelty/rarity rules
+
+`evaluate_destination_novelty`, `DestinationNoveltyInput` ve immutable
+`DestinationNoveltyPolicy` alıp `DestinationNoveltyEvidence` döndüren saf
+application detector'ıdır. Rule ID `destination_ip_novelty_rarity`, policy
+version **1**'dir. Domain sözleşmesi framework bağımsızdır. Baseline service'ten
+alınan **güncel, observation eklenmeden önceki** `BaselineSnapshot`, mevcut
+`BehaviorScopeKey`, remote IP, UTC observation time ve origin/quality kullanılır.
+Detector I/O yapmaz, clock okumaz, state/occurrence/dedup tutmaz ve öğrenmez.
+Freshness ve config compatibility NS-071 lifecycle owner'ının sorumluluğudur;
+detector eski bir READY snapshot'ını kendiliğinden yeniden tarihlendirmez.
+
+Scope stable canonical application path + exact revision (unknown dahil) +
+resolved network fingerprint ile eşleşmelidir. Farklı path, revision veya
+network snapshot'ı ödünç alınmaz; provisional/unknown application ve
+unknown/ambiguous network `not_evaluated` olur. Shared IP başka application'ın
+history'sini paylaşmaz. Unknown revision kendi ayrı scope'unda çalışabilir;
+evidence `revision_unverified` limitation taşır. Canonical IPv4/IPv6 remote IP
+kimliktir; port, DNS adı, ASN veya country novelty key'i değildir. Eksik/geçersiz,
+unspecified veya zone-ID içeren remote değerlendirilmez. Private/loopback IP
+aynı familiarity policy'sine tabidir; güvenli kabul edilmez.
+
+Yalnız eligible `OBSERVED` appearance değerlendirilir. INITIAL ve FAILED
+girdiler defensive `not_evaluated` sonucu verir. REDUCED turda gerçekten
+gözlenen appearance, READY reference varsa değerlendirilebilir; current quality
+ve `reduced_current_observation` limitation korunur. Baseline'ın reduced
+history'si yeniden yorumlanmaz. LEARNING/INSUFFICIENT_DATA
+`insufficient_data`, INSUFFICIENT_QUALITY `insufficient_quality` verir;
+STALE/EXPIRED/CLOCK_ANOMALY/CORRUPT/UNSUPPORTED_VERSION/POLICY_MISMATCH/UNAVAILABLE
+`not_evaluated` verir. READY tek başına verdict değildir: summary version,
+feature policy, scope, bounded summary invariants, future timestamps ve quality
+ayrıca doğrulanır; detector bir lifecycle engelini READY'ye yükseltemez.
+
+Policy v1 minimum **20 eligible appearance + 600 monitored saniye** ister.
+Bu süre NS-070/071 kaliteli gözlenen etkin coverage'dır; wall-clock app age veya
+poll sayısı değildir. Eksiksiz READY reference'ta count **0** `first_seen`
+(`destination_not_previously_observed`) olur: yalnız retained scoped baseline'da
+gözlenmemiş IP demektir, OS first-ever connection değildir. Count **1–2**,
+baseline en az **100** appearance ve destination payı en fazla **%1** ise `rare`
+olur. Her iki rare sınırı inclusive'dir; oran integer cross multiplication ile
+hesaplanır. Count 1–2 ve denominator 100'den küçükse rarity için
+`insufficient_data`; diğer pozitif sayımlar `known` olur. KNOWN yalnız retained
+observation familiarity'dir, safe değildir. Eşikler bounded typed policy
+üzerinden değişebilir; evidence kullanılan policy'nin tamamını ve version'ını
+taşır, global AppConfig büyütülmez.
+
+Capacity loss, destination `other` overflow, unknown/reduced baseline samples,
+63-bit counter saturation veya `previous_unavailable`/`session_only` history
+READY girdide bile normal classification üretmez. Evicted/missing scope için
+NS-071 unavailable/loss işaretleri korunur; absent entry “never observed” diye
+yorumlanmaz. Gap tek başına history'yi geçersiz yapmaz; coverage eklemeden
+evidence'da kalır. Storage status ayrıca taşınır; geçerli memory history yalnız
+checkpoint storage hatasından dolayı silinmez. Evidence exact destination
+appearance count, baseline sample count (total eligible appearances ile aynı),
+monitored duration, scope, lifecycle/origin/storage, compatibility key,
+quality/loss/gap, observation time ve typed classification/reason taşır.
+Geçersiz/uyuşmayan summary'den açıklama count'u ödünç alınmaz.
+
+Her sonuç `ip_only_service_not_inferred` limitation taşır. CDN/address rotation
+yeni IP oluşturabilir; FIRST_SEEN yeni service/domain veya suspicious/malware
+iddiası değildir. NS-071 domain baseline içermediğinden hidden domain history
+ve DNS candidate girdisi eklenmez. NS-062–064 association'ları ileride ayrı
+context olarak kalır; correlated veya ambiguous aday kesin hostname olamaz.
+
+NS-072 engine'e bağlanmaz. Gelecekteki pipeline owner'ı exact scoped snapshot →
+evaluation → baseline mutation sırasını **seri/atomik** yürütmelidir; bağımsız
+service çağrıları arasında detector transaction sağlamaz. Aynı immutable
+girdiyle concurrent veya tekrar evaluation aynı sonucu verir ve state artırmaz.
+Service snapshot ile ilk appearance'ın FIRST_SEEN, mutation sonrasındaki
+appearance'ın artık FIRST_SEEN olmadığı offline test edilir. Yeni persistence,
+migration, UI, AlertService, risk/severity/malware verdict, diagnostics veya
+network lookup eklenmez. SQLite schema **014**, baseline summary ve feature
+policy **1** kalır. NS-073/074/075 ve M14 entegrasyonları ayrı tasklardır.
 
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 

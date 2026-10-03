@@ -811,7 +811,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-072 — Novelty/rarity rules
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-03). Saf scoped IP detector ve immutable typed evidence/policy v1; READY + minimum 20 sample/600 monitored saniye, rarity için 100 sample + en fazla 2 appearance/%1. Lifecycle, capacity/overflow/eviction, revision/network isolation, IPv4/IPv6, INITIAL/REDUCED/FAILED ve pre-mutation snapshot semantics offline testlerle doğrulandı; CDN/service attribution conservative. Engine/alert/risk/UI/persistence entegrasyonu yok.
 - **Amaç:** İlk görülen/seyrek destination için açıklanabilir sinyal üretmek.
 - **Yapılacaklar:** Typed evidence veren küçük detector'lar ve minimum sample/quality policy ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/detectors/, src/netsentinel/domain/alerts.py, tests/unit/application/detectors/.
