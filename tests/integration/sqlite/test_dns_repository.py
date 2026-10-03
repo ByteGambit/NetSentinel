@@ -126,7 +126,7 @@ def test_previous_schema_migrates_and_reopens(tmp_path):
     connection = SQLiteConnectionFactory(database.path).connect()
     try:
         assert MigrationRunner(builtin_migrations()[:5]).migrate(connection) == 5
-        assert MigrationRunner(builtin_migrations()).migrate(connection) == 15
+        assert MigrationRunner(builtin_migrations()).migrate(connection) == 16
         assert {row[1] for row in connection.execute("PRAGMA index_list(dns_history)")} >= {
             "idx_dns_history_event_id", "idx_dns_history_network_event", "idx_dns_history_qname_event",
         }
@@ -147,7 +147,7 @@ def test_dns_migration_failure_rolls_back_schema_and_version(tmp_path):
         assert MigrationRunner(builtin_migrations()[:5]).current_version(connection) == 5
         assert connection.execute("SELECT name FROM sqlite_master WHERE name = 'temporary_dns'").fetchone() is None
         assert not connection.in_transaction
-        assert MigrationRunner(builtin_migrations()).migrate(connection) == 15
+        assert MigrationRunner(builtin_migrations()).migrate(connection) == 16
     finally:
         connection.close()
 

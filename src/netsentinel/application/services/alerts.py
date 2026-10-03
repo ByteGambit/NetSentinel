@@ -11,6 +11,8 @@ from netsentinel.domain.alerts import (
     Alert, AlertCandidate, AlertEvidence, AlertStatus, ArpRiskAssessment,
     NewDeviceDetected,
 )
+from netsentinel.domain.alert_risk import AlertWriteIntent
+from dataclasses import replace
 
 
 DEFAULT_RATE_WINDOW = timedelta(seconds=120)
@@ -34,6 +36,10 @@ class AlertService:
 
     def acknowledge(self, alert_id: UUID) -> Alert | None:
         return self._repository.set_status(alert_id, AlertStatus.ACKNOWLEDGED, self._now())
+
+    def update_assessment(self, candidate: AlertCandidate) -> tuple[Alert, bool]:
+        """Refresh explanation without inventing a new observation or reopening."""
+        return self.record(replace(candidate, intent=AlertWriteIntent.REASSESSMENT))
 
     def resolve(self, alert_id: UUID) -> Alert | None:
         return self._repository.set_status(alert_id, AlertStatus.RESOLVED, self._now())

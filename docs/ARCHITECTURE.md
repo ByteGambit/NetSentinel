@@ -2027,6 +2027,27 @@ ve ownership ayrıntıları: [NS-078 persistence](RISK_ASSESSMENT_PERSISTENCE.md
 
 ### 18.4 Kullanıcı tercihleri, persistence ve I/O ownership
 
+NS-079 `BehaviorRiskPipeline`, production desktop engine'de OBSERVED appearance
+için pre-mutation NS-072 → accumulator/baseline mutation → post-mutation NS-073
+→ COMPLETE-only NS-074 sırasını kurar. Qt bridge detection kaynağı değildir.
+128 pending + bir active kapasiteli `RiskAlertWorker`, normalization/scoring ve
+assessment/alert SQL işlemlerinin sahibidir. `RiskToAlertService`, NS-078 commit
+sonrası mevcut AlertService'i çağırır; başarılı alert commit ve notification
+eligibility bool sonrası exact-type `AlertNotificationIntent` yayınlar.
+Dispatcher process-local'dır; delivery/outbox garantisi yoktur.
+
+Assessment key original lifecycle/session/time bağlamını korur. Alert fingerprint
+application/revision/destination/typed scope'tan türetilir; scoring policy, score
+ve revision içermez. Explicit reassessment, aynı repository transaction'ında
+yalnız current occurrence severity/confidence/reference'ını değiştirir; count,
+last_seen, ACK/RESOLVED korunur ve reopen olmaz. Legacy occurrence watermark ve
+dedup değişmez. UNKNOWN/AMBIGUOUS scope için `016_alert_risk_scope.sql` mevcut
+alerts tablosunda network fingerprint'i nullable yapar; 001–015 değişmez.
+Evidence JSON yalnız küçük typed assessment reference taşır. Failure/eligibility,
+queue/shutdown, retention ve crash sınırları:
+[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-080/081/082/083 ve desktop
+delivery uygulanmamıştır; M14 tamamlanmış değildir.
+
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.
 
 Bugünkü uygulamada history writer bounded batch queue ve kendi SQLite bağlantısını kullanır; DNS history writer ayrı queue/bağlantıya sahiptir. Device/gateway/VLAN/alert gibi kısa repository işlemleri ilgili worker'da transaction açar. Global tek writer thread yoktur. Yeni high-volume servisler kendi açık owner/queue/batch/backpressure bütçesini belirler; SQLite WAL/busy timeout altında contention, shutdown ve retention testleri gerekir. GUI thread DB, network, hash, signer veya OS event session I/O yapmaz. Typed dispatcher synchronous/in-process'tir, durable bus değildir; subscriber'lar ağır işi bounded queue'ya devreder. Qt bridge drop/coalescing baseline truth source olamaz. Persisted times UTC-aware, rolling runtime windows monotonic olur. Yeni tablolar için row/byte/age quotas, paginated query, source-reference expiry ve local purge contract gerekir. SQLite SQL parameterized; schema migration append-only.

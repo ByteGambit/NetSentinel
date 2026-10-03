@@ -21,7 +21,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. Genel risk assessment, kesin domain–connection attribution, incident timeline, reputation request, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Risk explanation UI, kesin domain–connection attribution, incident timeline, reputation request, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 
@@ -33,8 +33,10 @@ yeterli gözlenmiş veri demektir; uygulamanın güvenliği veya kullanıcı ter
 hakkında hüküm değildir. Reset, açık scope confirmation ile yalnız learned
 reference'i siler; trust/preferences veya connection history'yi değiştirmez.
 Kümülatif reference ve current memory window ayrıdır. NS-072–074 typed detector
-evidence modelleri hazırdır fakat engine pipeline'ına bağlı değildir; mevcut
-desktop'ta evidence yokluğu açıkça gösterilir. Risk assessment hâlâ M14 planıdır.
+evidence modelleri NS-079 ile production engine pipeline'ına bağlıdır. Backend
+assessment ve mevcut alert lifecycle yerel worker'da işler; baseline detail
+ekranına yeni evidence/risk açıklaması eklenmemiştir. Risk explanation UI NS-083
+planıdır; M14 hâlâ devam eder.
 
 - **Local-first:** Connection/DNS/IP/process history varsayılan olarak yerel kalır. **NetSentinel does not upload your network history by default.** Reputation sorgusu başlangıçta kapalıdır; provider, subject type ve gönderilen veri için açık kullanıcı tercihi gerekir.
 - **Belirsizlik görünür:** Directly observed DNS evidence, correlated association, ambiguous association ve unknown ayrılır. DNS domain → IP gözlemi, process'in o domain'e bağlandığının kesin kanıtı değildir.

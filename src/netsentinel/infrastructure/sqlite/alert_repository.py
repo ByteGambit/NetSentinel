@@ -15,6 +15,8 @@ from netsentinel.domain.alerts import (
 )
 from netsentinel.domain.devices import GatewayBaselineStatus
 from netsentinel.domain.observations import MacAddress
+from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
+from netsentinel.domain.connections import NetworkScopeStatus
 from netsentinel.infrastructure.sqlite.database import SQLiteAdapterError, SQLiteDatabase, transaction
 from netsentinel.infrastructure.sqlite.repositories import datetime_to_epoch_microseconds as to_us, epoch_microseconds_to_datetime as from_us
 
@@ -34,6 +36,11 @@ def _encode(items: tuple[AlertEvidence, ...]) -> str:
         "breakdown": [[part.rule.value, part.points] for part in item.breakdown],
         "observation_count": item.observation_count,
         "details": item.details,
+        **({"assessment": {
+            "assessment_id": item.assessment.assessment_id,
+            "revision": item.assessment.revision,
+            "network_status": item.assessment.network_status.value if item.assessment.network_status is not None else None,
+        }} if item.assessment is not None else {}),
     } for item in items], separators=(",", ":"), sort_keys=True)
     if len(value) > 8192:
         raise ValueError("alert evidence exceeds storage bound")
@@ -52,7 +59,17 @@ def _decode(value: str) -> tuple[AlertEvidence, ...]:
         GatewayBaselineStatus(item["baseline_status"]) if item["baseline_status"] is not None else None,
         item["score"], tuple(ArpScoreComponent(ArpScoreRule(rule), points) for rule, points in item["breakdown"]),
         item["observation_count"], tuple(tuple(pair) for pair in item.get("details", ())),
+        _reference(item.get("assessment")),
     ) for item in data)
+
+
+def _reference(value: object) -> AlertAssessmentReference | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict) or set(value) != {"assessment_id", "revision", "network_status"}:
+        raise ValueError("invalid assessment reference")
+    return AlertAssessmentReference(value["assessment_id"], value["revision"],
+                                    NetworkScopeStatus(value["network_status"]) if value["network_status"] is not None else None)
 
 
 def _map(row: sqlite3.Row) -> Alert:
@@ -97,6 +114,10 @@ class SQLiteAlertRepository:
                         old = _map(row)
                         if (old.rule_id, old.network_fingerprint, old.entity_id) != (candidate.rule_id, candidate.network_fingerprint, candidate.entity_id):
                             raise AlertDataCorrupt("Alert fingerprint identity is inconsistent.")
+                        if candidate.evidence.assessment is not None:
+                            handled = self._reassess(connection, old, candidate, now_us)
+                            if handled is not None:
+                                return handled
                         if candidate.evidence.observed_at <= old.last_seen:
                             return old, False
                         evidence = (old.evidence + (candidate.evidence,))[-MAX_ALERT_EVIDENCE:]
@@ -118,6 +139,39 @@ class SQLiteAlertRepository:
             raise
         except (SQLiteAdapterError, sqlite3.Error, ValueError, TypeError) as error:
             raise AlertRepositoryError("Alert persistence failed.") from error
+
+    @staticmethod
+    def _reassess(connection: sqlite3.Connection, old: Alert, candidate: AlertCandidate,
+                  now_us: int) -> tuple[Alert, bool] | None:
+        """Atomic risk retry/revision handling inside the existing alert transaction.
+
+        Older observations never replace current severity. Equal observation
+        times are conservative duplicates (the legacy monotonic watermark).
+        Retained source IDs additionally prevent a revised timestamp from being
+        counted twice. Revisions do not use the rate-window as a fresh event.
+        """
+        reference = candidate.evidence.assessment
+        assert reference is not None
+        matched = next((item for item in old.evidence if item.assessment is not None
+                        and item.assessment.assessment_id == reference.assessment_id), None)
+        current = old.evidence[-1].assessment
+        if matched is not None or candidate.intent is AlertWriteIntent.REASSESSMENT:
+            if current is None or current.assessment_id != reference.assessment_id:
+                return old, False
+            if reference.revision <= current.revision:
+                return old, False
+            if candidate.evidence.observed_at != old.evidence[-1].observed_at:
+                raise AlertDataCorrupt("Assessment observation identity changed.")
+            notify = (old.status is not AlertStatus.RESOLVED and
+                      (candidate.severity != old.severity or candidate.confidence != old.confidence))
+            connection.execute("""UPDATE alerts SET severity = ?, confidence = ?, evidence_json = ?,
+                updated_at_utc_us = ?, last_notified_at_utc_us = ? WHERE id = ?""",
+                (candidate.severity, candidate.confidence,
+                 _encode((*old.evidence[:-1], candidate.evidence)), max(now_us, to_us(old.updated_at)),
+                 max(now_us, to_us(old.last_notified_at)) if notify else to_us(old.last_notified_at), str(old.id)))
+            row = connection.execute(f"SELECT {_COLUMNS} FROM alerts WHERE id = ?", (str(old.id),)).fetchone()
+            return _map(row), notify
+        return None
 
     def set_status(self, alert_id_value: UUID, status: AlertStatus, now: datetime) -> Alert | None:
         if not isinstance(alert_id_value, UUID) or not isinstance(status, AlertStatus):

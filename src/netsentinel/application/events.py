@@ -6,10 +6,26 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from threading import RLock
 from typing import Generic, TypeVar, cast
+from datetime import datetime
+from uuid import UUID
+
+from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
 
 
 EventT = TypeVar("EventT")
 EventSubscriber = Callable[[EventT], None]
+
+
+@dataclass(frozen=True, slots=True)
+class AlertNotificationIntent:
+    """Process-local eligibility after both commits; never delivery proof."""
+
+    alert_id: UUID
+    fingerprint: str
+    assessment: AlertAssessmentReference
+    severity: str
+    intent: AlertWriteIntent
+    persisted_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +118,7 @@ class EventDispatcher:
 
 
 __all__ = (
+    "AlertNotificationIntent",
     "EventDispatcher",
     "EventSubscriber",
     "PublishReport",

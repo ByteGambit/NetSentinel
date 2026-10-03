@@ -71,7 +71,8 @@ class AlertDetailsWidget(QGroupBox):
                   "rule": alert.rule_id, "status": alert.status.value,
                   "severity": alert.severity, "confidence": alert.confidence,
                   "entity": entity_text(alert),
-                  "network": network_label or f"Previously observed network (scope {alert.network_fingerprint[:8]})",
+                  "network": network_label or (f"Previously observed network (scope {alert.network_fingerprint[:8]})"
+                      if alert.network_fingerprint is not None else "Network scope unavailable"),
                   "expected": str(latest.expected_mac) if latest.expected_mac else "—",
                   "observed": str(latest.observed_mac) if latest.observed_mac else "—",
                   "first": format_local_timestamp(alert.first_seen),

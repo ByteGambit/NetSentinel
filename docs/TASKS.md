@@ -890,7 +890,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-079 — Risk-to-AlertService integration
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ Tamamlandı. M13 normalizer + bounded worker, NS-077→NS-078→AlertService orchestration, explicit reassessment ve commit sonrası typed notification intent uygulanmıştır. Schema 016 unresolved alert scope'u NULL ile taşır; 001–015 değişmez. Offline full suite, lifecycle/retry/legacy regression ve statik kontroller geçer; [rapor](RISK_ALERT_INTEGRATION.md). NS-080 başlatılmamıştır; M14 tamamlanmış değildir.
 - **Amaç:** Baseline evidence'ı mevcut alert yaşam döngüsüne bağlamak.
 - **Yapılacaklar:** Normalized candidate/assessment orchestration ve persisted sonrası notification intent event'i ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/alerts.py, src/netsentinel/application/events.py, src/netsentinel/bootstrap.py, tests/integration/.

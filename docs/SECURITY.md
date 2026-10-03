@@ -447,6 +447,18 @@ Bu learning state güvenlik verdict'i veya forensic bütünlük garantisi değil
 
 ### NS-076 bounded evidence sınırı
 
+NS-079 M13 signal normalization/scoring/assessment/alert işlemleri yerel application
+worker'ında çalışır; detector SQL veya ağ isteği yapmaz. Assessment commit başarısızsa
+generic alert ve notification intent üretilmez. Alert failure assessment'ı silmez;
+typed partial failure ve original-signal retry kullanılır. Intent yalnız alert
+commit sonrası eligibility'dir; OS bildirimi veya durable delivery garantisi yoktur.
+Source detector content hash'i numeric değişim kimliğini korur; raw measurement
+dict'i alert details veya diagnostics'e kopyalanmaz. UNKNOWN/AMBIGUOUS için fake LAN
+fingerprint yerine nullable network ve typed status saklanır. Worker diagnostics
+yalnız aggregate processed/failed/rejected/dropped sayıları içerir. Queue 128 pending
++ bir active ile bounded'dır; shutdown timeout pending işleri bırakır ve sayar.
+NS-080 suppression, trust/mark-normal, TI, GUI explanation ve response eklenmez.
+
 Generic evidence yalnız immutable typed subject/scope/quality/references ve
 bounded symbolic producer kodları taşır. Arbitrary details/metadata/JSON/object,
 raw packet/DNS bytes, executable contents, command line, token/cookie veya

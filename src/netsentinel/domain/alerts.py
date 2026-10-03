@@ -12,6 +12,8 @@ from uuid import UUID, uuid5, NAMESPACE_URL
 
 from netsentinel.domain.devices import DeviceIdentity, GatewayBaselineStatus, IdentityBinding
 from netsentinel.domain.observations import MacAddress
+from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
+from netsentinel.domain.connections import NetworkScopeStatus
 
 
 class ArpIdentityRule(str, Enum):
@@ -204,8 +206,11 @@ class AlertEvidence:
     breakdown: tuple[ArpScoreComponent, ...] = ()
     observation_count: int = 1
     details: tuple[tuple[str, str], ...] = ()
+    assessment: AlertAssessmentReference | None = None
 
     def __post_init__(self) -> None:
+        if self.assessment is not None and not isinstance(self.assessment, AlertAssessmentReference):
+            raise TypeError("assessment must be a typed reference")
         for name in ("observed_at", "expected_last_seen_at"):
             value = getattr(self, name)
             if value is None and name == "expected_last_seen_at":
@@ -245,15 +250,20 @@ class AlertEvidence:
 class AlertCandidate:
     fingerprint: str
     rule_id: str
-    network_fingerprint: str
+    network_fingerprint: str | None
     entity_id: str
     severity: str
     confidence: str
     evidence: AlertEvidence
+    intent: AlertWriteIntent = AlertWriteIntent.OCCURRENCE
 
     def __post_init__(self) -> None:
+        if not isinstance(self.evidence, AlertEvidence):
+            raise TypeError("evidence must be AlertEvidence")
         for name in ("fingerprint", "network_fingerprint"):
             value = getattr(self, name)
+            if name == "network_fingerprint" and value is None and self.evidence.assessment is not None:
+                continue
             if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
                 raise ValueError(f"{name} must be canonical SHA-256 hex")
         if not isinstance(self.rule_id, str) or not 1 <= len(self.rule_id) <= 64 or not self.rule_id.isascii():
@@ -266,6 +276,14 @@ class AlertCandidate:
             raise ValueError("unsupported confidence")
         if not isinstance(self.evidence, AlertEvidence):
             raise TypeError("evidence must be AlertEvidence")
+        if not isinstance(self.intent, AlertWriteIntent):
+            raise TypeError("write intent must be typed")
+        reference = self.evidence.assessment
+        if reference is not None:
+            if (reference.network_status is NetworkScopeStatus.RESOLVED) != (self.network_fingerprint is not None):
+                raise ValueError("risk scope and network fingerprint must agree")
+        elif self.intent is not AlertWriteIntent.OCCURRENCE:
+            raise ValueError("reassessment requires an assessment reference")
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,7 +291,7 @@ class Alert:
     id: UUID
     fingerprint: str
     rule_id: str
-    network_fingerprint: str
+    network_fingerprint: str | None
     entity_id: str
     severity: str
     confidence: str

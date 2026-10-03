@@ -98,7 +98,7 @@ def test_010_upgrade_preserves_legacy_unknown_and_gap_retention(tmp_path: Path) 
     assert legacy.lifecycle_id is None
     assert not legacy.observation_gap
     with database.connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 15
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 16
     with SQLiteHistoryWriteSessionFactory(database)() as session:
         with session.batch():
             assert session.reconcile_open() == 1

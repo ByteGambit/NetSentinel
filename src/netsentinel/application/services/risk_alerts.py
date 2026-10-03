@@ -1,0 +1,156 @@
+"""NS-079 owning-worker orchestration: evidence -> assessment -> AlertService."""
+
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from hashlib import sha256
+import json
+
+from netsentinel.application.events import AlertNotificationIntent, EventDispatcher, PublishReport
+from netsentinel.application.services.alerts import AlertService
+from netsentinel.application.services.risk_assessments import RiskAssessmentService
+from netsentinel.application.services.risk_evidence import BehaviorEvidence, evidence_from_behavior
+from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
+from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence, alert_id
+from netsentinel.domain.application_identity import ApplicationIdentityQuality
+from netsentinel.domain.connections import NetworkScopeStatus
+from netsentinel.domain.risk_assessment import (
+    AssessmentSave, RiskAssessmentKey, canonical_json, utc_time,
+)
+from netsentinel.domain.risk_evidence import (
+    EvidenceReference, EvidenceReferenceKind, RiskEvidenceBatch,
+)
+from netsentinel.domain.risk_scoring import (
+    AssessmentAvailability, ContributionDirection, EvidenceFreshness, Freshness,
+    RiskScoreResult, RiskScoringInput, RiskScoringPolicy, RiskSeverity, score_risk,
+)
+
+
+class RiskAlertStatus(str, Enum):
+    SUCCESS = "success"
+    NO_ALERT = "no_alert"
+    NORMALIZATION_FAILED = "normalization_failed"
+    SCORING_FAILED = "scoring_failed"
+    ASSESSMENT_PERSISTENCE_FAILED = "assessment_persistence_failed"
+    ASSESSMENT_PERSISTED_ALERT_FAILED = "assessment_persisted_alert_failed"
+    SATURATED = "saturated"
+    UNAVAILABLE = "unavailable"
+
+
+@dataclass(frozen=True, slots=True)
+class BehaviorRiskSignal:
+    key: RiskAssessmentKey
+    evidence: tuple[BehaviorEvidence, ...]
+    assessed_at: datetime
+    intent: AlertWriteIntent = AlertWriteIntent.OCCURRENCE
+    freshness: Freshness = Freshness.CURRENT
+
+    def __post_init__(self) -> None:
+        if type(self.key) is not RiskAssessmentKey:
+            raise TypeError("signal requires the original assessment identity")
+        if (self.key.kind != "connection_behavior" or
+                self.key.observation_reference.kind is not EvidenceReferenceKind.CONNECTION_LIFECYCLE):
+            raise ValueError("behavior signals require a canonical lifecycle reference")
+        if not isinstance(self.evidence, tuple) or not 1 <= len(self.evidence) <= 4:
+            raise ValueError("signal must contain at most four M13 results")
+        if not isinstance(self.intent, AlertWriteIntent) or not isinstance(self.freshness, Freshness):
+            raise TypeError("signal intent/freshness must be typed")
+        if (self.key.scope.network_status in (NetworkScopeStatus.UNKNOWN, NetworkScopeStatus.AMBIGUOUS)
+                and self.key.subject.session_id is None):
+            raise ValueError("unresolved occurrence requires a monitoring session")
+        utc_time(self.assessed_at)
+
+
+@dataclass(frozen=True, slots=True)
+class RiskAlertResult:
+    status: RiskAlertStatus
+    assessment: AssessmentSave | None = None
+    alert: Alert | None = None
+    dispatch: PublishReport | None = None
+
+
+def risk_alert_fingerprint(key: RiskAssessmentKey) -> str:
+    """Semantic identity independent of occurrence, score, policy and revision.
+
+    Stable executable identity + artifact revision + destination + typed network.
+    Unresolved networks/provisional applications also retain their session.
+    Unknown applications use exact process/session rather than a PID/name key.
+    """
+    subject = key.subject
+    application = subject.application
+    stable = application is not None and application.quality is ApplicationIdentityQuality.STABLE
+    content = {
+        "family": "connection_behavior", "scope": canonical_json(key.scope),
+        "application": application.key if application is not None else None,
+        "revision": subject.revision.digest if subject.revision is not None else None,
+        "destination": subject.ip_address,
+        "process": None if stable else canonical_json(subject.process),
+        "session": str(subject.session_id) if not stable or key.scope.network_fingerprint is None else None,
+        "fallback_occurrence": str(key.observation_reference.value) if not stable and
+            (subject.process is None or subject.process.create_time is None) else None,
+    }
+    return sha256(json.dumps(content, sort_keys=True, separators=(",", ":")).encode("ascii")).hexdigest()
+
+
+def alert_eligible(result: RiskScoreResult) -> bool:
+    """No new alert for UNKNOWN/INFO, zero or exclusively excluded evidence."""
+    return (result.availability is not AssessmentAvailability.UNKNOWN
+            and result.severity in (RiskSeverity.LOW, RiskSeverity.MEDIUM, RiskSeverity.HIGH)
+            and any(c.eligible and c.direction is ContributionDirection.POSITIVE and c.applied_points > 0
+                    for c in result.contributors))
+
+
+class RiskToAlertService:
+    """Blocking service used only by the risk worker; no concrete DB adapter."""
+
+    def __init__(self, assessments: RiskAssessmentService, alerts: AlertService,
+                 dispatcher: EventDispatcher, *, policy: RiskScoringPolicy = RiskScoringPolicy()) -> None:
+        self._assessments, self._alerts, self._dispatcher = assessments, alerts, dispatcher
+        self._policy = policy
+
+    def process(self, signal: BehaviorRiskSignal) -> RiskAlertResult:
+        try:
+            key = signal.key
+            references: tuple[EvidenceReference, ...] = (key.observation_reference,)
+            if key.subject.session_id is not None:
+                references += (EvidenceReference(EvidenceReferenceKind.MONITORING_SESSION, key.subject.session_id),)
+            batch = RiskEvidenceBatch(tuple(evidence_from_behavior(e, subject=key.subject,
+                scope=key.scope, references=references) for e in signal.evidence))
+            value = RiskScoringInput(batch, tuple(EvidenceFreshness(e.evidence_id, signal.freshness)
+                                                 for e in batch.evidence))
+        except (ValueError, TypeError, AttributeError):
+            return RiskAlertResult(RiskAlertStatus.NORMALIZATION_FAILED)
+        try:
+            result = score_risk(value, self._policy)
+        except (ValueError, TypeError):
+            return RiskAlertResult(RiskAlertStatus.SCORING_FAILED)
+        try:
+            saved = self._assessments.persist(key, value, result, assessed_at=signal.assessed_at)
+        except Exception:
+            # Operational boundary: no adapter exception text enters the result.
+            return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTENCE_FAILED)
+        # A replay of a retained older revision must never rewind current state.
+        fingerprint = risk_alert_fingerprint(key)
+        reference = AlertAssessmentReference(key.assessment_id, saved.revision.revision, key.scope.network_status)
+        candidate = AlertCandidate(fingerprint, "connection_behavior", key.scope.network_fingerprint,
+            fingerprint, result.severity.value if result.severity is not None else "info",
+            result.confidence.value if result.confidence is not None else "low",
+            AlertEvidence(key.original_observed_at, assessment=reference), signal.intent)
+        try:
+            eligible = alert_eligible(result)
+            if not eligible:
+                if self._alerts.get(alert_id(fingerprint)) is None:
+                    return RiskAlertResult(RiskAlertStatus.NO_ALERT, saved)
+                alert, notify = self._alerts.update_assessment(candidate)
+            elif signal.intent is AlertWriteIntent.REASSESSMENT:
+                alert, notify = self._alerts.update_assessment(candidate)
+            else:
+                alert, notify = self._alerts.record(candidate)
+        except Exception:
+            return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTED_ALERT_FAILED, saved)
+        report = None
+        if notify:
+            report = self._dispatcher.publish(AlertNotificationIntent(
+                alert.id, alert.fingerprint, reference, alert.severity, signal.intent, alert.updated_at))
+        return RiskAlertResult(RiskAlertStatus.SUCCESS if eligible else RiskAlertStatus.NO_ALERT,
+                               saved, alert, report)

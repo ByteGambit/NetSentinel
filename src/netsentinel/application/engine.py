@@ -22,6 +22,7 @@ from netsentinel.application.ports import (
 from netsentinel.application.services.connection_network_scope import ConnectionNetworkScopeResolver
 from netsentinel.application.services.behavior_features import BehaviorFeatureAccumulator
 from netsentinel.application.services.behavior_baseline import BehaviorBaselineService
+from netsentinel.application.services.behavior_risk import BehaviorRiskPipeline, PreparedBehaviorSignal
 from netsentinel.domain.connections import (
     ConnectionLifecycleEvent,
     ConnectionSnapshot,
@@ -56,7 +57,8 @@ class SnapshotEnricher(Protocol):
 
 class LifecycleTracker(Protocol):
     def track(
-        self, snapshots: Iterable[ConnectionSnapshot]
+        self, snapshots: Iterable[ConnectionSnapshot], *,
+        quality: ObservationQuality = ObservationQuality.COMPLETE, discarded_rows: int = 0,
     ) -> tuple[ConnectionLifecycleEvent, ...]: ...
 
 
@@ -104,6 +106,7 @@ class MonitoringEngine:
         network_context_provider: NetworkContextProvider | None = None,
         behavior_accumulator: BehaviorFeatureAccumulator | None = None,
         behavior_baselines: BehaviorBaselineService | None = None,
+        behavior_risk: BehaviorRiskPipeline | None = None,
     ) -> None:
         if (
             isinstance(polling_interval, bool)
@@ -136,6 +139,7 @@ class MonitoringEngine:
             polling_interval=float(polling_interval), monotonic_clock=self._monotonic,
         )
         self.behavior_baselines = behavior_baselines
+        self.behavior_risk = behavior_risk
         self._thread_name = thread_name
         self._persistence = persistence
         self._dns_config_poller = dns_config_poller
@@ -192,11 +196,19 @@ class MonitoringEngine:
             if persistence is not None and not persistence.start():
                 return False
 
+            if self.behavior_risk is not None and not self.behavior_risk.start():
+                if persistence is not None:
+                    persistence.stop()
+                self._record_error(DiagnosticCode.PERSISTENCE_START_FAILED, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
+                return False
+
             if self.behavior_baselines is not None:
                 try:
                     self.behavior_baselines.start()
                 except Exception:
-                    self._record_error(DiagnosticCode.PERSISTENCE_START_FAILED, DiagnosticComponent.PERSISTENCE)
+                    self._record_error(DiagnosticCode.PERSISTENCE_START_FAILED, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
 
             if self._started_once:
                 reset = getattr(self._tracker, "reset_session", None)
@@ -233,6 +245,8 @@ class MonitoringEngine:
                     persistence.stop()
                 if self.behavior_baselines is not None:
                     self._stop_baselines()
+                if self.behavior_risk is not None:
+                    self._stop_risk()
                 raise
             return True
 
@@ -264,6 +278,8 @@ class MonitoringEngine:
                 )
                 if self.behavior_baselines is not None:
                     persistence_stopped = self._stop_baselines(timeout) and persistence_stopped
+                if self.behavior_risk is not None:
+                    persistence_stopped = self._stop_risk(timeout) and persistence_stopped
                 self._health = replace(
                     self._health,
                     state=EngineState.STOPPED,
@@ -327,6 +343,8 @@ class MonitoringEngine:
                 if self._cancel.wait(self._polling_interval):
                     break
         finally:
+            if self.behavior_risk is not None:
+                self._stop_risk()
             if self.behavior_baselines is not None:
                 self._stop_baselines()
             persistence = self._persistence
@@ -425,9 +443,23 @@ class MonitoringEngine:
 
         observation = getattr(self._tracker, "last_round", None)
         if isinstance(observation, ConnectionRoundObservation):
+            prepared: tuple[PreparedBehaviorSignal, ...] = ()
+            if self.behavior_risk is not None:
+                try:
+                    prepared = self.behavior_risk.prepare(observation, events)
+                except Exception:
+                    self._record_error(DiagnosticCode.PERSISTENCE_UNEXPECTED_ERROR, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
             contributions = self.behavior_features.observe_round(observation, events, enriched)
             if self.behavior_baselines is not None:
                 self._observe_baselines(contributions, observation)
+            if self.behavior_risk is not None:
+                try:
+                    self.behavior_risk.finish(observation, events, prepared, self.behavior_features,
+                        now_monotonic=self._monotonic(), assessed_at=self._utc_now())
+                except Exception:
+                    self._record_error(DiagnosticCode.PERSISTENCE_UNEXPECTED_ERROR, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
         subscriber_failures = (
             self._dispatcher.publish(observation).failed
             if isinstance(observation, ConnectionRoundObservation)
@@ -460,6 +492,13 @@ class MonitoringEngine:
         self.behavior_features.observe_round(observation)
         if self.behavior_baselines is not None:
             self._observe_baselines((), observation)
+        if self.behavior_risk is not None:
+            try:
+                self.behavior_risk.finish(observation, (), (), self.behavior_features,
+                    now_monotonic=self._monotonic(), assessed_at=self._utc_now())
+            except Exception:
+                self._record_error(DiagnosticCode.PERSISTENCE_UNEXPECTED_ERROR, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
         self._dispatcher.publish(observation)
         with self._lock:
             self._health = replace(self._health, counters=replace(
@@ -472,7 +511,8 @@ class MonitoringEngine:
             assert self.behavior_baselines is not None
             self.behavior_baselines.observe(contributions, observation.observed_at, observation.quality)
         except Exception:
-            self._record_error(DiagnosticCode.PERSISTENCE_UNEXPECTED_ERROR, DiagnosticComponent.PERSISTENCE)
+            self._record_error(DiagnosticCode.PERSISTENCE_UNEXPECTED_ERROR, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
 
     def _stop_baselines(self, timeout: float | None = None) -> bool:
         try:
@@ -481,7 +521,19 @@ class MonitoringEngine:
         except Exception:
             stopped = False
         if not stopped:
-            self._record_error(DiagnosticCode.PERSISTENCE_SHUTDOWN_TIMEOUT, DiagnosticComponent.PERSISTENCE)
+            self._record_error(DiagnosticCode.PERSISTENCE_SHUTDOWN_TIMEOUT, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
+        return stopped
+
+    def _stop_risk(self, timeout: float | None = None) -> bool:
+        try:
+            assert self.behavior_risk is not None
+            stopped = self.behavior_risk.stop(timeout)
+        except Exception:
+            stopped = False
+        if not stopped:
+            self._record_error(DiagnosticCode.PERSISTENCE_SHUTDOWN_TIMEOUT, DiagnosticComponent.PERSISTENCE,
+                                       severity=DiagnosticSeverity.WARNING)
         return stopped
 
     def _record_reduced_round(self, observation: ConnectionRoundObservation) -> None:
