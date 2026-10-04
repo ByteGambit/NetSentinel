@@ -1,5 +1,15 @@
 # Güvenlik ve güvenli kullanım
 
+NS-085 reputation cache yalnız canonical IP/domain/SHA-256 ve bounded normalized
+NS-084 status/request/time provenance'ını yerel SQLite'ta tutar. NO_HIT güvenli
+hükmü değildir; timeout/ERROR saklanmaz veya mevcut sonucu zehirlemez. Stale
+result açık freshness ile görünür; corrupt/unsupported/unavailable/clock anomaly
+kullanılabilir sonuç vermez. Secret/path/file/HTTP blob/history bundle yoktur;
+subject diagnostics/log'a eklenmez. Local read cloud consent istemez; revoke
+cache'i otomatik silmez. Explicit chunk/key/provider/all purge yalnız TI store'u
+değiştirir. Provider networking, upload, scheduler ve risk/alert bağlama yoktur.
+[NS-085 privacy, bounds ve error policy](THREAT_INTELLIGENCE_CACHE.md).
+
 NS-083 risk detail açma/yenileme salt-okunurdur: scoring/reassessment, occurrence,
 baseline, preference veya audit mutation yapmaz. Score review-priority olarak,
 confidence/measurement quality/freshness ayrı gösterilir; missing/stale data safety

@@ -363,11 +363,11 @@ def test_016_upgrade_leaves_all_existing_rows_and_migrations_unchanged(tmp_path)
         assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 16
     new = SQLiteDatabase(path)
     with new.connection() as c:
-        assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 17
+        assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 18
         for t, rows in before.items():
             current = sorted((tuple(r) for r in c.execute(f'SELECT * FROM "{t}"')), key=repr)
             if t == "schema_migrations":
-                current = [row for row in current if row[0] != 17]
+                current = [row for row in current if row[0] <= 16]
             assert current == rows
         schema_after = [tuple(r) for r in c.execute("SELECT type, name, sql FROM sqlite_master ORDER BY type, name")]
         assert all(row in schema_after for row in schema_before)

@@ -1,5 +1,14 @@
 # Mimari
 
+NS-085 local reputation cache backend'ini ekler: immutable canonical
+provider/data-type/subject/algorithm/result-version key, ayrı provider status ve
+cache freshness, absolute UTC horizons, blocking application port/service ve
+lazy SQLite adapter. Schema **018**, append-only `018_threat_intel_cache.sql`;
+001–017 değişmez. RAM front cache/preload yoktur; 1024 row/4 KiB snapshot ve
+128-row cleanup/purge transaction bounds vardır. Conditional newest-fetch upsert
+ve expired→stale→oldest-fresh eviction atomiktir. Runtime provider/scheduler/UI
+ve risk integration eklenmez; [NS-085 sözleşmesi](THREAT_INTELLIGENCE_CACHE.md).
+
 NS-084 provider-independent TI contract ve pure consent policy'yi ekler. Application
 single-subject lookup service yalnız current provider/data-type/manual consent ve
 external-eligible subject sonrası provider portunu çağırabilir; desktop/engine bu

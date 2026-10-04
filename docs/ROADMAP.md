@@ -231,7 +231,7 @@ Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
 ## Yeni faz: M11–M14 tamamlandı; M15 başladı, M16–M17 planlandı, M18 conditional
 
-**Durum:** M1–M14 tamamlandı. M15 başladı; yalnız NS-084 tamamlandı, NS-085 başlatılmadı. M16–M17 planlandı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M14 tamamlandı. M15 başladı; NS-084–NS-085 tamamlandı, NS-086–NS-088 planlandı. M16–M17 planlandı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -269,7 +269,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M15 — Optional Threat Intelligence Evidence
 
-- **Durum:** Devam ediyor; yalnız NS-084 ✅ COMPLETE (2026-10-04), NS-085–NS-088 planlandı. Kullanıcı için varsayılan kapalı; production provider/lookup henüz yok. [NS-084 sözleşme ve kabul raporu](THREAT_INTELLIGENCE_CONSENT.md). M15 COMPLETE değildir.
+- **Durum:** Devam ediyor; NS-084–NS-085 ✅ COMPLETE (2026-10-04), NS-086–NS-088 planlandı. Kullanıcı için varsayılan kapalı; production provider/lookup henüz yok. [NS-084 sözleşme](THREAT_INTELLIGENCE_CONSENT.md), [NS-085 cache ve kabul raporu](THREAT_INTELLIGENCE_CACHE.md). M15 COMPLETE değildir.
 - **Amaç:** Kullanıcı onayıyla destekleyici destination reputation evidence sağlamak.
 - **Ana teslimatlar:** Provider port/adapter, provider/subject/data consent, local TTL/stale cache, bounded rate-limited/offline scheduler ve risk revision/UI entegrasyonu.
 - **Açık kapsam dışı:** Varsayılan reputation request, toplu IP/domain/hash history upload, provider verdict'inden malware hükmü veya automatic blocking.

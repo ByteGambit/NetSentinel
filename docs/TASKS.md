@@ -962,7 +962,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-085 — Reputation cache ve freshness
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Provider/data-type/canonical subject/algorithm/result-contract-version keyed local SQLite cache, explicit fresh/stale/expired/corrupt/unsupported/unavailable/clock states, separate HIT/NO_HIT status ve ERROR skip policy tamamlandı. Lazy tek-row read; 1024 disk row, 4 KiB snapshot, 128-row chunk cleanup/purge, deterministic expired→stale→oldest-fresh eviction ve atomic newest-fetch/tie upsert doğrulandı. Schema 017→018; 001–017 değişmedi. Fake UTC boundary/restart/corruption/eviction/concurrency/purge ve NS-084 regressions: 220 passed; full offline suite 2547 passed, 7 deselected. [Contract ve kabul raporu](THREAT_INTELLIGENCE_CACHE.md). M15 devam ediyor; NS-086 başlatılmadı.
 - **Amaç:** Reputation sonucunu local ve kaynak/güncellik sınırıyla tutmak.
 - **Yapılacaklar:** Provider/subject/version keyed TTL/stale/negative cache, bounded repository ve purge ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/infrastructure/sqlite/, src/netsentinel/shared/diagnostics.py, tests/integration/sqlite/.
@@ -1201,7 +1201,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
-| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; yalnız NS-084 COMPLETE, kullanıcı için default disabled |
+| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; NS-084–NS-085 COMPLETE, kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |

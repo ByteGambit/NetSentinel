@@ -19,6 +19,7 @@ from netsentinel.domain.executable_hash import ExecutableHash, ExecutableHashSta
 
 
 TI_POLICY_VERSION = 1
+TI_RESULT_CONTRACT_VERSION = 1  # normalized result semantics, independent of consent
 MAX_TI_PROVIDERS = 16
 MAX_TI_CONSENTS = MAX_TI_PROVIDERS * 3
 

@@ -8,6 +8,10 @@ from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
 from collections.abc import Callable
 from typing import Protocol
+from netsentinel.domain.threat_intel_cache import (
+    ThreatIntelCacheEntry, ThreatIntelCacheKey, ThreatIntelCacheLookup,
+    ThreatIntelCacheMutation, ThreatIntelCachePolicy,
+)
 from uuid import UUID
 
 from netsentinel.domain.connections import (
@@ -54,6 +58,22 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class ThreatIntelCacheRepository(Protocol):
+    """Blocking local I/O; caller owns worker/connection, never GUI callbacks."""
+
+    @property
+    def policy(self) -> ThreatIntelCachePolicy: ...
+
+    def get(self, key: ThreatIntelCacheKey, now: datetime) -> ThreatIntelCacheLookup: ...
+
+    def put(self, entry: ThreatIntelCacheEntry, now: datetime) -> ThreatIntelCacheMutation: ...
+
+    def purge(self, *, key: ThreatIntelCacheKey | None = None,
+              provider: ThreatIntelProviderId | None = None) -> ThreatIntelCacheMutation: ...
+
+    def cleanup(self, now: datetime) -> ThreatIntelCacheMutation: ...
 
 
 class ThreatIntelligenceProvider(Protocol):
@@ -706,6 +726,7 @@ def _require_utc(value: datetime, field_name: str) -> datetime:
 
 
 __all__ = (
+    "ThreatIntelCacheRepository",
     "VlanSummaryDataCorrupt",
     "VlanSummaryRepository",
     "VlanSummaryRepositoryError",
