@@ -172,7 +172,8 @@ class SQLiteAssessmentRepository:
         except (SQLiteAdapterError, sqlite3.Error):
             return AssessmentHistory(AssessmentReadStatus.UNAVAILABLE)
 
-    def _decode(self, connection: sqlite3.Connection, row: sqlite3.Row, *, latest: bool = False) -> AssessmentRead:
+    def _decode(self, connection: sqlite3.Connection, row: sqlite3.Row, *, latest: bool = False,
+                sources: bool = True) -> AssessmentRead:
         try:
             if type(row["format_version"]) is not int or row["format_version"] < 1:
                 raise ValueError("invalid format version")
@@ -189,7 +190,7 @@ class SQLiteAssessmentRepository:
             revision = RiskAssessmentRevision(key, row["revision"], datetime.fromisoformat(row["assessed_at"]), snapshot, row["format_version"])
             refs = {key.observation_reference}
             refs.update(r for e in snapshot.evidence for r in e.references)
-            states = tuple(AssessmentReferenceState(r, self._source_status(connection, r)) for r in sorted(refs, key=lambda r: (r.kind.value, str(r.value))))
+            states = tuple(AssessmentReferenceState(r, self._source_status(connection, r)) for r in sorted(refs, key=lambda r: (r.kind.value, str(r.value)))) if sources else ()
             return AssessmentRead(AssessmentReadStatus.FOUND, revision, states)
         except (ValueError, TypeError, KeyError, OverflowError, RecursionError, AttributeError):
             return AssessmentRead(AssessmentReadStatus.CORRUPT)

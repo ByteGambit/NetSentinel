@@ -1,10 +1,19 @@
 # Ürün tanımı
 
+NS-091 Incidents sayfası yerel kayıtlı incident listesi, detail ve bounded timeline
+sunar. Gözlem, ilişki/inference, assessment ve lifecycle action zamanları açıkça
+ayrıdır; kaynak kaybı veya unknown ilişki açıklaması saklanan minimum context ile
+kalır. Process observed dili kullanılır; create-time yalnız instance identity
+context'tir. Açmak/scroll/refresh veri veya lifecycle değiştirmez, TI isteği
+başlatmaz. Bu explicit NS-090 boundary'deki mevcut kayıtları okur; yeni incident
+üreten engine subscription eklenmediğinden boş liste geçerlidir. Timeline causal
+veya forensic completeness iddiası yapmaz. [Sınırlar ve kabul raporu](INCIDENT_TIMELINE_ACCEPTANCE.md).
+
 NS-090 yerel backend, correlated incident'i restart sonrası aynı kimlikle saklar;
 ACK/RESOLVE/REOPEN ve evidence append alert lifecycle'ından bağımsızdır. Kaynak
 history silinse de bounded canonical explanation ve expired/unavailable durumu
-okunabilir. Explicit service API vardır; incident ekranı ve timeline NS-091'de
-planlanmıştır. SQLite 019. [Incident persistence sınırları](INCIDENT_PERSISTENCE.md).
+okunabilir. Explicit service API vardır; incident ekranı ve timeline NS-091 ile
+uygulanmıştır. SQLite 019. [Incident persistence sınırları](INCIDENT_PERSISTENCE.md).
 
 NS-088 Connections → External reputation içinde explicit **Check reputation**
 eylemi ve Alerts/Connections ortak risk açıklamasında tarihi TI context sağlar.
@@ -71,7 +80,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, incident timeline, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 

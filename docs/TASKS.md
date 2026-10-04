@@ -1030,7 +1030,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-091 — Incident timeline GUI
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-05). Read-only Incidents navigation/list/detail/timeline, typed application query ve coherent worker-owned SQLite read adapter tamamlandı. Original observation, exact assessment, inference anchor ve lifecycle action time ayrıdır; deterministic total key + revision/source-state cursor mixed pages'i önler. Batch source states, retained context, expired/unresolved/corrupt/unsupported fallback, lazy NS-083 risk panel, 25/default–100/max page ve 256 loaded-row cap vardır. Process observed dili, generation/A→B→A/page cancellation, bounded shutdown ve read-only invariants doğrulandı. 129 yeni test; dependency-targeted 657 passed; full offline 3320 passed/8 deselected; final new-only 129 passed; Ruff/configured/direct mypy/diff temiz. Schema 019→019, migration yok. [Timeline sözleşmesi](INCIDENT_TIMELINE_UI.md), [113 maddelik kabul raporu](INCIDENT_TIMELINE_ACCEPTANCE.md). M16 devam ediyor; NS-092 başlatılmadı.
 - **Amaç:** İlişkili olayları kaynak/zaman belirsizliğiyle okunur göstermek.
 - **Yapılacaklar:** Paginated worker query, observation/assessment time ayrımı ve relation reason'lı timeline model/view ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.

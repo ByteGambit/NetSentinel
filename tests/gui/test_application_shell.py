@@ -19,6 +19,7 @@ from netsentinel.presentation.app import (
 )
 from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.views.alerts import AlertsView
+from netsentinel.presentation.views.incidents import IncidentsView
 from netsentinel.presentation.views.connections import ConnectionsView
 from netsentinel.presentation.views.dashboard import DashboardView
 from netsentinel.presentation.views.devices import DevicesView
@@ -128,6 +129,7 @@ def test_main_window_owns_one_instance_of_each_planned_view(
         PageId.DEVICES: DevicesView,
         PageId.DNS: DnsView,
         PageId.ALERTS: AlertsView,
+        PageId.INCIDENTS: IncidentsView,
         PageId.DIAGNOSTICS: DiagnosticsView,
     }
 

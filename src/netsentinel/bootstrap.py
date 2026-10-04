@@ -35,6 +35,8 @@ from netsentinel.application.services.behavior_risk import BehaviorRiskPipeline
 from netsentinel.application.services.risk_alerts import RiskToAlertService
 from netsentinel.application.services.risk_assessments import RiskAssessmentService
 from netsentinel.application.services.risk_explanation import RiskExplanationQueryService
+from netsentinel.application.services.incident_timeline import IncidentTimelineQueryService
+from netsentinel.infrastructure.sqlite.incident_timeline_repository import SQLiteIncidentTimelineRepository
 from netsentinel.application.services.suppression import SuppressionEvaluationService
 from netsentinel.application.services.risk_worker import RiskAlertWorker
 from netsentinel.infrastructure.sqlite.assessment_repository import SQLiteAssessmentRepository
@@ -519,6 +521,14 @@ def create_baseline_detail_service_factory(engine: MonitoringEngine) -> Callable
         if engine.behavior_baselines is None:
             raise RuntimeError("baseline service unavailable")
         return BaselineDetailService(engine.behavior_baselines, engine.behavior_features)
+    return create
+
+
+def create_incident_timeline_service_factory(*, database_path: str | PathLike[str] | None = None) -> Callable[[], IncidentTimelineQueryService]:
+    """Dormant local read factory; constructed and called by incident workers."""
+    def create() -> IncidentTimelineQueryService:
+        return IncidentTimelineQueryService(SQLiteIncidentTimelineRepository(
+            SQLiteDatabase(database_path, busy_timeout_ms=1000)))
     return create
 
 

@@ -1,5 +1,22 @@
 # Mimari
 
+NS-091 `IncidentTimelineQueryService` / `IncidentTimelineRepository` read port,
+`SQLiteIncidentTimelineRepository` coherent read transaction ve Incidents GUI
+sayfasını ekler. Ayrı list/detail latest-slot workers DB reads/factory'yi GUI
+dışında çalıştırır; selected assessment yalnız gerektiğinde NS-083 risk paneline
+bağlanır. Original observation, exact assessment, lifecycle action ve persistence
+times ayrıdır; inference computation time kayıtlı değilse observation anchor
+olarak açıklanır. UUID list keyset, semantic total-order timeline cursor ve
+revision/source-state token mixed pages'i önler. Source resolution batch; default
+25/max 100 page, one list page ve 256 loaded timeline row sınırı vardır. Unknown,
+expired/unavailable, corrupt ve unsupported source açıklaması retained snapshot
+ile kalır; process/destination context per-observation ilişki gibi uydurulmaz.
+Read-only: engine subscription, commands, reassessment, TI lookup, graph veya
+process-created inference eklenmedi. Schema **019 → 019**, migration yok.
+[Timeline sözleşmesi](INCIDENT_TIMELINE_UI.md),
+[NS-091 kabul raporu](INCIDENT_TIMELINE_ACCEPTANCE.md). M16 devam ediyor;
+NS-092 başlatılmadı. Aşağıdaki önceki teslimat kayıtları tarihseldir.
+
 NS-090 `IncidentPersistenceService` / `IncidentRepository` / `SQLiteIncidentRepository`
 explicit worker-owned blocking boundary ile stable incident UUIDv5, independent
 OPEN/ACKNOWLEDGED/RESOLVED lifecycle, bounded append ve immutable revision events

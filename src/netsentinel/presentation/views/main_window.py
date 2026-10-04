@@ -30,6 +30,8 @@ from netsentinel.presentation.device_profile import DeviceProfileCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.presentation.incident_query import IncidentQueryCoordinator
+from netsentinel.presentation.views.incidents import IncidentsView
 from netsentinel.presentation.risk_query import RiskQueryCoordinator
 from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget
 from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
@@ -55,6 +57,7 @@ class PageId(str, Enum):
     DEVICES = "devices"
     DNS = "dns"
     ALERTS = "alerts"
+    INCIDENTS = "incidents"
     DIAGNOSTICS = "diagnostics"
 
 
@@ -65,6 +68,7 @@ PAGE_ORDER: tuple[PageId, ...] = (
     PageId.DEVICES,
     PageId.DNS,
     PageId.ALERTS,
+    PageId.INCIDENTS,
     PageId.DIAGNOSTICS,
 )
 
@@ -75,6 +79,7 @@ PAGE_LABELS: dict[PageId, str] = {
     PageId.DEVICES: "Devices",
     PageId.DNS: "DNS",
     PageId.ALERTS: "Alerts",
+    PageId.INCIDENTS: "Incidents",
     PageId.DIAGNOSTICS: "Diagnostics",
 }
 
@@ -96,6 +101,8 @@ class MainWindow(QMainWindow):
         preference_commands: PreferenceCommandCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         device_profiles: DeviceProfileCoordinator | None = None,
+        incident_queries: tuple[IncidentQueryCoordinator, IncidentQueryCoordinator] | None = None,
+        incident_risk_queries: RiskQueryCoordinator | None = None,
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
         capability_queries: CapabilityCoordinator | None = None,
@@ -177,6 +184,7 @@ class MainWindow(QMainWindow):
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory, profiles=device_profiles),
             PageId.DNS: DnsView(self.content, coordinator=dns_queries),
             PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries, risk_queries=risk_queries[1] if risk_queries else None),
+            PageId.INCIDENTS: IncidentsView(self.content, queries=incident_queries, risk_queries=incident_risk_queries),
             PageId.DIAGNOSTICS: DiagnosticsView(capability_queries, self.content),
         }
 
