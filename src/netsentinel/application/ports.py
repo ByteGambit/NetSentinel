@@ -57,7 +57,7 @@ class ScopedPreferenceRepository(Protocol):
     """Blocking local policy storage; commands belong on an owning worker."""
 
     def create(self, preference_id: UUID, definition: PreferenceDefinition,
-               origin: PreferenceOrigin, now: datetime) -> PreferenceResult: ...
+               origin: PreferenceOrigin, now: datetime, *, deduplicate: bool = False) -> PreferenceResult: ...
 
     def edit(self, preference_id: UUID, expected_revision: int,
              definition: PreferenceDefinition, origin: PreferenceOrigin,

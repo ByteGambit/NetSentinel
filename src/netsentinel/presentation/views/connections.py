@@ -35,6 +35,7 @@ from netsentinel.domain.connections import ConnectionNetworkScope
 from netsentinel.application.services.destination_evidence import live_request, DestinationEvidenceResult
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
 from netsentinel.application.services.baseline_detail import baseline_detail_request
 from netsentinel.presentation.bridge import BridgeHealthSnapshot
 from netsentinel.presentation.models.connection_filter import (
@@ -62,6 +63,7 @@ class ConnectionsView(QWidget):
         *, destination_queries: DestinationQueryCoordinator | None = None,
         signer_service: ExecutableSignerService | None = None,
         baseline_queries: BaselineQueryCoordinator | None = None,
+        preference_commands: PreferenceCommandCoordinator | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("connectionsPage")
@@ -187,7 +189,7 @@ class ConnectionsView(QWidget):
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
-        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries)
+        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries, preference_commands=preference_commands)
         self.details.signer_button.clicked.connect(self._request_signer)
         self.details.signer_button.setEnabled(signer_service is not None)
 

@@ -27,8 +27,12 @@ uygular. Risk score, severity ve evidence history korunur; suppression kullanıc
 tercihini açıklar, uygulama/hedef için güvenli veya trusted hükmü vermez. Tam
 suppression alert lifecycle ve notification cooldown'a dokunmaz; storage/evaluation
 failure alerting için typed fail-open olur. Current policy açıklaması application
-result'ta bounded biçimde görünür. GUI/mark-normal NS-082, explanation UI NS-083
-kapsamındadır. [Evaluation contract](SUPPRESSION_EVALUATION.md).
+result'ta bounded biçimde görünür. NS-082 Connections → Behavior baseline içinde
+ayrı User preference bölümüyle selected behavior preview/expiry/save/cancel/revoke
+akışını sağlar. Kalıcı application identity ve exact rule korunur; PID/name veya
+provisional kimlik kabul edilmez. Baseline reset veya application safety verdict
+değildir. Explanation UI NS-083 planlıdır. [NS-082 akışı](MARK_NORMAL_UI.md),
+[evaluation contract](SUPPRESSION_EVALUATION.md).
 
 Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?”**
 

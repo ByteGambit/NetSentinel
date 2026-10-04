@@ -18,6 +18,7 @@ from netsentinel.presentation.process_context import (
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 from netsentinel.presentation.destination_context import DestinationEvidenceWidget
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
 from netsentinel.presentation.widgets.baseline_detail import BaselineDetailWidget
 
 
@@ -38,7 +39,8 @@ _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
 class ConnectionDetailsWidget(QGroupBox):
     """Render one proxy row without exposing Python/internal values."""
 
-    def __init__(self, parent: QWidget | None = None, *, baseline_queries: BaselineQueryCoordinator | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, baseline_queries: BaselineQueryCoordinator | None = None,
+                 preference_commands: PreferenceCommandCoordinator | None = None) -> None:
         super().__init__("Selected connection", parent)
         self.setObjectName("connectionDetails")
         self.setAccessibleName("Connection details")
@@ -94,7 +96,7 @@ class ConnectionDetailsWidget(QGroupBox):
         signer_layout.addWidget(self.signer_button)
         signer_layout.addWidget(self.signer_text)
         layout.addWidget(signer_group)
-        self.baseline = BaselineDetailWidget(baseline_queries, self)
+        self.baseline = BaselineDetailWidget(baseline_queries, self, preference_commands=preference_commands)
         self.tabs = QTabWidget(self)
         self.tabs.setAccessibleName("Selected connection detail sections")
         self.tabs.setAccessibleDescription("Connection context and observed behavior baseline")

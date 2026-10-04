@@ -923,7 +923,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-082 — Trust/mark-normal commands ve UI
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Connections → Behavior baseline içinde ayrı selected-behavior preference UI; immutable preview, explicit 24h/permanent lifetime, Save/Cancel/Revoke ve restart persistence tamamlandı. Stable application + exact rule, narrow default ve visible network scope; PID/name/provisional selector yok. Bounded worker/generation/selection epoch, optimistic revoke conflict ve opt-in atomic equivalent-definition dedup doğrulandı. Evidence/score/baseline/alert history korunur; future-only NS-081 suppression. SQLite 017, migration yok; [kararlar ve kabul raporu](MARK_NORMAL_UI.md). NS-083 başlatılmadı; M14 tamamlanmadı.
 - **Amaç:** Dar davranış feedback'i için kullanıcı akışı sağlamak.
 - **Yapılacaklar:** Preview/expiry/revoke ile scoped application/destination/behavior command ve offscreen UI ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.

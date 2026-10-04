@@ -37,6 +37,8 @@ from netsentinel.application.services.suppression import SuppressionEvaluationSe
 from netsentinel.application.services.risk_worker import RiskAlertWorker
 from netsentinel.infrastructure.sqlite.assessment_repository import SQLiteAssessmentRepository
 from netsentinel.infrastructure.sqlite.preference_repository import SQLiteScopedPreferenceRepository
+from netsentinel.application.services.preferences import ScopedPreferenceService
+from netsentinel.application.services.mark_normal import MarkNormalCommandService
 from netsentinel.infrastructure.sqlite.behavior_baselines import baseline_repository_session
 from netsentinel.shared.config import BehaviorBaselineConfig
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
@@ -425,6 +427,12 @@ def create_device_profile_service_factory(
         return DeviceProfileService(SQLiteDeviceProfileRepository(database))
 
     return create_service
+
+
+def create_preference_command_service_factory(database_path: Path | None = None) -> Callable[[], MarkNormalCommandService]:
+    database_path = database_path or default_database_path()
+    return lambda: MarkNormalCommandService(ScopedPreferenceService(
+        SQLiteScopedPreferenceRepository(SQLiteDatabase(database_path, busy_timeout_ms=1000))))
 
 
 def create_baseline_detail_service_factory(engine: MonitoringEngine) -> Callable[[], BaselineDetailService]:

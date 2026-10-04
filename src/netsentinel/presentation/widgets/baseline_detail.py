@@ -8,10 +8,13 @@ from PyQt6.QtWidgets import QGroupBox, QLabel, QMessageBox, QPushButton, QScroll
 from netsentinel.application.services.baseline_detail import BaselineDetail, BaselineDetailRequest
 from netsentinel.application.services.behavior_baseline import BaselineResetResult, BaselineResetSubmission
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
+from netsentinel.presentation.widgets.mark_normal import MarkNormalWidget
 
 
 class BaselineDetailWidget(QGroupBox):
-    def __init__(self, coordinator: BaselineQueryCoordinator | None = None, parent: QWidget | None = None) -> None:
+    def __init__(self, coordinator: BaselineQueryCoordinator | None = None, parent: QWidget | None = None,
+                 *, preference_commands: PreferenceCommandCoordinator | None = None) -> None:
         super().__init__("Behavior baseline — observed behavior", parent)
         self.setAccessibleName("Behavior baseline")
         self.setAccessibleDescription("Observed learning and scoped reset, separate from user trust preferences")
@@ -49,6 +52,12 @@ class BaselineDetailWidget(QGroupBox):
         self.reset_button.setAccessibleDescription("Confirm removal of observed baseline data for this application, revision and network only")
         for widget in (self.status, self.refresh_button, self.reset_button):
             layout.addWidget(widget)
+        self.preferences = MarkNormalWidget(preference_commands, self)
+        preferences_scroll = QScrollArea(self)
+        preferences_scroll.setWidgetResizable(True)
+        preferences_scroll.setWidget(self.preferences)
+        preferences_scroll.setMinimumHeight(160)
+        layout.addWidget(preferences_scroll, 1)
         QWidget.setTabOrder(self.text, self.refresh_button)
         QWidget.setTabOrder(self.refresh_button, self.reset_button)
         self.refresh_button.clicked.connect(self.refresh)
@@ -71,6 +80,7 @@ class BaselineDetailWidget(QGroupBox):
         self._completion_timer.stop()
 
     def clear(self) -> None:
+        self.preferences.clear()
         if self._coordinator is not None and self._request is not None:
             self._coordinator.invalidate()
         self._request = None
@@ -84,6 +94,7 @@ class BaselineDetailWidget(QGroupBox):
         self.refresh_button.setEnabled(False)
 
     def select(self, request: BaselineDetailRequest, selection_id: object = None) -> None:
+        self.preferences.select(request)
         if request == self._request and selection_id == self._selection_id:
             return  # Model refreshes do not submit a query for every polling round.
         self._request = request

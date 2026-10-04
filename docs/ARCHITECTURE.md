@@ -2045,7 +2045,7 @@ dedup değişmez. UNKNOWN/AMBIGUOUS scope için `016_alert_risk_scope.sql` mevcu
 alerts tablosunda network fingerprint'i nullable yapar; 001–015 değişmez.
 Evidence JSON yalnız küçük typed assessment reference taşır. Failure/eligibility,
 queue/shutdown, retention ve crash sınırları:
-[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-082/083 ve desktop
+[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-083 ve desktop
 delivery uygulanmamıştır; M14 tamamlanmış değildir.
 
 NS-080 immutable scoped preference modelleri, explicit permanent/timed lifetime,
@@ -2075,6 +2075,24 @@ ve 32 group taşınır. NS-080'in en çok 1024 logical policy metadata'sı üzer
 predicate exact matcher'ı uygular; selector index veya migration eklenmez. GUI/monitoring
 callback SQL, cache, yeni worker ve preference write eklenmez. Schema **017** kalır.
 [NS-081 sözleşmesi ve kabul raporu](SUPPRESSION_EVALUATION.md).
+
+NS-082 `behavior_context` / `scope_choices` mapping'i NS-075 selected connection
+context'i ve explicit canonical behavior rule'dan dar selector üretir. Stable
+application ve rule her seçenekte korunur; known revision/destination/resolved
+network varsayılan olarak dahil edilir. `MarkNormalPreview` immutable definition,
+absolute UTC expiry, reason ve retry ID taşır. Preview saf, Save ayrı explicit
+confirmation'dır. `MarkNormalCommandService` NS-080 service/port'unu kullanır;
+baseline/risk/alert state mutation yapmaz. NS-082 create'da opt-in `deduplicate`
+aynı active definition için transaction içinde NO_CHANGE döndürür; NS-080 default
+distinct-ID semantics korunur. `PreferenceCommandCoordinator` tek I/O owner,
+8 pending command + 1 active ve 1 coalesced latest query taşır; query generation
+ve widget selection epoch stale result'ı engeller. Shutdown en çok 2 saniye
+bekler, pending commands typed UNAVAILABLE olur; active commit timeout sonrası
+tamamlanabilir. Widget callbacks yerine immutable Future/result kullanılır.
+Relevant list en çok 32 preference hydrate eder; mevcut NS-081 matcher/current
+candidate query reuse edilir (expired/revoked state dahil). SQLite **017**,
+migration ve diagnostics field değişimi yoktur. [Scope/lifetime kararları ve
+kabul raporu](MARK_NORMAL_UI.md). NS-083 başlatılmamıştır.
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.
 

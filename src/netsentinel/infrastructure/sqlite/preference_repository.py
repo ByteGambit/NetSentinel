@@ -255,7 +255,7 @@ class SQLiteScopedPreferenceRepository:
         ))
 
     def create(self, preference_id: UUID, definition: PreferenceDefinition,
-               origin: PreferenceOrigin, now: datetime) -> PreferenceResult:
+               origin: PreferenceOrigin, now: datetime, *, deduplicate: bool = False) -> PreferenceResult:
         try:
             now = self._input(preference_id, origin, now)
             if type(definition) is not PreferenceDefinition:
@@ -276,6 +276,20 @@ class SQLiteScopedPreferenceRepository:
                     self._definition(definition, now)
                 except (ValueError, TypeError):
                     return PreferenceResult(Status.INVALID, preference_id=preference_id)
+                # NS-082: independent confirmations of the same active definition
+                # share one policy. Check under the same write transaction as create.
+                equivalent = connection.execute(
+                    "SELECT p.preference_id FROM scoped_preferences p JOIN scoped_preference_revisions r "
+                    "ON r.preference_id = p.preference_id AND r.revision = p.last_revision "
+                    "WHERE r.content_fingerprint = ? AND r.status = 'active' "
+                    "AND (r.lifetime_kind = 'permanent' OR r.expires_at > ?) "
+                    "ORDER BY p.preference_id LIMIT 1",
+                    (definition.content_fingerprint, now.isoformat(timespec="microseconds")),
+                ).fetchone() if deduplicate else None
+                if equivalent is not None:
+                    existing = self._current(connection, UUID(equivalent[0]))
+                    if existing.preference is not None and existing.preference.definition == definition:
+                        return replace(existing, status=Status.NO_CHANGE)
                 total, active, audit = self._counts(connection)
                 if total >= self.policy.max_preferences or active >= self.policy.max_active_preferences or audit + active + 2 > self.policy.max_audit_revisions:
                     return PreferenceResult(Status.CAPACITY_REACHED, preference_id=preference_id)

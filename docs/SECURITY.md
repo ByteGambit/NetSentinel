@@ -1,5 +1,17 @@
 # Güvenlik ve güvenli kullanım
 
+NS-082 “Mark this behavior as normal” yalnız future matching eligibility için
+explicit local preference oluşturur; application safe/trusted verdict değildir.
+Canonical application + rule korunur; narrow default'tan broadening preview'da
+açıktır. PID/name/provisional kimlik veya fake network/revision kabul edilmez.
+Lifetime başlangıçta seçilmemiştir; permanent explicit opt-in, timed seçim 24 saat
+ve absolute UTC expiry'dir. Preview/Cancel create ve revoke write/audit yapmaz.
+Reason/plain text local kalır; DB işlemleri command worker'ında çalışır, exception
+metni UI/log'a taşınmaz. Baseline, historical evidence/score ve mevcut alert
+count/ACK/RESOLVED değişmez; expiry/revoke replay yapmaz. Device trust ayrıdır.
+Firewall/response/cloud/notification delivery yoktur. [NS-082 scope ve kabul
+raporu](MARK_NORMAL_UI.md).
+
 NS-080 scoped preference selector ve reason'ları kullanıcının güvenlik kararlarını
 açığa çıkarabilir; yalnız yerel bounded SQLite policy/audit tablolarında tutulur.
 Reason en çok 512 karakter single-line plain text; control characters reddedilir.
