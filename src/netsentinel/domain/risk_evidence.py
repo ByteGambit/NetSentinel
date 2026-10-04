@@ -42,6 +42,7 @@ def _digest(value: object) -> None:
 
 
 class EvidenceSource(str, Enum):
+    THREAT_INTELLIGENCE = "threat_intelligence"
     ARP_IDENTITY = "arp_identity"
     DESTINATION_NOVELTY = "destination_novelty"
     FREQUENCY_DIVERSITY = "frequency_diversity"

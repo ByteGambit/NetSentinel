@@ -31,6 +31,7 @@ from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
 from netsentinel.presentation.risk_query import RiskQueryCoordinator
+from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget
 from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
@@ -99,6 +100,7 @@ class MainWindow(QMainWindow):
         dns_queries: DnsQueryCoordinator | None = None,
         capability_queries: CapabilityCoordinator | None = None,
         threat_intel_consent_service: ThreatIntelConsentService | None = None,
+        threat_intel_lookup: ThreatIntelLookupWidget | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -167,6 +169,7 @@ class MainWindow(QMainWindow):
                 destination_queries=destination_queries[0] if destination_queries else None,
                 baseline_queries=baseline_queries,
                 risk_queries=risk_queries[0] if risk_queries else None,
+                threat_intel=threat_intel_lookup,
                 preference_commands=preference_commands,
                 signer_service=signer_service,
             ),

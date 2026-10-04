@@ -7,7 +7,7 @@ import sqlite3
 from uuid import UUID
 
 from netsentinel.domain.risk_assessment import (
-    ASSESSMENT_FORMAT_VERSION, MAX_ASSESSMENT_KEY_BYTES, MAX_ASSESSMENT_PAYLOAD_BYTES,
+    ASSESSMENT_FORMAT_VERSION, TI_ASSESSMENT_FORMAT_VERSION, MAX_ASSESSMENT_KEY_BYTES, MAX_ASSESSMENT_PAYLOAD_BYTES,
     AssessmentHistory, AssessmentIdentityConflict, AssessmentPersistenceError,
     AssessmentRead, AssessmentReadStatus, AssessmentReferenceState, AssessmentSave,
     AssessmentSnapshot, AssessmentSourceStatus, AssessmentStoragePolicy,
@@ -86,7 +86,8 @@ class SQLiteAssessmentRepository:
 
     def save(self, key: RiskAssessmentKey, snapshot: AssessmentSnapshot, assessed_at: datetime) -> AssessmentSave:
         # Validate and encode before opening the transaction.
-        RiskAssessmentRevision(key, 1, assessed_at, snapshot)
+        version = TI_ASSESSMENT_FORMAT_VERSION if snapshot.threat_intelligence else ASSESSMENT_FORMAT_VERSION
+        RiskAssessmentRevision(key, 1, assessed_at, snapshot, version)
         identity, payload = canonical_json(key), canonical_json(snapshot)
         fingerprint = snapshot.content_fingerprint
         try:
@@ -124,7 +125,7 @@ class SQLiteAssessmentRepository:
                     )
                 connection.execute(
                     "INSERT INTO risk_assessment_revisions (assessment_id, revision, format_version, assessed_at, content_fingerprint, snapshot) VALUES (?, ?, ?, ?, ?, ?)",
-                    (key.assessment_id, number, ASSESSMENT_FORMAT_VERSION, utc_time(assessed_at).isoformat(timespec="microseconds"), fingerprint, payload),
+                    (key.assessment_id, number, version, utc_time(assessed_at).isoformat(timespec="microseconds"), fingerprint, payload),
                 )
                 connection.execute("UPDATE risk_assessments SET last_revision = ? WHERE assessment_id = ?", (number, key.assessment_id))
                 # Prune at most one row per normal append; counter never rewinds.
@@ -137,7 +138,7 @@ class SQLiteAssessmentRepository:
                         "DELETE FROM risk_assessment_revisions WHERE assessment_id = ? AND revision IN (SELECT revision FROM risk_assessment_revisions WHERE assessment_id = ? ORDER BY revision LIMIT ?)",
                         (key.assessment_id, key.assessment_id, excess),
                     )
-            return AssessmentSave(RiskAssessmentRevision(key, number, assessed_at, snapshot), True)
+            return AssessmentSave(RiskAssessmentRevision(key, number, assessed_at, snapshot, version), True)
         except (SQLiteAdapterError, sqlite3.Error):
             raise AssessmentPersistenceError("Assessment could not be persisted.") from None
 
@@ -175,15 +176,17 @@ class SQLiteAssessmentRepository:
         try:
             if type(row["format_version"]) is not int or row["format_version"] < 1:
                 raise ValueError("invalid format version")
-            if row["format_version"] != ASSESSMENT_FORMAT_VERSION:
+            if row["format_version"] not in (ASSESSMENT_FORMAT_VERSION, TI_ASSESSMENT_FORMAT_VERSION):
                 return AssessmentRead(AssessmentReadStatus.UNSUPPORTED_VERSION)
             key = decode_value(row["identity_payload"], RiskAssessmentKey, MAX_ASSESSMENT_KEY_BYTES)
-            snapshot = decode_value(row["snapshot"], AssessmentSnapshot, MAX_ASSESSMENT_PAYLOAD_BYTES)
+            snapshot = decode_value(row["snapshot"], AssessmentSnapshot, MAX_ASSESSMENT_PAYLOAD_BYTES, format_version=row["format_version"])
+            if bool(snapshot.threat_intelligence) != (row["format_version"] == TI_ASSESSMENT_FORMAT_VERSION):
+                raise ValueError("snapshot format/context mismatch")
             if key.assessment_id != row["assessment_id"] or key.original_observed_at.isoformat(timespec="microseconds") != row["original_observed_at"] or snapshot.content_fingerprint != row["content_fingerprint"]:
                 raise ValueError("snapshot identity/integrity mismatch")
             if type(row["last_revision"]) is not int or row["last_revision"] < row["revision"] or (latest and row["last_revision"] != row["revision"]):
                 raise ValueError("inconsistent revision counter")
-            revision = RiskAssessmentRevision(key, row["revision"], datetime.fromisoformat(row["assessed_at"]), snapshot)
+            revision = RiskAssessmentRevision(key, row["revision"], datetime.fromisoformat(row["assessed_at"]), snapshot, row["format_version"])
             refs = {key.observation_reference}
             refs.update(r for e in snapshot.evidence for r in e.references)
             states = tuple(AssessmentReferenceState(r, self._source_status(connection, r)) for r in sorted(refs, key=lambda r: (r.kind.value, str(r.value))))

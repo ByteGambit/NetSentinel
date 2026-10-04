@@ -2,6 +2,7 @@
 
 from collections import OrderedDict, deque
 from dataclasses import dataclass
+from concurrent.futures import Future
 from math import isfinite
 from threading import Condition, Thread, current_thread
 
@@ -10,6 +11,7 @@ from netsentinel.application.services.risk_alerts import (
     BehaviorRiskSignal, RiskAlertResult, RiskAlertStatus, RiskToAlertService,
 )
 from netsentinel.domain.suppression import SuppressionEvaluation
+from netsentinel.domain.threat_intel_evidence import ThreatIntelAssessmentSignal
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,7 +39,7 @@ class RiskAlertWorker:
         self._service, self._dispatcher = service, dispatcher
         self._capacity, self._timeout = capacity, shutdown_timeout
         self._condition = Condition()
-        self._pending: deque[BehaviorRiskSignal] = deque()
+        self._pending: deque[BehaviorRiskSignal | tuple[ThreatIntelAssessmentSignal, Future[RiskAlertResult]]] = deque()
         self._thread: Thread | None = None
         self._accepting = False
         self._stopping = False
@@ -83,6 +85,20 @@ class RiskAlertWorker:
             return RiskWorkerDiagnostics(len(self._pending), self._processed, self._failed,
                                          self._rejected, self._dropped)
 
+    def submit_threat_intelligence(self, signal: ThreatIntelAssessmentSignal) -> Future[RiskAlertResult]:
+        if type(signal) is not ThreatIntelAssessmentSignal:
+            raise TypeError("typed TI revision signal required")
+        receipt: Future[RiskAlertResult] = Future()
+        with self._condition:
+            status = RiskAlertStatus.UNAVAILABLE if not self._accepting else RiskAlertStatus.SATURATED if len(self._pending) >= self._capacity else RiskAlertStatus.SUCCESS
+            if status is not RiskAlertStatus.SUCCESS:
+                self._rejected += 1
+                receipt.set_result(RiskAlertResult(status))
+            else:
+                self._pending.append((signal, receipt))
+                self._condition.notify()
+        return receipt
+
     def stop(self, timeout: float | None = None) -> bool:
         duration = self._timeout if timeout is None else timeout
         self._validate_timeout(duration)
@@ -98,6 +114,10 @@ class RiskAlertWorker:
         if thread.is_alive():
             with self._condition:
                 self._dropped += len(self._pending)
+                for item in self._pending:
+                    if isinstance(item, tuple):
+                        if not item[1].done():
+                            item[1].set_result(RiskAlertResult(RiskAlertStatus.UNAVAILABLE))
                 self._pending.clear()
             return False
         return True
@@ -110,9 +130,11 @@ class RiskAlertWorker:
                     return
                 signal = self._pending.popleft()
             try:
-                result = self._service.process(signal)
+                result = self._service.enrich(signal[0]) if isinstance(signal, tuple) else self._service.process(signal)
             except Exception:
                 result = RiskAlertResult(RiskAlertStatus.UNAVAILABLE)
+            if isinstance(signal, tuple) and not signal[1].done():
+                signal[1].set_result(result)
             with self._condition:
                 self._processed += 1
                 self._failed += int(result.status not in (RiskAlertStatus.SUCCESS, RiskAlertStatus.NO_ALERT))

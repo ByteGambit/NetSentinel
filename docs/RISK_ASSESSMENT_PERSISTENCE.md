@@ -1,5 +1,10 @@
 # NS-078 — Versioned assessment persistence
 
+**NS-088 update (2026-10-04):** The historical v1 delivery below remains valid for
+local-only snapshots. TI snapshots use explicit format 2 in the same bounded
+column, with immutable typed provenance and v1 reads/hashes preserved. Schema 018
+is unchanged; no new table/migration. [Current extension and verification](THREAT_INTELLIGENCE_EVIDENCE.md).
+
 **COMPLETE (2026-10-03).** NS-078 stores historical risk explanations independently of observation and alert
 lifecycle. The authoritative acceptance criteria are in `TASKS.md`. Initial checkout
 was clean `main`, HEAD `95badf2bb5b79e6dec6c39cbc1aba93b8b7a4de0`.

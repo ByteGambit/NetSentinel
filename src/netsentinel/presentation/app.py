@@ -31,6 +31,7 @@ from netsentinel.application.services.capabilities import CapabilityService
 from netsentinel.presentation.views.main_window import MainWindow
 from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
 from netsentinel.application.services.threat_intel_scheduler import ThreatIntelLookupScheduler
+from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget, ThreatIntelRiskSubmit
 from netsentinel.version import __version__
 
 
@@ -65,6 +66,7 @@ class ApplicationLifecycle:
         preference_commands: PreferenceCommandCoordinator | None = None,
         risk_queries: tuple[RiskQueryCoordinator, RiskQueryCoordinator] | None = None,
         threat_intel_scheduler: ThreatIntelLookupScheduler | None = None,
+        threat_intel_lookup: ThreatIntelLookupWidget | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
@@ -75,6 +77,7 @@ class ApplicationLifecycle:
         self._preference_commands = preference_commands
         self._risk_queries = risk_queries or ()
         self._threat_intel = threat_intel_scheduler
+        self._threat_intel_lookup = threat_intel_lookup
         self._threat_intel_failed = False
         self._device_inventory = device_inventory
         self._device_profiles = device_profiles
@@ -126,6 +129,8 @@ class ApplicationLifecycle:
         try:
             return self._engine.start()
         except BaseException:
+            if self._threat_intel_lookup is not None:
+                self._threat_intel_lookup.stop()
             if self._threat_intel is not None:
                 self._threat_intel.stop()
             for query in self._risk_queries:
@@ -159,6 +164,8 @@ class ApplicationLifecycle:
         if self._shutdown_requested:
             return bool(self._shutdown_result)
         self._shutdown_requested = True
+        if self._threat_intel_lookup is not None:
+            self._threat_intel_lookup.stop()
         ti_stopped = True if self._threat_intel is None else self._threat_intel.stop()
         risk_stopped = all(tuple(query.stop() for query in self._risk_queries))
         preferences_stopped = True if self._preference_commands is None else self._preference_commands.stop()
@@ -221,6 +228,7 @@ def create_application(
     capability_service_factory: Callable[[], CapabilityService] | None = None,
     threat_intel_consent_service: ThreatIntelConsentService | None = None,
     threat_intel_scheduler: ThreatIntelLookupScheduler | None = None,
+    threat_intel_risk_submit: ThreatIntelRiskSubmit | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -258,7 +266,8 @@ def create_application(
     baseline_queries = BaselineQueryCoordinator(baseline_service_factory) if baseline_service_factory else None
     preference_commands = PreferenceCommandCoordinator(preference_service_factory) if preference_service_factory else None
     risk_queries = (RiskQueryCoordinator(risk_service_factory), RiskQueryCoordinator(risk_service_factory)) if risk_service_factory else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler)
+    ti_lookup = ThreatIntelLookupWidget(threat_intel_scheduler, threat_intel_consent_service, threat_intel_risk_submit)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, ti_lookup)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
@@ -274,6 +283,7 @@ def create_application(
         dns_queries=dns_queries,
         capability_queries=capability_queries,
         threat_intel_consent_service=threat_intel_consent_service,
+        threat_intel_lookup=ti_lookup,
     )
     bridge.setParent(window)
     for query in risk_queries or ():
@@ -318,6 +328,7 @@ def run_application(
     risk_service_factory = None
     threat_intel_consent_service = None
     threat_intel_scheduler = None
+    threat_intel_risk_submit: ThreatIntelRiskSubmit | None = None
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
@@ -353,6 +364,8 @@ def run_application(
         config_issues = bool(loaded.issues)
         first_run = not settings.onboarding_completed
         engine = create_desktop_engine(config=settings)
+        behavior_risk = getattr(engine, "behavior_risk", None)
+        threat_intel_risk_submit = behavior_risk.worker.submit_threat_intelligence if behavior_risk else None
         baseline_service_factory = create_baseline_detail_service_factory(engine)
         risk_service_factory = create_risk_explanation_service_factory(engine)
         preference_service_factory = create_preference_command_service_factory()
@@ -390,6 +403,7 @@ def run_application(
         risk_service_factory=risk_service_factory,
         threat_intel_consent_service=threat_intel_consent_service,
         threat_intel_scheduler=threat_intel_scheduler,
+        threat_intel_risk_submit=threat_intel_risk_submit,
     )
     onboarding = None
     if first_run:

@@ -18,6 +18,7 @@ from netsentinel.domain.risk_assessment import (
 from netsentinel.domain.risk_evidence import EvidenceScope, EvidenceSubject
 from netsentinel.domain.risk_scoring import AssessmentAvailability, ScoringAdjustment
 from netsentinel.domain.suppression import SuppressionEvaluation
+from netsentinel.application.services.threat_intel_evidence import context_lines
 
 MAX_DISPLAY_TEXT = 700
 MAX_DISPLAY_PREFERENCES = 32
@@ -288,6 +289,9 @@ class RiskExplanationQueryService:
             ("Baseline context at assessment time", baseline), ("Suppression and preferences", suppression),
             ("Technical details", technical),
         ))
+        if snapshot.threat_intelligence:
+            sections += (ExplanationSection("External reputation context", tuple(
+                line for context in snapshot.threat_intelligence for line in context_lines(context, historical=True))),)
         return RiskExplanationViewModel(AssessmentReadStatus.FOUND, "Stored risk explanation", key.assessment_id, revision.revision, summary, sections)
 
     def _suppression(self, assessment_id: str, revision: int,

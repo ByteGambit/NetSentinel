@@ -9,6 +9,11 @@ from hashlib import sha256
 import json
 from uuid import UUID
 
+from netsentinel.domain.threat_intel_evidence import ThreatIntelEvidenceContext, MAX_TI_ASSESSMENT_PROVIDERS, TI_EVIDENCE_RULE
+from netsentinel.domain.threat_intel_cache import ThreatIntelCacheKey, ThreatIntelCachedResult
+from netsentinel.domain.threat_intel_cache import ThreatIntelCacheFreshness
+from netsentinel.domain.threat_intelligence import ThreatIntelProviderId, ThreatIntelSubject, ThreatIntelIpFacts
+
 from netsentinel.domain.application_identity import ApplicationIdentity, ApplicationRevision
 from netsentinel.domain.connections import ObservationQuality, ProcessIdentity
 from netsentinel.domain.observations import MacAddress
@@ -24,6 +29,7 @@ from netsentinel.domain.risk_scoring import (
 )
 
 ASSESSMENT_FORMAT_VERSION = 1
+TI_ASSESSMENT_FORMAT_VERSION = 2
 MAX_ASSESSMENT_PAYLOAD_BYTES = 65_536
 MAX_ASSESSMENT_KEY_BYTES = 8_192
 MAX_ASSESSMENTS = 512
@@ -179,14 +185,35 @@ class AssessmentSnapshot:
     severity_caps: tuple[SeverityCapReason, ...]
     evidence: tuple[AssessmentEvidenceSnapshot, ...] = field(repr=False)
     contributors: tuple[AssessmentContributorSnapshot, ...]
+    threat_intelligence: tuple[ThreatIntelEvidenceContext, ...] = field(default=(), repr=False)
 
     def __post_init__(self) -> None:
         positive_version(self.policy_version)
+        contexts = self.threat_intelligence
+        if type(contexts) is not tuple or len(contexts) > MAX_TI_ASSESSMENT_PROVIDERS or any(type(c) is not ThreatIntelEvidenceContext for c in contexts):
+            raise ValueError("TI context exceeds typed quota")
+        if len({c.key.provider for c in contexts}) != len(contexts):
+            raise ValueError("one independent context per provider")
         for items, maximum, item_type in ((self.evidence, MAX_EVIDENCE_CONTRIBUTORS, AssessmentEvidenceSnapshot),
                                          (self.contributors, MAX_SCORE_CONTRIBUTORS, AssessmentContributorSnapshot),
                                          (self.severity_caps, len(SeverityCapReason), SeverityCapReason)):
             if type(items) is not tuple or len(items) > maximum or any(type(i) is not item_type for i in items):
                 raise ValueError("snapshot collection exceeds typed quota")
+        ti_ids = {e.evidence_id for e in self.evidence if e.source is EvidenceSource.THREAT_INTELLIGENCE}
+        if ti_ids != {c.evidence_id for c in contexts}:
+            raise ValueError("TI evidence and provenance must match")
+        if any(c.applied_points or c.raw_points or c.eligible for c in self.contributors if c.evidence_id in ti_ids):
+            raise ValueError("external context must remain informational")
+        by_id = {e.evidence_id: e for e in self.evidence}
+        for context in contexts:
+            item = by_id[context.evidence_id]
+            if (item.rule_id != TI_EVIDENCE_RULE or item.role is not EvidenceRole.OBSERVATION
+                    or item.result_code != context.result.status.value or item.confidence is not None
+                    or item.quality != EvidenceQuality(None) or item.observed_at != context.result.received_at
+                    or item.subject.ip_address != context.key.subject.value
+                    or item.freshness is not (Freshness.CURRENT if context.freshness is ThreatIntelCacheFreshness.FRESH else Freshness.STALE)):
+                raise ValueError("TI evidence semantics must match stored provenance")
+        object.__setattr__(self, "threat_intelligence", tuple(sorted(contexts, key=lambda c: c.key.provider.value)))
         ids = {e.evidence_id for e in self.evidence}
         if len(ids) != len(self.evidence) or len(set(self.severity_caps)) != len(self.severity_caps):
             raise ValueError("duplicate snapshot evidence or severity cap")
@@ -257,8 +284,10 @@ class RiskAssessmentRevision:
             raise TypeError("revision requires immutable identity and snapshot")
         if type(self.revision) is not int or not 1 <= self.revision <= 2**63 - 1:
             raise ValueError("revision number must be a positive local integer")
-        if type(self.format_version) is not int or self.format_version != ASSESSMENT_FORMAT_VERSION:
+        if type(self.format_version) is not int or self.format_version not in (ASSESSMENT_FORMAT_VERSION, TI_ASSESSMENT_FORMAT_VERSION):
             raise ValueError("unsupported assessment format")
+        if self.snapshot.threat_intelligence and self.format_version != TI_ASSESSMENT_FORMAT_VERSION:
+            raise ValueError("TI context requires format 2")
         object.__setattr__(self, "assessed_at", utc_time(self.assessed_at))
 
 
@@ -316,6 +345,8 @@ ASSESSMENT_VALUE_TYPES = (
     AssessmentContributorSnapshot, EvidenceScope, EvidenceSubject, EvidenceQuality,
     EvidenceReference, CorrelationKey, ApplicationIdentity, ApplicationRevision,
     ProcessIdentity, MacAddress,
+    ThreatIntelEvidenceContext, ThreatIntelCacheKey, ThreatIntelCachedResult,
+    ThreatIntelProviderId, ThreatIntelSubject, ThreatIntelIpFacts,
 )
 
 
@@ -331,7 +362,8 @@ def _primitive(value: object) -> object:
     if is_dataclass(value) and not isinstance(value, type):
         if type(value) not in ASSESSMENT_VALUE_TYPES:
             raise TypeError("extended values cannot add assessment payload fields")
-        return {f.name: _primitive(getattr(value, f.name)) for f in fields(value) if f.init}
+        return {f.name: _primitive(getattr(value, f.name)) for f in fields(value) if f.init
+                and not (type(value) is AssessmentSnapshot and f.name == "threat_intelligence" and not value.threat_intelligence)}
     if value is None or type(value) in (str, int, bool):
         return value
     raise TypeError("unsupported snapshot value")

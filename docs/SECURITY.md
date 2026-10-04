@@ -1,5 +1,18 @@
 # Güvenlik ve güvenli kullanım
 
+NS-088 yalnız Connections → External reputation → Check reputation ile selected
+eligible public IP lookup başlatır. Startup, observation, alert, selection, page/detail
+open ve consent Save sıfır external request üretir. NS-084 default-deny consent ve
+NS-087 revoke/offline/budget kuralları korunur. Secret backend unavailable kalır;
+key textbox/config/SQLite/plaintext/environment fallback eklenmez. HIT malware
+hükmü, NO_HIT güvenli hükmü değildir; whitelist risk azaltmaz. TI score/confidence
+yerel NetSentinel confidence/probability olarak gösterilmez. Historical snapshot
+yalnız closed typed provenance/metrics taşır; raw HTTP, key ve exception text yoktur.
+Provider outage local detection'ı durdurmaz; reassessment occurrence veya ACK/RESOLVED
+değiştirmez. Suppression/trust/block/firewall/upload/incident timeline eklenmez.
+[NS-088 güvenlik ve veri sınırları](THREAT_INTELLIGENCE_EVIDENCE.md).
+Aşağıdaki önceki teslimat kayıtları tarihseldir.
+
 NS-087 yalnız explicit admitted query'yi fixed worker'lara aktarır. Default-off
 consent admission/dispatch/retry öncesi kontrol edilir; Save/current değişimi
 pending/delayed işleri iptal eder. In-flight HTTP geri alınamaz; yeni retry yoktur.

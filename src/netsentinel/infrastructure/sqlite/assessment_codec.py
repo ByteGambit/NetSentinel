@@ -10,7 +10,7 @@ from types import UnionType
 from typing import Any, get_args, get_origin, get_type_hints
 from uuid import UUID
 
-from netsentinel.domain.risk_assessment import ASSESSMENT_VALUE_TYPES, utc_time
+from netsentinel.domain.risk_assessment import ASSESSMENT_VALUE_TYPES, AssessmentSnapshot, utc_time
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -59,6 +59,8 @@ def _decode(value: Any, expected: Any) -> Any:
         return expected(value)
     if expected in ASSESSMENT_VALUE_TYPES:
         names = {f.name for f in fields(expected) if f.init}
+        if expected is AssessmentSnapshot and type(value) is dict and "threat_intelligence" not in value:
+            names.remove("threat_intelligence")  # Exact legacy v1 vocabulary; hashes unchanged.
         if type(value) is not dict or set(value) != names:
             raise ValueError("unknown/missing snapshot fields")
         hints = get_type_hints(expected)
@@ -66,8 +68,12 @@ def _decode(value: Any, expected: Any) -> Any:
     raise TypeError("unsupported snapshot type")
 
 
-def decode_value(payload: str, expected: Any, maximum_bytes: int) -> Any:
+def decode_value(payload: str, expected: Any, maximum_bytes: int, *, format_version: int = 1) -> Any:
     if type(payload) is not str or len(payload.encode("utf-8")) > maximum_bytes:
         raise ValueError("snapshot payload exceeds quota")
-    return _decode(json.loads(payload, object_pairs_hook=_unique_object,
-                              parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite JSON"))), expected)
+    value = json.loads(payload, object_pairs_hook=_unique_object,
+                       parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite JSON")))
+    if expected is AssessmentSnapshot:
+        if format_version not in (1, 2) or type(value) is not dict or ("threat_intelligence" in value) != (format_version == 2):
+            raise ValueError("snapshot vocabulary does not match format")
+    return _decode(value, expected)

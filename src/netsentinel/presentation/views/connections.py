@@ -52,6 +52,7 @@ from netsentinel.presentation.widgets.connection_details import (
     ConnectionDetailsWidget,
 )
 from netsentinel.shared.diagnostics import CapabilityStatus, EngineState
+from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget
 
 
 class ConnectionsView(QWidget):
@@ -66,6 +67,7 @@ class ConnectionsView(QWidget):
         baseline_queries: BaselineQueryCoordinator | None = None,
         risk_queries: RiskQueryCoordinator | None = None,
         preference_commands: PreferenceCommandCoordinator | None = None,
+        threat_intel: ThreatIntelLookupWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("connectionsPage")
@@ -191,7 +193,7 @@ class ConnectionsView(QWidget):
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
-        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries, preference_commands=preference_commands, risk_queries=risk_queries)
+        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries, preference_commands=preference_commands, risk_queries=risk_queries, threat_intel=threat_intel)
         self.details.signer_button.clicked.connect(self._request_signer)
         self.details.signer_button.setEnabled(signer_service is not None)
 

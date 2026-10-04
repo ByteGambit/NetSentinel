@@ -995,7 +995,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-088 — TI evidence ve assessment/UI integration
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Central TI→generic supporting evidence adapter, bounded typed provenance, v1-compatible assessment format 2 ve existing risk worker/AlertService reassessment tamamlandı. Numeric policy v1 değişmez; HIT malware ve NO_HIT safe hükmü değildir. Stale/refresh-error, independent providers, exact lifecycle/IP, count/time/ACK/RESOLVED/fingerprint invariants ve durable retry/restart doğrulandı. Connections explicit lookup, shared ticket/selection epoch ve NS-083 historical UI; default zero requests, credential unavailable/local continuation korunur. Schema 018→018, migration yok. Broad targeted 992 passed; final semantic core 102 passed; startup/GUI 81 passed; full offline 2899 passed, 8 deselected; Ruff/configured/direct mypy/diff temiz. [NS-088 kabul ve M15 exit raporu](THREAT_INTELLIGENCE_EVIDENCE.md). M15 ✅ COMPLETE; NS-089 başlatılmadı.
 - **Amaç:** Reputation sonucunu yalnız destekleyici risk evidence yapmak.
 - **Yapılacaklar:** Provider source/freshness bilgisini assessment revision ve detail UI'a bağla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/domain/, src/netsentinel/presentation/, tests/integration/, tests/gui/.
@@ -1201,7 +1201,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
-| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; NS-084–NS-087 COMPLETE, kullanıcı için default disabled |
+| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |

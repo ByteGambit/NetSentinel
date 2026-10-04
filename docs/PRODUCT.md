@@ -1,15 +1,19 @@
 # Ürün tanımı
 
-NS-087 explicit tekil reputation request için bounded cache-first scheduler sağlar.
-AbuseIPDB public IP consent seçeneği Settings'te görünür; varsayılan kapalıdır.
-Desktop lookup/result controls ve risk integration NS-088 kapsamındadır ve henüz
-uygulanmadı. Secret backend/key-entry yoktur; explicit composition mevcut secret
-portunu enjekte edebilir. Startup/connection selection/consent Save sıfır lookup;
-history enumerate/upload edilmez. M15 devam ediyor, schema 018 değişmedi.
-[Scheduler ve nonblocking sınırları](THREAT_INTELLIGENCE_SCHEDULER.md).
+NS-088 Connections → External reputation içinde explicit **Check reputation**
+eylemi ve Alerts/Connections ortak risk açıklamasında tarihi TI context sağlar.
+AbuseIPDB public IPv4/IPv6, provider/type consent ve NS-087 bounded cache-first
+scheduler kullanılır; varsayılan kapalıdır. HIT destekleyici context'tir, malware
+hükmü değildir; NO_HIT güvenli olduğunu kanıtlamaz. Stale ve refresh hatası ayrı
+görünür. Numeric policy v1 değişmez; revision occurrence/count/last_seen/ACK/RESOLVED
+değiştirmez. Secret backend/key-entry yoktur; unavailable credential açık gösterilir,
+local detection devam eder. Explicit composition mevcut secret portunu enjekte
+edebilir. Startup/observation/alert/selection/detail/consent Save sıfır lookup;
+history enumerate/upload edilmez. SQLite 018, migration yoktur.
+[UI, tarihi provenance ve sınırlar](THREAT_INTELLIGENCE_EVIDENCE.md).
 
 NS-086, AbuseIPDB IP-only CHECK adapter'ını explicit caller composition için
-sağlar; henüz desktop lookup akışı yoktur. Domain/hash desteklenmez; abstraction
+sağlar; NS-088 desktop lookup akışına bağlıdır. Domain/hash desteklenmez; abstraction
 korunur. NO_HIT yalnız lookback içinde rapor bulunmadığını ifade eder, güvenli
 olduğu anlamına gelmez. Scheduler NS-087 ile mevcut; risk/UI entegrasyonu NS-088'dir.
 [Provider/terms/privacy kararı](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
@@ -36,7 +40,7 @@ NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel 
 
 NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve güvenlik uyarısını birbirinden ayırır. Uyarıların açıklaması ve dayanak verisi kullanıcıya sunulur; tek başına “kötü niyetli” hükmü verilmez.
 
-## Yeni fazın ürün yönü (M11–M14 tamamlandı; M15 başladı, M16–M17 planlandı)
+## Yeni fazın ürün yönü (M11–M15 tamamlandı; M16–M17 planlandı)
 
 NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
 application/destination/network/rule için dar typed selector, explicit expiry veya
@@ -61,7 +65,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Risk explanation UI, kesin domain–connection attribution, incident timeline, reputation request, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, incident timeline, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 

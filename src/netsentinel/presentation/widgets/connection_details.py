@@ -24,6 +24,7 @@ from netsentinel.presentation.widgets.baseline_detail import BaselineDetailWidge
 from netsentinel.presentation.risk_query import RiskQueryCoordinator
 from netsentinel.presentation.widgets.risk_explanation import RiskExplanationWidget
 from netsentinel.application.services.risk_explanation import RiskExplanationRequest
+from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget
 
 
 _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
@@ -45,7 +46,8 @@ class ConnectionDetailsWidget(QGroupBox):
 
     def __init__(self, parent: QWidget | None = None, *, baseline_queries: BaselineQueryCoordinator | None = None,
                  preference_commands: PreferenceCommandCoordinator | None = None,
-                 risk_queries: RiskQueryCoordinator | None = None) -> None:
+                 risk_queries: RiskQueryCoordinator | None = None,
+                 threat_intel: ThreatIntelLookupWidget | None = None) -> None:
         super().__init__("Selected connection", parent)
         self.setObjectName("connectionDetails")
         self.setAccessibleName("Connection details")
@@ -109,6 +111,11 @@ class ConnectionDetailsWidget(QGroupBox):
         self.tabs.addTab(self.baseline, "Behavior baseline")
         self.risk = RiskExplanationWidget(risk_queries, self)
         self.tabs.addTab(self.risk, "Risk explanation")
+        self.threat_intel = threat_intel or ThreatIntelLookupWidget(parent=self)
+        self.tabs.addTab(self.threat_intel, "External reputation")
+        self.threat_intel.assessment_updated.connect(self.risk.refresh_after_commit)
+        if risk_queries is not None:
+            risk_queries.stopped.connect(self.threat_intel.stop)
         outer = QVBoxLayout(self)
         outer.addWidget(self.tabs)
         self.clear()
@@ -126,6 +133,7 @@ class ConnectionDetailsWidget(QGroupBox):
         self.destination.clear()
         self.baseline.clear()
         self.risk.clear("No connection selected.")
+        self.threat_intel.clear()
         self.signer_text.setText("On-demand local evidence; no file has been checked.")
 
     def set_connection(self, index: QModelIndex) -> None:
@@ -137,6 +145,8 @@ class ConnectionDetailsWidget(QGroupBox):
         row = index.row()
         first = model.index(row, 0)
         lifecycle = model.data(first, int(ConnectionRole.LIFECYCLE_ID))
+        self.threat_intel.select(lifecycle if isinstance(lifecycle, UUID) else None,
+            str(model.data(first, int(ConnectionRole.RAW_REMOTE_ADDRESS))))
         self.risk.select(RiskExplanationRequest(lifecycle_id=lifecycle) if isinstance(lifecycle, UUID) else None)
 
         self.status_label.clear()

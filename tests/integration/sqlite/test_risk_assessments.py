@@ -373,7 +373,7 @@ def test_strict_snapshot_corruption(database, repository, field, value):
     assert repository.latest(key().assessment_id).status is ReadStatus.CORRUPT
 
 
-@pytest.mark.parametrize("column,value,status", [("format_version", 2, ReadStatus.UNSUPPORTED_VERSION),
+@pytest.mark.parametrize("column,value,status", [("format_version", 3, ReadStatus.UNSUPPORTED_VERSION),
     ("assessed_at", "2026-10-03T00:00:00", ReadStatus.CORRUPT),
     ("assessed_at", "2026-10-03T00:00:00+03:00", ReadStatus.CORRUPT),
     ("content_fingerprint", "x" * 64, ReadStatus.CORRUPT), ("revision", 0, ReadStatus.CORRUPT),

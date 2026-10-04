@@ -1,5 +1,19 @@
 # Mimari
 
+NS-088 `ThreatIntelEvidenceAdapter`, explicit scheduler sonucunu generic
+THREAT_INTELLIGENCE / threat_intelligence_reputation_context evidence ve küçük
+typed provenance'a dönüştürür. HIT/NO_HIT informational, sıfır puanlıdır; numeric
+scoring policy v1 değişmez. Mevcut RiskAlertWorker, canonical lifecycle + exact IP
+ile yalnız mevcut assessment'a revision ekler; AlertService REASSESSMENT count,
+last_seen, observed_at, ACK/RESOLVED ve fingerprint'i korur. No target → cache/UI
+context only. Yeni worker/table/migration yoktur; SQLite 018. TI snapshots mevcut
+kolonda format 2, local-only format 1; v1 canonical hashes/reads korunur.
+Connections explicit action memory ticket'ı bounded Qt timer ile okur; selection
+epoch late render'ı düşürür. NS-083 shared query/panel tarihi provider/freshness
+snapshot'ını cache/network okumadan gösterir. Credential backend unavailable kalır.
+[NS-088 mapping, privacy ve kabul raporu](THREAT_INTELLIGENCE_EVIDENCE.md).
+Aşağıdaki önceki NS teslimat kayıtları kendi teslim tarihinin kapsamını anlatır.
+
 NS-087 `ThreatIntelLookupScheduler`, single explicit query admission → worker
 cache-first → provider port → bounded retry/put → shared pollable completion
 yolunu kurar. 64 outstanding job, 4 worker; provider başına 16 job/1 call/1 s local

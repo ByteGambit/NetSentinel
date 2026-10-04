@@ -1,6 +1,6 @@
 """NS-079 owning-worker orchestration: evidence -> assessment -> AlertService."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
 from hashlib import sha256
@@ -16,15 +16,21 @@ from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence, aler
 from netsentinel.domain.application_identity import ApplicationIdentityQuality
 from netsentinel.domain.connections import NetworkScopeStatus
 from netsentinel.domain.risk_assessment import (
-    AssessmentSave, RiskAssessmentKey, canonical_json, utc_time,
+    AssessmentSave, AssessmentReadStatus, AssessmentEvidenceSnapshot, AssessmentContributorSnapshot,
+    RiskAssessmentKey, canonical_json, utc_time,
 )
 from netsentinel.domain.risk_evidence import (
     EvidenceReference, EvidenceReferenceKind, RiskEvidenceBatch,
+    EvidenceSource,
 )
 from netsentinel.domain.risk_scoring import (
     EvidenceFreshness, Freshness,
     RiskScoreResult, RiskScoringInput, RiskScoringPolicy, score_risk,
+    ContributionDirection, ScoringReason,
 )
+from netsentinel.domain.threat_intel_evidence import ThreatIntelAssessmentSignal
+from netsentinel.domain.threat_intel_cache import ThreatIntelCacheFreshness
+from netsentinel.application.services.threat_intel_evidence import evidence_for_context
 from netsentinel.domain.suppression import (
     SuppressionDisposition, SuppressionEvaluation, SuppressionLimitation, has_alert_driving_risk,
 )
@@ -111,6 +117,63 @@ class RiskToAlertService:
         self._assessments, self._alerts, self._dispatcher = assessments, alerts, dispatcher
         self._policy = policy
         self._suppression = suppression
+
+    def enrich(self, signal: ThreatIntelAssessmentSignal) -> RiskAlertResult:
+        """Explicit TI revision on the same risk owner; no scoring or occurrence."""
+        try:
+            read = self._assessments.for_connection(signal.lifecycle_id)
+            if read.status is AssessmentReadStatus.NOT_FOUND:
+                return RiskAlertResult(RiskAlertStatus.NO_ALERT)
+            if read.status is not AssessmentReadStatus.FOUND or read.revision is None:
+                return RiskAlertResult(RiskAlertStatus.UNAVAILABLE)
+            current = read.revision
+            context = signal.context
+            if current.key.subject.ip_address != context.key.subject.value:
+                return RiskAlertResult(RiskAlertStatus.NORMALIZATION_FAILED)
+            evidence = evidence_for_context(context)
+            if evidence.evidence_id != context.evidence_id:
+                return RiskAlertResult(RiskAlertStatus.NORMALIZATION_FAILED)
+            old_context = next((c for c in current.snapshot.threat_intelligence if c.key.provider == context.key.provider), None)
+            # A delayed old fetch cannot replace newer provenance from this provider.
+            if old_context and old_context.result.received_at > context.result.received_at:
+                return RiskAlertResult(RiskAlertStatus.NO_ALERT)
+            removed = {old_context.evidence_id} if old_context else set()
+            snapshot = current.snapshot
+            addition = AssessmentEvidenceSnapshot(evidence.evidence_id, evidence.contract_version,
+                EvidenceSource.THREAT_INTELLIGENCE, evidence.rule_id, evidence.reason_code,
+                evidence.policy_version, evidence.role, evidence.result_code, evidence.scope,
+                evidence.subject, evidence.quality, evidence.confidence, evidence.observed_at,
+                Freshness.CURRENT if context.freshness is ThreatIntelCacheFreshness.FRESH else Freshness.STALE,
+                evidence.references)
+            contributor = AssessmentContributorSnapshot(evidence.evidence_id, snapshot.policy_version,
+                None, None, None, ContributionDirection.NEUTRAL, 0, 0, False,
+                ScoringReason.OBSERVATION_ONLY, ())
+            updated = replace(snapshot,
+                evidence=tuple(e for e in snapshot.evidence if e.evidence_id not in removed) + (addition,),
+                contributors=tuple(c for c in snapshot.contributors if c.evidence_id not in removed) + (contributor,),
+                threat_intelligence=tuple(c for c in snapshot.threat_intelligence if c.key.provider != context.key.provider) + (context,))
+        except (ValueError, TypeError, AttributeError):
+            return RiskAlertResult(RiskAlertStatus.NORMALIZATION_FAILED)
+        except Exception:
+            return RiskAlertResult(RiskAlertStatus.UNAVAILABLE)
+        try:
+            saved = self._assessments.persist_snapshot(current.key, updated, assessed_at=signal.assessed_at)
+        except Exception:
+            return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTENCE_FAILED)
+        # Never initialize an alert solely to attach external information.
+        fingerprint = risk_alert_fingerprint(current.key)
+        try:
+            existing = self._alerts.get(alert_id(fingerprint))
+            if existing is None:
+                return RiskAlertResult(RiskAlertStatus.NO_ALERT, saved)
+            reference = AlertAssessmentReference(current.key.assessment_id, saved.revision.revision, current.key.scope.network_status)
+            candidate = AlertCandidate(fingerprint, "connection_behavior", current.key.scope.network_fingerprint,
+                fingerprint, existing.severity, existing.confidence,
+                AlertEvidence(current.key.original_observed_at, assessment=reference), AlertWriteIntent.REASSESSMENT)
+            alert, _ = self._alerts.update_assessment(candidate)
+            return RiskAlertResult(RiskAlertStatus.SUCCESS, saved, alert)
+        except Exception:
+            return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTED_ALERT_FAILED, saved)
 
     def process(self, signal: BehaviorRiskSignal) -> RiskAlertResult:
         try:

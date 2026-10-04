@@ -88,6 +88,11 @@ class RiskExplanationWidget(QWidget):
             self.status.setText("Risk details unavailable. Try Refresh.")
             self.refresh_button.setEnabled(True)
 
+    def refresh_after_commit(self) -> None:
+        """Invalidate a pre-commit in-flight read; coordinator still coalesces."""
+        self._pending = False
+        self.refresh()
+
     def _ready(self, generation: int, model: object) -> None:
         if generation != self._generation or self._request is None or not isinstance(model, RiskExplanationViewModel):
             return
@@ -124,7 +129,7 @@ class RiskExplanationWidget(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setWidget(summary)
         self.tabs.addTab(scroll, "Summary")
-        for section in model.sections[:7]:
+        for section in model.sections[:8]:
             section_text = QTextEdit(self)
             section_text.setReadOnly(True)
             section_text.setAccessibleName("Risk " + section.title)

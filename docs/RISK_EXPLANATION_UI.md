@@ -1,5 +1,11 @@
 # NS-083 — Risk explanation UI
 
+**NS-088 update (2026-10-04):** The shared query/panel now adds External reputation
+context from immutable format-2 snapshots. Historical freshness is explicit;
+provider score is separate from confidence and never malware probability. The
+widget permits 8 detail sections plus Summary. Read-only exact-linked Alerts and
+lifecycle-latest Connections remain; no read starts a lookup. [NS-088 current contract](THREAT_INTELLIGENCE_EVIDENCE.md).
+
 Authoritative definition: [TASKS.md](TASKS.md#ns-083--risk-explanation-ui).
 Starting checkout: clean `main`, HEAD
 `74a4d062c555e59f386c7e089b49b40c5efaa8ed`.
