@@ -112,7 +112,7 @@ def test_two_providers_types_versions_and_purge_isolation(cache):
             keys.append(put(service, provider=provider, data_type=dtype, value=value))
     for key in keys:
         assert service.get(key, NOW).freshness is F.FRESH
-        assert service.get(replace(key, result_version=2), NOW).freshness is F.UNSUPPORTED
+        assert service.get(replace(key, result_version=3), NOW).freshness is F.UNSUPPORTED
     assert service.purge(provider=A).affected == 3
     assert all(service.get(k, NOW).freshness is F.MISS for k in keys[:3])
     assert all(service.get(k, NOW).freshness is F.FRESH for k in keys[3:])
@@ -259,7 +259,7 @@ def test_duplicate_fields_and_future_format(cache):
                            (payload[:-1] + ',"status":"hit"}',))
     assert service.get(key, NOW).freshness is F.CORRUPT
     with database.connection() as connection:
-        connection.execute('UPDATE threat_intel_cache SET format_version = 2')
+        connection.execute('UPDATE threat_intel_cache SET format_version = 3')
     assert service.get(key, NOW).freshness is F.UNSUPPORTED
 
 

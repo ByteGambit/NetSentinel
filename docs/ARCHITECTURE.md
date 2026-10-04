@@ -1,5 +1,15 @@
 # Mimari
 
+NS-086, explicit composition için synchronous AbuseIPDB API v2 CHECK adapter'ı
+ve bağımsız injected HTTP transport ekler. IP-only descriptor; mevcut application
+consent/secret portları korunur. Fixed HTTPS, verified TLS, redirect/retry yok,
+8 s socket timeout ve 64 KiB response cap vardır. Typed IP facts ve rate hints
+result contract **2**'dir; SQLite cache codec **2** yalnız minimum facts'i saklar,
+operational metadata/errors'ı saklamaz. Schema **018** değişmez. Cache key'deki
+result_version mapping v1'i izole eder; v1 key/codec yeniden yorumlanmaz.
+Desktop registry/engine/GUI composition değişmez; scheduler NS-087'dir.
+[Provider kararı, privacy ve sınırlar](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
+
 NS-085 local reputation cache backend'ini ekler: immutable canonical
 provider/data-type/subject/algorithm/result-version key, ayrı provider status ve
 cache freshness, absolute UTC horizons, blocking application port/service ve

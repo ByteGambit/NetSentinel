@@ -19,7 +19,7 @@ from netsentinel.domain.executable_hash import ExecutableHash, ExecutableHashSta
 
 
 TI_POLICY_VERSION = 1
-TI_RESULT_CONTRACT_VERSION = 1  # normalized result semantics, independent of consent
+TI_RESULT_CONTRACT_VERSION = 2  # optional typed IP facts; AbuseIPDB mapping v1
 MAX_TI_PROVIDERS = 16
 MAX_TI_CONSENTS = MAX_TI_PROVIDERS * 3
 
@@ -67,7 +67,7 @@ class ThreatIntelProviderDescriptor:
     provider: ThreatIntelProviderId
     display_name: str
     supported_data_types: frozenset[ThreatIntelDataType]
-    # No concrete provider/terms review exists until NS-086. No retention promise.
+    # No numeric CHECK retention promise, even after the NS-086 review.
     retention: str = "unknown"
 
     def __post_init__(self) -> None:
@@ -82,7 +82,7 @@ class ThreatIntelProviderDescriptor:
                 or any(not isinstance(t, ThreatIntelDataType) for t in self.supported_data_types)):
             raise ValueError("capabilities must be a nonempty typed frozenset")
         if self.retention != "unknown":
-            raise ValueError("provider retention has not been reviewed")
+            raise ValueError("provider retention duration is unknown")
 
 
 @dataclass(frozen=True, slots=True)
@@ -243,6 +243,61 @@ class ThreatIntelError(str, Enum):
     AUTHENTICATION = "authentication"
     RATE_LIMITED = "rate_limited"
     INVALID_RESPONSE = "invalid_response"
+    CREDENTIAL_UNAVAILABLE = "credential_unavailable"
+    SUBSCRIPTION_RESTRICTED = "subscription_restricted"
+    INVALID_REQUEST = "invalid_request"
+    UNSUPPORTED = "unsupported"
+    HTTP_ERROR = "http_error"
+    REDIRECT_REJECTED = "redirect_rejected"
+    NETWORK_ERROR = "network_error"
+    TRANSPORT_SECURITY_ERROR = "transport_security_error"
+    RESPONSE_TOO_LARGE = "response_too_large"
+
+
+@dataclass(frozen=True, slots=True)
+class ThreatIntelIpFacts:
+    """Bounded provider-specific facts; score/whitelist are not safety verdicts.
+
+    Contract v2 freezes AbuseIPDB mapping v1. A future mapping must also bump
+    the cache result contract key, rather than reinterpret cached facts.
+    """
+
+    mapping_version: int
+    lookback_days: int
+    abuse_confidence_score: int
+    total_reports: int
+    distinct_users: int
+    last_reported_at: datetime | None
+    is_whitelisted: bool | None = None
+
+    def __post_init__(self) -> None:
+        for value, maximum in ((self.mapping_version, 1), (self.lookback_days, 365),
+                               (self.abuse_confidence_score, 100),
+                               (self.total_reports, 2**31 - 1), (self.distinct_users, 2**31 - 1)):
+            if type(value) is not int or not 0 <= value <= maximum:
+                raise ValueError("invalid bounded IP fact")
+        if self.mapping_version != 1 or self.lookback_days < 1:
+            raise ValueError("unsupported mapping or lookback")
+        if self.last_reported_at is not None:
+            _utc(self.last_reported_at)
+        if self.is_whitelisted is not None and type(self.is_whitelisted) is not bool:
+            raise ValueError("invalid whitelist context")
+
+
+@dataclass(frozen=True, slots=True)
+class ThreatIntelRateLimit:
+    """Operational hints, never a quota assumption or cached security result."""
+
+    retry_after_seconds: int | None = None
+    limit: int | None = None
+    remaining: int | None = None
+    reset_epoch: int | None = None
+
+    def __post_init__(self) -> None:
+        for value, maximum in ((self.retry_after_seconds, 86400), (self.limit, 2**31 - 1),
+                               (self.remaining, 2**31 - 1), (self.reset_epoch, 253402300799)):
+            if value is not None and (type(value) is not int or not 0 <= value <= maximum):
+                raise ValueError("invalid rate limit metadata")
 
 
 @dataclass(frozen=True, slots=True)
@@ -251,6 +306,8 @@ class ThreatIntelResult:
     status: ThreatIntelResultStatus
     received_at: datetime
     error: ThreatIntelError | None = None
+    ip_facts: ThreatIntelIpFacts | None = None
+    rate_limit: ThreatIntelRateLimit | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.query, ThreatIntelQuery) or not isinstance(self.status, ThreatIntelResultStatus):
@@ -263,3 +320,17 @@ class ThreatIntelResult:
                 raise ValueError("error result requires a typed operational error")
         elif self.error is not None:
             raise ValueError("hit/no-hit cannot carry an error")
+        if self.rate_limit is not None and not isinstance(self.rate_limit, ThreatIntelRateLimit):
+            raise TypeError("invalid operational metadata")
+        if self.ip_facts is not None:
+            if (not isinstance(self.ip_facts, ThreatIntelIpFacts)
+                    or self.query.subject.kind is not ThreatIntelSubjectKind.IP
+                    or self.status is ThreatIntelResultStatus.ERROR):
+                raise ValueError("IP facts require a successful IP result")
+            facts = self.ip_facts
+            if facts.last_reported_at is not None and facts.last_reported_at > self.received_at:
+                raise ValueError("report timestamp follows completion")
+            expected = (ThreatIntelResultStatus.NO_HIT if facts.total_reports == 0
+                        and facts.last_reported_at is None else ThreatIntelResultStatus.HIT)
+            if self.status is not expected:
+                raise ValueError("IP facts contradict result status")

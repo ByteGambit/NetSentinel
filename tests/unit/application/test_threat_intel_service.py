@@ -122,7 +122,9 @@ def test_contracts_have_no_secret_or_arbitrary_payload_boundary(tmp_path, caplog
     assert {f.name for f in fields(ThreatIntelQuery)} == {
         "request_id", "provider", "subject", "data_type", "trigger", "consent", "queried_at", "policy_version",
     }
-    assert {f.name for f in fields(ThreatIntelResult)} == {"query", "status", "received_at", "error"}
+    assert {f.name for f in fields(ThreatIntelResult)} == {
+        "query", "status", "received_at", "error", "ip_facts", "rate_limit",
+    }
     path = tmp_path / "config.json"
     save_config_file(path, AppConfig(threat_intel_consents=(grant(),)))
     serialized = path.read_text(encoding="utf-8")

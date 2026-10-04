@@ -1,5 +1,15 @@
 # NS-085 — Reputation cache ve freshness
 
+**NS-086 güncellemesi (2026-10-04):** Aşağıdaki v1 kayıtları NS-085 teslimatını
+belgeler. Güncel result contract/key ve payload codec **2**'dir. Optional typed
+`ip_facts`: mapping_version=1, lookback_days, abuse_confidence_score,
+total_reports, distinct_users, last_reported_at ve is_whitelisted. Dict/blob/free
+text alanı yoktur. Rate-limit metadata/cache errors saklanmaz. Version 1 key'leri
+UNSUPPORTED; güncel key yalnız kendi version 2 row'unu okur. Mapping değişikliği
+result contract key version bump gerektirir. Schema **018**, SQL/migration
+değişmez; mevcut 4 KiB/1024 row/chunk/TTL/error-skip sınırları korunur.
+[NS-086 karar ve kabul raporu](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
+
 ## Sözleşme ve sürümler
 
 Bu task yalnız yerel cache backend'idir. Domain `ThreatIntelCacheKey`,

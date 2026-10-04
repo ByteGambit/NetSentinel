@@ -973,7 +973,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-086 — İlk provider adapter
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). AbuseIPDB API v2 IP-only CHECK adapter, official terms/privacy/pricing review, fixed HTTPS/verified TLS/no redirect, 8 s timeout/64 KiB streaming cap ve normalized HIT/NO_HIT/429/error tamamlandı. Secret ayrı port/header-only, no retry/runtime composition. Typed minimum IP facts + rate hints; result/key ve cache codec v2, schema 018→018. Fake transport/fixtures/consent/cache/redaction: 378 passed; full offline suite 2726 passed, 8 deselected; live gating 1 skipped. Ruff/configured ve direct mypy/diff check temiz. [Provider kararı ve kabul raporu](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md). NS-087 başlamadı; M15 devam ediyor.
 - **Amaç:** Seçilen provider'ı typed reputation portuna bağlamak.
 - **Yapılacaklar:** Terms/privacy review sonrası sabit endpoint, bounded HTTP ve normalized response adapter'ı ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/, src/netsentinel/application/ports.py, tests/unit/infrastructure/.
@@ -1201,7 +1201,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
-| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; NS-084–NS-085 COMPLETE, kullanıcı için default disabled |
+| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; NS-084–NS-086 COMPLETE, kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |

@@ -79,7 +79,8 @@ class ThreatIntelCacheRepository(Protocol):
 class ThreatIntelligenceProvider(Protocol):
     """Only the policy-gated application lookup service may call this port.
 
-    NS-084 supplies test fakes only. Future adapters own fixed endpoints and
+    NS-084 supplies test fakes; NS-086 supplies an explicit CHECK adapter.
+    Adapters own fixed endpoints and
     credential resolution; queries never contain keys, URLs or arbitrary data.
     """
 

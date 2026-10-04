@@ -42,13 +42,14 @@ addopts = [
     "--strict-config",
     "--strict-markers",
     "-m",
-    "not windows_live and not lab_live",
+    "not windows_live and not lab_live and not live_threat_intel",
 ]
 testpaths = ["tests"]
 markers = [
     "windows_live: opt-in read-only Windows adapter tests and local loopback sockets",
     "lab_live: opt-in passive packet capture tests for an explicitly authorized lab network",
     "performance: deterministic offline burst and resource-bound validation",
+    "live_threat_intel: explicit opt-in external provider CHECK with selected public IP and private key",
 ]
 
 [tool.ruff]

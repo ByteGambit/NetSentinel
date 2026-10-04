@@ -6,7 +6,7 @@ from enum import Enum
 from uuid import UUID
 
 from netsentinel.domain.threat_intelligence import (
-    TI_POLICY_VERSION, TI_RESULT_CONTRACT_VERSION, ThreatIntelDataType, ThreatIntelProviderId,
+    TI_POLICY_VERSION, TI_RESULT_CONTRACT_VERSION, ThreatIntelDataType, ThreatIntelProviderId, ThreatIntelIpFacts,
     ThreatIntelQuery, ThreatIntelResult, ThreatIntelResultStatus, ThreatIntelSubject,
     ThreatIntelTrigger, _utc,
 )
@@ -67,6 +67,7 @@ class ThreatIntelCachedResult:
     received_at: datetime
     trigger: ThreatIntelTrigger
     query_policy_version: int
+    ip_facts: ThreatIntelIpFacts | None = None
 
     def __post_init__(self) -> None:
         if (self.status not in (ThreatIntelResultStatus.HIT, ThreatIntelResultStatus.NO_HIT)
@@ -80,6 +81,8 @@ class ThreatIntelCachedResult:
         _utc(self.received_at)
         if self.received_at < self.queried_at:
             raise ValueError("cached result precedes query")
+        if self.ip_facts is not None and not isinstance(self.ip_facts, ThreatIntelIpFacts):
+            raise TypeError("invalid cached IP facts")
 
     @classmethod
     def from_result(cls, result: ThreatIntelResult) -> "ThreatIntelCachedResult":
@@ -87,7 +90,7 @@ class ThreatIntelCachedResult:
             raise ValueError("operational errors are not cached")
         query = result.query
         return cls(result.status, query.request_id, query.queried_at, result.received_at,
-                   query.trigger, query.policy_version)
+                   query.trigger, query.policy_version, result.ip_facts)
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +108,7 @@ class ThreatIntelCacheEntry:
         query = ThreatIntelQuery(result.request_id, self.key.provider, self.key.subject,
                                  self.key.data_type, result.trigger, None,
                                  result.queried_at, result.query_policy_version)
-        ThreatIntelResult(query, result.status, result.received_at)
+        ThreatIntelResult(query, result.status, result.received_at, ip_facts=result.ip_facts)
         if result.status is ThreatIntelResultStatus.ERROR:
             raise ValueError("operational errors are not cached")
         _utc(self.fresh_until)

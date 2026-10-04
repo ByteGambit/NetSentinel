@@ -1,5 +1,12 @@
 # NS-084 — TI port ve consent policy
 
+**NS-086 güncellemesi (2026-10-04):** Aşağıdaki NS-084 v1 teslimat kaydı korunur.
+Güncel optional typed IP facts ve bounded operational rate hints result contract
+**2**'dir; query/consent policy **1** değişmez. AbuseIPDB descriptor yalnız
+IP_REPUTATION ilan eder ve mevcut secret portunu kullanır. Default desktop
+registry hâlâ boştur; consent Save/selection/startup network tetiklemez.
+[Provider review ve adapter politikası](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
+
 **Status: COMPLETE (2026-10-04).** NS-084 provider-independent port, subject/result ve açık veri izni sınırını kurar.
 Production provider registry boştur. Consent vermek bir lookup talebi değildir;
 startup, connection seçimi, detail açılması ve consent Save hiçbir provider çağrısı

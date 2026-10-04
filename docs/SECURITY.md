@@ -1,5 +1,17 @@
 # Güvenlik ve güvenli kullanım
 
+NS-086 read-only AbuseIPDB CHECK adapter'ı yalnız açık consent ile selected eligible
+public IPv4/IPv6 için kullanılabilir. Secret NS-084 ayrı portundan gelir ve yalnız
+Key header'a girer; normal config, result/cache, repr, log ve diagnostics'te yoktur.
+Fixed HTTPS ve standard TLS doğrulama; redirect/retry/proxy override yoktur.
+8 s finite socket timeout, 64 KiB capped streaming ve read deadline uygulanır;
+platform DNS wall-clock limiti ayrıca garanti edilmez. Raw body/detail saklanmaz.
+Typed provider score/whitelist güvenlik hükmü değildir. Provider public source IP'yi
+görür; privacy retention sıfır varsayılmaz. Business kullanımın plan şartları
+[2026-10-04 resmi incelemesinde](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md) kayıtlıdır.
+Default desktop registry boştur; startup/GUI/engine network yoktur. Live test
+explicit marker + env enable + chosen public IP + secret gerektirir, CI dışıdır.
+
 NS-085 reputation cache yalnız canonical IP/domain/SHA-256 ve bounded normalized
 NS-084 status/request/time provenance'ını yerel SQLite'ta tutar. NO_HIT güvenli
 hükmü değildir; timeout/ERROR saklanmaz veya mevcut sonucu zehirlemez. Stale

@@ -1,5 +1,11 @@
 # Ürün tanımı
 
+NS-086, AbuseIPDB IP-only CHECK adapter'ını explicit caller composition için
+sağlar; henüz desktop lookup akışı yoktur. Domain/hash desteklenmez; abstraction
+korunur. NO_HIT yalnız lookback içinde rapor bulunmadığını ifade eder, güvenli
+olduğu anlamına gelmez. Scheduler ve risk/UI entegrasyonu NS-087/NS-088'dir.
+[Provider/terms/privacy kararı](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
+
 NS-084, M15'in yalnız provider-independent TI port ve consent policy adımını
 uyguladı. Settings → Threat intelligence / reputation consent içinde provider ve
 data type başına manual selected izin önizlemesi vardır; yeni seçimler varsayılan

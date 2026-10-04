@@ -55,4 +55,4 @@ jobs:
       - name: Install locked development dependencies
         run: uv sync --locked --extra dev
       - name: Unit, integration, and offscreen GUI tests
-        run: .\.venv\Scripts\python.exe -m pytest -m "not windows_live and not lab_live" --cov=netsentinel --cov-report=term-missing --cov-fail-under=85
+        run: .\.venv\Scripts\python.exe -m pytest -m "not windows_live and not lab_live and not live_threat_intel" --cov=netsentinel --cov-report=term-missing --cov-fail-under=85
