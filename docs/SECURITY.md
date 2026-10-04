@@ -8,9 +8,20 @@ provisional instance kalıcı application selector olamaz; unknown/ambiguous ağ
 fingerprint uydurulmaz. Süresiz lifetime yalnız explicit PERMANENT ile mümkündür.
 Edit/revoke eski snapshot'ları silmez; finite audit quota yeni edit/create'ı durdurur,
 revoke için yer ayırır. Diagnostics'e selector/path/IP/network/reason dump edilmez;
-upload, automatic trust, evidence deletion, risk-score değişimi veya notification
-suppression execution yoktur. Legacy device trust ayrı kalır. Yerel DB ve content
+upload, automatic trust, evidence deletion veya risk-score değişimi yoktur.
+Legacy device trust ayrı kalır. Yerel DB ve content
 fingerprint adli authenticity garantisi değildir; [NS-080 sözleşmesi](SCOPED_PREFERENCES.md).
+
+NS-081 yalnız current explicit scoped preference'ı generic risk/alert eligibility'ye
+uygular. Bu karar safe/trusted classification değildir. Assessment commit edilir;
+evidence, score ve severity korunur. Expiry caller-supplied UTC anında değerlendirilir;
+revoked/expired policy etkisizdir. Lookup/evaluation failure UNAVAILABLE, eksik/bozuk
+candidate kümesi INDETERMINATE olarak açıklanır ve belirsiz support alerting için
+fail-open kalır. Tam suppression mevcut alert state veya notification cooldown'ı
+değiştirmez. Reason/selector yalnız bounded local typed result'ta bulunur, repr ve
+diagnostics dump'ına eklenmez; raw exception text dışarı taşınmaz. Ek ağ isteği,
+policy write, automatic replay, background expiry timer veya desktop delivery yoktur.
+[NS-081 sözleşmesi](SUPPRESSION_EVALUATION.md).
 
 NS-078 risk assessment history yalnız yerelde saklanan bounded davranış/güvenlik
 metadata'sıdır. Minimum snapshot canonical subject/scope/reference, policy/contract

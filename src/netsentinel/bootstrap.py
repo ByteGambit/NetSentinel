@@ -33,8 +33,10 @@ from netsentinel.application.services.baseline_detail import BaselineDetailServi
 from netsentinel.application.services.behavior_risk import BehaviorRiskPipeline
 from netsentinel.application.services.risk_alerts import RiskToAlertService
 from netsentinel.application.services.risk_assessments import RiskAssessmentService
+from netsentinel.application.services.suppression import SuppressionEvaluationService
 from netsentinel.application.services.risk_worker import RiskAlertWorker
 from netsentinel.infrastructure.sqlite.assessment_repository import SQLiteAssessmentRepository
+from netsentinel.infrastructure.sqlite.preference_repository import SQLiteScopedPreferenceRepository
 from netsentinel.infrastructure.sqlite.behavior_baselines import baseline_repository_session
 from netsentinel.shared.config import BehaviorBaselineConfig
 from netsentinel.application.services.history_query import ConnectionHistoryQueryService
@@ -166,7 +168,8 @@ def create_desktop_engine(
         behavior_baselines=baselines,
         behavior_risk=BehaviorRiskPipeline(baselines, RiskAlertWorker(
             RiskToAlertService(RiskAssessmentService(SQLiteAssessmentRepository(database)),
-                              AlertService(SQLiteAlertRepository(database)), dispatcher),
+                              AlertService(SQLiteAlertRepository(database)), dispatcher,
+                              suppression=SuppressionEvaluationService(SQLiteScopedPreferenceRepository(database))),
             dispatcher, shutdown_timeout=shutdown_timeout), polling_interval=polling_interval),
         dns_config_poller=dns_config,
     )

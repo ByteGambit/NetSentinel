@@ -2045,7 +2045,7 @@ dedup değişmez. UNKNOWN/AMBIGUOUS scope için `016_alert_risk_scope.sql` mevcu
 alerts tablosunda network fingerprint'i nullable yapar; 001–015 değişmez.
 Evidence JSON yalnız küçük typed assessment reference taşır. Failure/eligibility,
 queue/shutdown, retention ve crash sınırları:
-[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-081/082/083 ve desktop
+[NS-079 integration](RISK_ALERT_INTEGRATION.md). NS-082/083 ve desktop
 delivery uygulanmamıştır; M14 tamamlanmış değildir.
 
 NS-080 immutable scoped preference modelleri, explicit permanent/timed lifetime,
@@ -2056,8 +2056,25 @@ sahipli kısa SQLite transaction kullanır. Expected revision stale edit'i engel
 revoke için audit kapasitesi ayrılır. Merkezi sınırlar 256 revoke edilmemiş/1024
 toplam preference, 64 revision/preference, 16384 audit row ve 100/64 list/history
 page'dir. Audit/aktif policy otomatik silinmez; doluluk typed CAPACITY_REACHED olur.
-Pure selector matcher yalnız exact AND scope primitive'idir; eligibility evaluation
-ve runtime wiring yoktur. [NS-080 contract ve kabul raporu](SCOPED_PREFERENCES.md).
+Pure selector matcher exact AND scope primitive'idir.
+[NS-080 contract ve kabul raporu](SCOPED_PREFERENCES.md).
+
+NS-081 aynı risk worker içinde NS-078 assessment commit → current scoped policy
+lookup/evaluation → eligibility → mevcut AlertService → commit sonrası notification
+intent sırasını uygular. `SuppressionEvaluationService`, NS-080 matcher/status
+primitive'lerini reuse eder; explicit UTC `signal.assessed_at` kullanır.
+`RiskAlertResult.suppression`, assessment reference'ına bağlı immutable current-policy
+açıklamasıdır; historical risk snapshot'a yazılmaz, score/severity/evidence korunur.
+Alert-driving positive correlation gruplarında bir unsuppressed support bile
+eligibility'yi korur. Tam suppression AlertService'e hiç çağrı yapmaz; count,
+last_seen, ACK/RESOLVED ve notification cooldown değişmez. Policy değişimi/expiry
+otomatik replay başlatmaz. Lookup/evaluation failure typed limitation ile alerting
+için fail-open olur. Tek candidate query mevcut current-revision primary key'lerini
+kullanır; en çok 100 policy hydrate edilir, evidence başına 8 match, toplam 32 evidence
+ve 32 group taşınır. NS-080'in en çok 1024 logical policy metadata'sı üzerinde size-gated
+predicate exact matcher'ı uygular; selector index veya migration eklenmez. GUI/monitoring
+callback SQL, cache, yeni worker ve preference write eklenmez. Schema **017** kalır.
+[NS-081 sözleşmesi ve kabul raporu](SUPPRESSION_EVALUATION.md).
 
 Observed telemetry, learned baseline, user feedback, trust, suppression ve notification eligibility ayrı state'tir. DeviceProfile trust ağ/device kapsamlı mevcut kullanıcı verisidir; process/destination preference aynı tabloya yüklenmez. Yeni suppression selector application, destination, application+destination, rule ve network scope için typed/previewable/expiring olur; PID veya process name kalıcı key olmaz. Permanent suppression yalnız açık kullanıcı tercihiyle; evidence silinmeden policy sonucu açıklanır. Notification eligibility delivery proof değildir; tray/desktop delivery ayrı M17 adapter ve cooldown gerektirir.
 

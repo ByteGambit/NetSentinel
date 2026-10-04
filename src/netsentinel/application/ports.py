@@ -39,7 +39,7 @@ from netsentinel.domain.risk_assessment import (
     AssessmentHistory, AssessmentRead, AssessmentSave, AssessmentSnapshot, RiskAssessmentKey,
 )
 from netsentinel.domain.preferences import (
-    PreferenceDefinition, PreferenceOrigin, PreferencePage, PreferenceResult,
+    PreferenceDefinition, PreferenceMatchContext, PreferenceOrigin, PreferencePage, PreferenceResult,
 )
 from netsentinel.shared.diagnostics import (
     CaptureCapabilitySnapshot,
@@ -72,6 +72,11 @@ class ScopedPreferenceRepository(Protocol):
                     before_revision: int | None = None) -> PreferencePage: ...
 
     def list_current(self, *, limit: int = 100, after_id: UUID | None = None) -> PreferencePage: ...
+
+    def find_candidates(self, contexts: tuple[PreferenceMatchContext, ...], *, evaluated_at: datetime,
+                        limit: int = 100) -> PreferencePage:
+        """Current potentially matching policies only; incomplete replies stay explicit."""
+        ...
 
 
 class RiskAssessmentRepository(Protocol):

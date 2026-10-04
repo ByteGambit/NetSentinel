@@ -13,11 +13,12 @@ from netsentinel.domain.executable_hash import ExecutableHashStatus
 from netsentinel.domain.preferences import (
     MAX_PREFERENCE_HISTORY, MAX_PREFERENCE_QUERY, PREFERENCE_FORMAT_VERSION,
     DestinationKind, PreferenceAuditAction, PreferenceDefinition, PreferenceDestination,
-    PreferenceEffect, PreferenceLifetime, PreferenceLifetimeKind, PreferenceOrigin,
+    PreferenceEffect, PreferenceLifetime, PreferenceLifetimeKind, PreferenceMatchContext, PreferenceOrigin,
     PreferencePage, PreferenceResult, PreferenceResultStatus as Status, PreferenceSelector,
     PreferenceStatus, PreferenceStoragePolicy, ScopedPreference,
-    preference_id as validate_id, preference_reason, preference_time, revision_number,
+    preference_id as validate_id, preference_reason, preference_time, revision_number, selector_matches,
 )
+from netsentinel.domain.risk_evidence import MAX_EVIDENCE_CONTRIBUTORS
 from netsentinel.infrastructure.sqlite.database import SQLiteAdapterError, SQLiteDatabase, transaction
 
 # Trusted column vocabulary. Gate corrupt/oversize text in SQL before fetching it.
@@ -44,6 +45,23 @@ _SELECT = """SELECT p.preference_id, p.last_revision,
 _INSERT = "INSERT INTO scoped_preference_revisions (" + ", ".join(_COLUMNS) + ") VALUES (" + ", ".join("?" for _ in _COLUMNS) + ")"
 
 
+def _selector(application_key: str | None, application_revision: str | None,
+              destination_kind: str | None, destination_value: str | None,
+              network_fingerprint: str | None, rule_id: str | None) -> PreferenceSelector:
+    app = None if application_key is None else ApplicationIdentity(
+        ApplicationIdentityQuality.STABLE, application_key,
+        ApplicationIdentityEvidence.EXECUTABLE_PATH, ProcessInfoStatus.AVAILABLE)
+    revision = None if application_revision is None else ApplicationRevision(
+        application_revision, ExecutableHashStatus.AVAILABLE)
+    if (destination_kind is None) != (destination_value is None):
+        raise ValueError("incomplete destination")
+    destination = None
+    if destination_kind is not None:
+        assert destination_value is not None
+        destination = PreferenceDestination(DestinationKind(destination_kind), destination_value)
+    return PreferenceSelector(app, revision, destination, network_fingerprint, rule_id)
+
+
 def _decode(row: sqlite3.Row, *, latest: bool = False) -> PreferenceResult:
     identity = None
     try:
@@ -61,20 +79,9 @@ def _decode(row: sqlite3.Row, *, latest: bool = False) -> PreferenceResult:
         revision_number(row["last_revision"])
         if row["actual_revision"] != row["last_revision"] or row["revision_count"] != row["last_revision"] or (latest and row["revision"] != row["last_revision"]):
             raise ValueError("inconsistent revision history")
-        app = None if row["application_key"] is None else ApplicationIdentity(
-            ApplicationIdentityQuality.STABLE, row["application_key"],
-            ApplicationIdentityEvidence.EXECUTABLE_PATH, ProcessInfoStatus.AVAILABLE,
-        )
-        revision = None if row["application_revision"] is None else ApplicationRevision(
-            row["application_revision"], ExecutableHashStatus.AVAILABLE,
-        )
-        if (row["destination_kind"] is None) != (row["destination_value"] is None):
-            raise ValueError("incomplete destination")
-        destination = None if row["destination_kind"] is None else PreferenceDestination(
-            DestinationKind(row["destination_kind"]), row["destination_value"],
-        )
         definition = PreferenceDefinition(
-            PreferenceSelector(app, revision, destination, row["network_fingerprint"], row["rule_id"]),
+            _selector(row["application_key"], row["application_revision"], row["destination_kind"],
+                      row["destination_value"], row["network_fingerprint"], row["rule_id"]),
             PreferenceLifetime(PreferenceLifetimeKind(row["lifetime_kind"]),
                                datetime.fromisoformat(row["expires_at"]) if row["expires_at"] is not None else None),
             row["reason"], PreferenceEffect(row["effect"]),
@@ -162,6 +169,43 @@ class SQLiteScopedPreferenceRepository:
                     else:
                         entries.append(self._current(connection, identity))
                 return PreferencePage(Status.FOUND, tuple(entries), len(parents) > limit)
+        except (SQLiteAdapterError, sqlite3.Error):
+            return PreferencePage(Status.UNAVAILABLE)
+
+    def find_candidates(self, contexts: tuple[PreferenceMatchContext, ...], *, evaluated_at: datetime,
+                        limit: int = 100) -> PreferencePage:
+        """One consistent current-policy snapshot; no all-policy hydration or writes.
+
+        Existing primary keys join each logical policy to its current revision.
+        A size-gated deterministic SQLite predicate reuses the exact domain matcher;
+        malformed/future selectors are candidates, never silently discarded.
+        """
+        self._limit(limit, MAX_PREFERENCE_QUERY)
+        now = preference_time(evaluated_at).isoformat(timespec="microseconds")
+        if type(contexts) is not tuple or not 1 <= len(contexts) <= MAX_EVIDENCE_CONTRIBUTORS or any(type(c) is not PreferenceMatchContext for c in contexts):
+            raise ValueError("candidate contexts exceed typed evidence quota")
+        columns = ("application_key", "application_revision", "destination_kind", "destination_value", "network_fingerprint", "rule_id")
+        gated = [f"CASE WHEN typeof(r.{name}) = 'text' AND length(CAST(r.{name} AS BLOB)) <= {_TEXT_BOUNDS[name]} THEN r.{name} END" for name in columns]
+        invalid = " OR ".join(f"(r.{name} IS NOT NULL AND (typeof(r.{name}) != 'text' OR length(CAST(r.{name} AS BLOB)) > {_TEXT_BOUNDS[name]}))" for name in columns)
+
+        def may_match(version, app, revision, kind, value, network, rule, bad_text):
+            if type(version) is not int or version != PREFERENCE_FORMAT_VERSION or bad_text:
+                return 1
+            try:
+                selector = _selector(app, revision, kind, value, network, rule)
+                return int(any(selector_matches(selector, context) for context in contexts))
+            except (TypeError, ValueError, OverflowError, AttributeError):
+                return 1
+
+        current_select = _SELECT.replace("ON r.preference_id = p.preference_id", "ON r.preference_id = p.preference_id AND r.revision = p.last_revision")
+        predicate = "ns_preference_candidate(r.format_version, " + ", ".join(gated) + ", (" + invalid + ")) = 1"
+        specificity = " + ".join(f"(r.{name} IS NOT NULL)" for name in ("application_key", "application_revision", "destination_kind", "network_fingerprint", "rule_id"))
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                connection.create_function("ns_preference_candidate", 8, may_match, deterministic=True)
+                effective = "(r.status = 'active' AND (r.lifetime_kind = 'permanent' OR (r.lifetime_kind = 'expires_at' AND r.expires_at > ?)))"
+                rows = connection.execute(current_select + "WHERE " + predicate + " ORDER BY " + effective + " DESC, (" + specificity + ") DESC, p.preference_id LIMIT ?", (now, limit + 1)).fetchall()
+                return PreferencePage(Status.FOUND, tuple(_decode(row, latest=True) for row in rows[:limit]), len(rows) > limit)
         except (SQLiteAdapterError, sqlite3.Error):
             return PreferencePage(Status.UNAVAILABLE)
 

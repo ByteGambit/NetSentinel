@@ -10,6 +10,7 @@ from netsentinel.application.events import AlertNotificationIntent, EventDispatc
 from netsentinel.application.services.alerts import AlertService
 from netsentinel.application.services.risk_assessments import RiskAssessmentService
 from netsentinel.application.services.risk_evidence import BehaviorEvidence, evidence_from_behavior
+from netsentinel.application.services.suppression import SuppressionEvaluationService, unavailable_evaluation
 from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence, alert_id
 from netsentinel.domain.application_identity import ApplicationIdentityQuality
@@ -21,8 +22,11 @@ from netsentinel.domain.risk_evidence import (
     EvidenceReference, EvidenceReferenceKind, RiskEvidenceBatch,
 )
 from netsentinel.domain.risk_scoring import (
-    AssessmentAvailability, ContributionDirection, EvidenceFreshness, Freshness,
-    RiskScoreResult, RiskScoringInput, RiskScoringPolicy, RiskSeverity, score_risk,
+    EvidenceFreshness, Freshness,
+    RiskScoreResult, RiskScoringInput, RiskScoringPolicy, score_risk,
+)
+from netsentinel.domain.suppression import (
+    SuppressionDisposition, SuppressionEvaluation, SuppressionLimitation, has_alert_driving_risk,
 )
 
 
@@ -67,6 +71,7 @@ class RiskAlertResult:
     assessment: AssessmentSave | None = None
     alert: Alert | None = None
     dispatch: PublishReport | None = None
+    suppression: SuppressionEvaluation | None = None
 
 
 def risk_alert_fingerprint(key: RiskAssessmentKey) -> str:
@@ -94,19 +99,18 @@ def risk_alert_fingerprint(key: RiskAssessmentKey) -> str:
 
 def alert_eligible(result: RiskScoreResult) -> bool:
     """No new alert for UNKNOWN/INFO, zero or exclusively excluded evidence."""
-    return (result.availability is not AssessmentAvailability.UNKNOWN
-            and result.severity in (RiskSeverity.LOW, RiskSeverity.MEDIUM, RiskSeverity.HIGH)
-            and any(c.eligible and c.direction is ContributionDirection.POSITIVE and c.applied_points > 0
-                    for c in result.contributors))
+    return has_alert_driving_risk(result)
 
 
 class RiskToAlertService:
     """Blocking service used only by the risk worker; no concrete DB adapter."""
 
     def __init__(self, assessments: RiskAssessmentService, alerts: AlertService,
-                 dispatcher: EventDispatcher, *, policy: RiskScoringPolicy = RiskScoringPolicy()) -> None:
+                 dispatcher: EventDispatcher, *, policy: RiskScoringPolicy = RiskScoringPolicy(),
+                 suppression: SuppressionEvaluationService | None = None) -> None:
         self._assessments, self._alerts, self._dispatcher = assessments, alerts, dispatcher
         self._policy = policy
+        self._suppression = suppression
 
     def process(self, signal: BehaviorRiskSignal) -> RiskAlertResult:
         try:
@@ -129,28 +133,40 @@ class RiskToAlertService:
         except Exception:
             # Operational boundary: no adapter exception text enters the result.
             return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTENCE_FAILED)
+        reference = AlertAssessmentReference(key.assessment_id, saved.revision.revision, key.scope.network_status)
+        # User policy is a current decision, never part of the historical scoring snapshot.
+        try:
+            suppression = (self._suppression.evaluate(result, reference, evaluated_at=signal.assessed_at)
+                           if self._suppression is not None else unavailable_evaluation(result, reference,
+                               signal.assessed_at, SuppressionLimitation.EVALUATOR_NOT_CONFIGURED))
+            if type(suppression) is not SuppressionEvaluation or suppression.assessment != reference or suppression.evaluated_at != signal.assessed_at:
+                raise ValueError("suppression result context mismatch")
+        except Exception:
+            suppression = unavailable_evaluation(result, reference, signal.assessed_at,
+                                                SuppressionLimitation.EVALUATION_UNAVAILABLE)
+        if suppression.disposition is SuppressionDisposition.SUPPRESSED:
+            return RiskAlertResult(RiskAlertStatus.NO_ALERT, saved, suppression=suppression)
         # A replay of a retained older revision must never rewind current state.
         fingerprint = risk_alert_fingerprint(key)
-        reference = AlertAssessmentReference(key.assessment_id, saved.revision.revision, key.scope.network_status)
         candidate = AlertCandidate(fingerprint, "connection_behavior", key.scope.network_fingerprint,
             fingerprint, result.severity.value if result.severity is not None else "info",
             result.confidence.value if result.confidence is not None else "low",
             AlertEvidence(key.original_observed_at, assessment=reference), signal.intent)
         try:
-            eligible = alert_eligible(result)
+            eligible = alert_eligible(result) and suppression.alert_eligible
             if not eligible:
                 if self._alerts.get(alert_id(fingerprint)) is None:
-                    return RiskAlertResult(RiskAlertStatus.NO_ALERT, saved)
+                    return RiskAlertResult(RiskAlertStatus.NO_ALERT, saved, suppression=suppression)
                 alert, notify = self._alerts.update_assessment(candidate)
             elif signal.intent is AlertWriteIntent.REASSESSMENT:
                 alert, notify = self._alerts.update_assessment(candidate)
             else:
                 alert, notify = self._alerts.record(candidate)
         except Exception:
-            return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTED_ALERT_FAILED, saved)
+            return RiskAlertResult(RiskAlertStatus.ASSESSMENT_PERSISTED_ALERT_FAILED, saved, suppression=suppression)
         report = None
         if notify:
             report = self._dispatcher.publish(AlertNotificationIntent(
                 alert.id, alert.fingerprint, reference, alert.severity, signal.intent, alert.updated_at))
         return RiskAlertResult(RiskAlertStatus.SUCCESS if eligible else RiskAlertStatus.NO_ALERT,
-                               saved, alert, report)
+                               saved, alert, report, suppression)

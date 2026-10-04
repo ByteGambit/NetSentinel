@@ -20,9 +20,15 @@ NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve g�
 NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
 application/destination/network/rule için dar typed selector, explicit expiry veya
 permanent lifetime, reason/origin ve auditable edit/revoke saklanır. Kullanıcı
-tercihi observed baseline, device trust ve risk evidence'dan ayrıdır. Saklanan
-preference henüz alert/bildirim eligibility'sine uygulanmaz; evaluation NS-081,
-GUI/mark-normal NS-082 kapsamıdır. [Contract ve sınırlar](SCOPED_PREFERENCES.md).
+tercihi observed baseline, device trust ve risk evidence'dan ayrıdır.
+[Storage contract ve sınırlar](SCOPED_PREFERENCES.md).
+NS-081 current scoped preference'ı generic risk/alert pipeline'da eligibility'ye
+uygular. Risk score, severity ve evidence history korunur; suppression kullanıcı
+tercihini açıklar, uygulama/hedef için güvenli veya trusted hükmü vermez. Tam
+suppression alert lifecycle ve notification cooldown'a dokunmaz; storage/evaluation
+failure alerting için typed fail-open olur. Current policy açıklaması application
+result'ta bounded biçimde görünür. GUI/mark-normal NS-082, explanation UI NS-083
+kapsamındadır. [Evaluation contract](SUPPRESSION_EVALUATION.md).
 
 Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?”**
 

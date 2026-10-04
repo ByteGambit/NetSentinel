@@ -912,7 +912,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-081 — Suppression evaluation integration
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Immutable bounded current-policy evaluation, NS-080 exact matcher/expiry/revoke reuse ve assessment commit sonrası NS-079 eligibility entegrasyonu tamamlandı. Evidence/score/severity korunur; partial/correlated support, deterministic primary explanation, typed fail-open ve lifecycle/cooldown regression testleri geçer. Schema 017; migration yok. [Contract ve kabul raporu](SUPPRESSION_EVALUATION.md). NS-082 başlatılmadı; M14 tamamlanmadı.
 - **Amaç:** Risk/alert notification eligibility'yi kullanıcı policy'siyle değerlendirmek.
 - **Yapılacaklar:** Application service policy evaluation ve assessment'ta suppression explanation ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/domain/, tests/unit/application/.
