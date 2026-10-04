@@ -1,5 +1,15 @@
 # Güvenlik ve güvenli kullanım
 
+NS-083 risk detail açma/yenileme salt-okunurdur: scoring/reassessment, occurrence,
+baseline, preference veya audit mutation yapmaz. Score review-priority olarak,
+confidence/measurement quality/freshness ayrı gösterilir; missing/stale data safety
+verdict değildir. Stored suppression snapshot yoksa geçmiş policy kararı uydurulmaz;
+session runtime evaluation ve bugünkü matching policy açık ayrılır. Source expiry
+minimum açıklamayı silmez; unresolved pointer expired kabul edilmez. Yerel identity,
+destination, hash, scope ve kullanıcı reason'ları bounded plain text kalır; diagnostics
+dump/upload/network fetch eklenmez. Cloud/TI consent, desktop delivery, incident
+timeline veya response yoktur. [NS-083 sözleşmesi](RISK_EXPLANATION_UI.md).
+
 NS-082 “Mark this behavior as normal” yalnız future matching eligibility için
 explicit local preference oluşturur; application safe/trusted verdict değildir.
 Canonical application + rule korunur; narrow default'tan broadening preview'da

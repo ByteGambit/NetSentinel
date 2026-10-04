@@ -1,11 +1,13 @@
 """Bounded persisted-alert browser and acknowledge command."""
 
 from __future__ import annotations
+from uuid import UUID
 
 from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtWidgets import (QAbstractItemView, QComboBox, QFormLayout, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QPushButton, QSplitter, QTableView,
-    QTextEdit, QVBoxLayout, QWidget)
+    QTextEdit, QVBoxLayout, QWidget, QTabWidget, QScrollArea)
+from PyQt6.QtCore import QSignalBlocker
 
 from netsentinel.application.ports import AlertQuery
 from netsentinel.application.services.alert_query import AlertPage
@@ -14,6 +16,9 @@ from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.models.alerts import (AlertsTableModel, RULE_EXPLANATIONS,
     RULE_TITLES, SCORE_EXPLANATIONS, entity_text)
 from netsentinel.presentation.models.history import format_local_timestamp
+from netsentinel.presentation.risk_query import RiskQueryCoordinator
+from netsentinel.presentation.widgets.risk_explanation import RiskExplanationWidget
+from netsentinel.application.services.risk_explanation import RiskExplanationRequest
 
 
 ALERT_PAGE_SIZE = 50
@@ -27,7 +32,7 @@ class AlertDetailsWidget(QGroupBox):
               ("first", "First seen"), ("last", "Last seen"),
               ("count", "Occurrences"), ("updated", "Lifecycle updated"))
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, risk_queries: RiskQueryCoordinator | None = None) -> None:
         super().__init__("Selected alert", parent)
         self.setAccessibleName("Alert details")
         self.status_label = QLabel("No alert selected.", self)
@@ -50,11 +55,23 @@ class AlertDetailsWidget(QGroupBox):
         self.evidence.setAccessibleName("Alert evidence and score breakdown")
         self.evidence.setReadOnly(True)
         self.evidence.setMaximumHeight(145)
-        layout = QVBoxLayout(self)
+        legacy = QWidget(self)
+        layout = QVBoxLayout(legacy)
         layout.addWidget(self.status_label)
         layout.addLayout(form)
         layout.addWidget(self.explanation)
         layout.addWidget(self.evidence)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(legacy)
+        self.tabs = QTabWidget(self)
+        self.tabs.setAccessibleName("Selected alert detail sections")
+        self.tabs.addTab(scroll, "Alert evidence")
+        self.risk = RiskExplanationWidget(risk_queries, self)
+        self.tabs.addTab(self.risk, "Risk explanation")
+        self.tabs.setTabVisible(1, False)
+        outer = QVBoxLayout(self)
+        outer.addWidget(self.tabs)
 
     def clear(self) -> None:
         self.status_label.setText("No alert selected.")
@@ -63,8 +80,13 @@ class AlertDetailsWidget(QGroupBox):
             value.setText("—")
         self.explanation.clear()
         self.evidence.clear()
+        self.risk.clear("No alert selected.")
+        self.tabs.setTabVisible(1, False)
 
     def set_alert(self, alert: Alert, network_label: str | None = None) -> None:
+        request = RiskExplanationRequest.for_alert(alert)
+        self.tabs.setTabVisible(1, request is not None)
+        self.risk.select(request, empty="Generic assessment not available for this legacy alert.")
         self.status_label.hide()
         latest = alert.evidence[-1]
         values = {"type": RULE_TITLES.get(alert.rule_id, alert.rule_id.replace("_", " ")),
@@ -113,7 +135,8 @@ class AlertDetailsWidget(QGroupBox):
 
 
 class AlertsView(QWidget):
-    def __init__(self, parent: QWidget | None = None, *, coordinator: AlertQueryCoordinator | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, coordinator: AlertQueryCoordinator | None = None,
+                 risk_queries: RiskQueryCoordinator | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("alertsView")
         self.setAccessibleName("Persisted security alerts")
@@ -124,7 +147,7 @@ class AlertsView(QWidget):
         self._has_next = False
         self._loading = False
         self._initial_requested = False
-        self._selected_id = None
+        self._selected_id: UUID | None = None
         self._ack_pending = False
         self._network_labels: dict[str, str] = {}
         self._linked_profile: tuple[str, str] | None = None
@@ -187,7 +210,7 @@ class AlertsView(QWidget):
         for control in (self.previous_button, self.page_label, self.next_button):
             pagination.addWidget(control)
         pagination.addStretch()
-        self.details = AlertDetailsWidget(self)
+        self.details = AlertDetailsWidget(self, risk_queries=risk_queries)
         self.acknowledge_button = QPushButton("Acknowledge", self)
         self.acknowledge_button.setAccessibleName("Acknowledge selected alert")
         self.details.layout().addWidget(self.acknowledge_button)
@@ -240,7 +263,7 @@ class AlertsView(QWidget):
         self._network_labels = {context.fingerprint: f"{context.interface_name} · {context.subnet}" for context in contexts}
         alert = self._selected_alert()
         if alert is not None:
-            self.details.set_alert(alert, self._network_labels.get(alert.network_fingerprint))
+            self.details.set_alert(alert, self._network_labels.get(alert.network_fingerprint or ""))
 
     def load_initial(self) -> None:
         if self.coordinator is not None:
@@ -326,6 +349,8 @@ class AlertsView(QWidget):
         self._loading = False
         self._has_next = page.has_next
         previous_id = self._selected_id
+        # Reset selection signals must not discard a pending identical risk read.
+        blocker = QSignalBlocker(self.table.selectionModel())
         self.model.replace_alerts(page.alerts)
         row = self.model.row_for_id(previous_id) if previous_id is not None else None
         if row is not None:
@@ -333,6 +358,12 @@ class AlertsView(QWidget):
         else:
             self._selected_id = None
             self.details.clear()
+        del blocker
+        if row is not None:
+            alert = self.model.alert_at(row)
+            if alert is not None:
+                self._selected_id = alert.id
+                self.details.set_alert(alert, self._network_labels.get(alert.network_fingerprint or ""))
         if page.alerts:
             self.state_label.hide()
         else:
@@ -360,7 +391,7 @@ class AlertsView(QWidget):
             self.details.clear()
         else:
             self._selected_id = alert.id
-            self.details.set_alert(alert, self._network_labels.get(alert.network_fingerprint))
+            self.details.set_alert(alert, self._network_labels.get(alert.network_fingerprint or ""))
         self._update_controls()
 
     def _selected_alert(self) -> Alert | None:

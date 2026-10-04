@@ -1,6 +1,6 @@
 """Bounded NS-079 handoff; normalization/scoring/SQL stay off the poll thread."""
 
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 from math import isfinite
 from threading import Condition, Thread, current_thread
@@ -9,6 +9,7 @@ from netsentinel.application.events import EventDispatcher
 from netsentinel.application.services.risk_alerts import (
     BehaviorRiskSignal, RiskAlertResult, RiskAlertStatus, RiskToAlertService,
 )
+from netsentinel.domain.suppression import SuppressionEvaluation
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +42,12 @@ class RiskAlertWorker:
         self._accepting = False
         self._stopping = False
         self._processed = self._failed = self._rejected = self._dropped = 0
+        # Session-only explanation cache, no replay, scoring or preference usage writes.
+        self._explanations: OrderedDict[tuple[str, int], SuppressionEvaluation] = OrderedDict()
+
+    def suppression_for(self, assessment_id: str, revision: int) -> SuppressionEvaluation | None:
+        with self._condition:
+            return self._explanations.get((assessment_id, revision))
 
     @staticmethod
     def _validate_timeout(value: float) -> None:
@@ -52,6 +59,7 @@ class RiskAlertWorker:
             if self._thread is not None and self._thread.is_alive():
                 return False
             self._accepting, self._stopping = True, False
+            self._explanations.clear()
             self._thread = Thread(target=self._run, name="netsentinel-risk-worker", daemon=True)
             self._thread.start()
             return True
@@ -108,4 +116,11 @@ class RiskAlertWorker:
             with self._condition:
                 self._processed += 1
                 self._failed += int(result.status not in (RiskAlertStatus.SUCCESS, RiskAlertStatus.NO_ALERT))
+                if result.suppression is not None:
+                    reference = result.suppression.assessment
+                    identity = (reference.assessment_id, reference.revision)
+                    self._explanations[identity] = result.suppression
+                    self._explanations.move_to_end(identity)
+                    while len(self._explanations) > 32:
+                        self._explanations.popitem(last=False)
             self._dispatcher.publish(result)

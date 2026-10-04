@@ -1,5 +1,18 @@
 # Mimari
 
+NS-083 Alerts/Connections ortak `RiskExplanationQueryService` → immutable bounded
+read model → plain-text panel yolunu ekler. İki yüzeyde ayrı latest-slot query
+worker, factory/SQL reads'i GUI dışında çalıştırır; generation ve aynı-seçim dedup
+geciken sonuç/query storm'u engeller. Alert exact linked revision; connection exact
+lifecycle için latest retained revision kullanır. SQLite adapter mevcut PK ile
+exact read, en çok 512 size-gated identity ile lifecycle lookup yapar; migration yok.
+Stored score/freshness/policy asla yeniden hesaplanmaz. Current source availability
+ayrıdır. Risk worker en çok 32 session-only suppression explanation tutar; cache
+salt-okunur query'de güncellenmez ve restart'ta temizlenir. Historical suppression
+olmaması ile current matching preferences ayrı ve açık gösterilir; baseline numeric
+metrics format v1'de yoksa uydurulmaz. Her worker bounded shutdown ve destroyed-widget
+guard taşır. Şema 017, diagnostics değişmez. [NS-083 ve M14 exit](RISK_EXPLANATION_UI.md).
+
 ## 1. Mimari hedefler
 
 NetSentinel mimarisi şu nitelikleri korumalıdır:

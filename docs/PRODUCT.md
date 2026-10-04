@@ -15,7 +15,7 @@ NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel 
 
 NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve güvenlik uyarısını birbirinden ayırır. Uyarıların açıklaması ve dayanak verisi kullanıcıya sunulur; tek başına “kötü niyetli” hükmü verilmez.
 
-## Yeni fazın ürün yönü (M11–M13 tamamlandı; M14–M17 planlandı)
+## Yeni fazın ürün yönü (M11–M14 tamamlandı; M15–M17 planlandı)
 
 NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
 application/destination/network/rule için dar typed selector, explicit expiry veya
@@ -31,7 +31,9 @@ result'ta bounded biçimde görünür. NS-082 Connections → Behavior baseline 
 ayrı User preference bölümüyle selected behavior preview/expiry/save/cancel/revoke
 akışını sağlar. Kalıcı application identity ve exact rule korunur; PID/name veya
 provisional kimlik kabul edilmez. Baseline reset veya application safety verdict
-değildir. Explanation UI NS-083 planlıdır. [NS-082 akışı](MARK_NORMAL_UI.md),
+değildir. NS-083 Alerts/Connections risk explanation tamamlandı; score, confidence,
+measurement quality, source freshness, policy/revision ve preference etkisi ayrı
+görünür. [NS-083 açıklama ve veri sınırları](RISK_EXPLANATION_UI.md), [NS-082 akışı](MARK_NORMAL_UI.md),
 [evaluation contract](SUPPRESSION_EVALUATION.md).
 
 Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?”**
@@ -51,13 +53,14 @@ hakkında hüküm değildir. Reset, açık scope confirmation ile yalnız learne
 reference'i siler; trust/preferences veya connection history'yi değiştirmez.
 Kümülatif reference ve current memory window ayrıdır. NS-072–074 typed detector
 evidence modelleri NS-079 ile production engine pipeline'ına bağlıdır. Backend
-assessment ve mevcut alert lifecycle yerel worker'da işler; baseline detail
-ekranına yeni evidence/risk açıklaması eklenmemiştir. Risk explanation UI NS-083
-planıdır; M14 hâlâ devam eder.
+assessment ve mevcut alert lifecycle yerel worker'da işler. NS-083 seçili Alerts
+ve Connections detayında kayıtlı sonucu açıklar; bugünkü learned baseline ile
+geçmiş assessment context'i karıştırmaz. Numeric baseline metrics ve historical
+suppression snapshot format v1'de kayıtlı değilse UI bunu açık söyler. M14 tamamlandı.
 
 - **Local-first:** Connection/DNS/IP/process history varsayılan olarak yerel kalır. **NetSentinel does not upload your network history by default.** Reputation sorgusu başlangıçta kapalıdır; provider, subject type ve gönderilen veri için açık kullanıcı tercihi gerekir.
 - **Belirsizlik görünür:** Directly observed DNS evidence, correlated association, ambiguous association ve unknown ayrılır. DNS domain → IP gözlemi, process'in o domain'e bağlandığının kesin kanıtı değildir.
-- **Açıklanabilir risk:** Gelecekteki assessment contributor, evidence, confidence, measurement quality, source/freshness ve policy version gösterir. Sayısal risk malware probability değildir; eksik evidence “normal” sonucu değildir.
+- **Açıklanabilir risk:** Kayıtlı assessment contributor, evidence, confidence, measurement quality, source/freshness, policy version ve revision gösterir. Concern score yanında non-probability açıklaması ve contributor context bulunur; eksik evidence “normal” sonucu değildir.
 - **False-positive control:** Observed telemetry, baseline, user feedback, trust, suppression ve notification eligibility ayrı kalır; dar selector ve açık expiration tercih edilir.
 - **Aşamalı response:** Önce detection ve M17 public beta. M18 ancak NS-099 sonrası açık response GO kararıyla başlar; automatic blocking ve automatic elevation kapsam dışıdır.
 

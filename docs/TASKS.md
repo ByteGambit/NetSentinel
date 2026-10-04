@@ -855,6 +855,10 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ## M14 — Explainable Risk & User Feedback
 
+**Durum:** ✅ COMPLETE (2026-10-04; NS-076–NS-083). Çıkış kriterleri ve son
+offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdır.
+Önceki task durumlarındaki sonraki-task/milestone notları, o teslimat anının tarihsel kaydıdır.
+
 ### NS-076 — Generic risk evidence contract
 
 - **Durum:** ✅ COMPLETE (2026-10-03). Contract v1, immutable typed process/application/IPv4/IPv6 evidence, explicit host/resolved/unknown/ambiguous scope, ayrı quality/confidence, 8 reference/32 flat contributor hard cap ve semantics-preserving legacy ARP adapter tamamlandı. Legacy dedup/persistence regression ve M13 contract temsilleri offline doğrulandı; [contract ve kabul raporu](GENERIC_RISK_EVIDENCE.md). SQLite 014 değişmedi; NS-077 başlatılmadı, M14 tamamlanmadı.
@@ -934,7 +938,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 
 ### NS-083 — Risk explanation UI
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Alerts ve Connections ortak worker-backed risk explanation read model/panel; exact alert-linked revision, canonical connection lifecycle latest read, contributors/exclusions, quality/confidence/freshness/source availability, policy/revision ve açık current-vs-runtime suppression context tamamlandı. Legacy ARP details korunur; skor review priority olarak açıklanır, unknown/stale safety sonucu değildir. Schema 017; migration yok. Offscreen mixed/legacy/unknown/stale/suppressed/revision, read-only ve lifecycle testleri geçti; [uygulama ve kabul raporu](RISK_EXPLANATION_UI.md). M14 tamamlandı; NS-084 başlatılmadı.
 - **Amaç:** Assessment'ın nedenini ve preference etkisini göstermek.
 - **Yapılacaklar:** Alerts/Connections detail read model'ine contributors, freshness, quality, version, revision ve suppression ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/views/alerts.py, src/netsentinel/presentation/views/connections.py, src/netsentinel/presentation/models/, tests/gui/.
@@ -1196,7 +1200,7 @@ NS-001–NS-051 kayıtları ve yukarıdaki tarihsel özet değiştirilmez. Yeni 
 | M11 Process & Connection Telemetry Foundations | NS-052–NS-061 | 10 | ✅ COMPLETE |
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
-| M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | Planlandı |
+| M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Planlandı; kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |

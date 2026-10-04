@@ -28,6 +28,7 @@ from netsentinel.presentation.device_profile import DeviceProfileCoordinator
 from netsentinel.presentation.history_query import HistoryQueryCoordinator
 from netsentinel.presentation.destination_query import DestinationQueryCoordinator
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
+from netsentinel.presentation.risk_query import RiskQueryCoordinator
 from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
 from netsentinel.presentation.alert_query import AlertQueryCoordinator
 from netsentinel.presentation.dns_query import DnsQueryCoordinator
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
         destination_queries: tuple[DestinationQueryCoordinator, DestinationQueryCoordinator] | None = None,
         signer_service: ExecutableSignerService | None = None,
         baseline_queries: BaselineQueryCoordinator | None = None,
+        risk_queries: tuple[RiskQueryCoordinator, RiskQueryCoordinator] | None = None,
         preference_commands: PreferenceCommandCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         device_profiles: DeviceProfileCoordinator | None = None,
@@ -152,13 +154,14 @@ class MainWindow(QMainWindow):
                 parent=self.content,
                 destination_queries=destination_queries[0] if destination_queries else None,
                 baseline_queries=baseline_queries,
+                risk_queries=risk_queries[0] if risk_queries else None,
                 preference_commands=preference_commands,
                 signer_service=signer_service,
             ),
             PageId.HISTORY: HistoryView(history_queries, destination_queries=destination_queries[1] if destination_queries else None, parent=self.content),
             PageId.DEVICES: DevicesView(self.content, coordinator=device_inventory, profiles=device_profiles),
             PageId.DNS: DnsView(self.content, coordinator=dns_queries),
-            PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries),
+            PageId.ALERTS: AlertsView(self.content, coordinator=alert_queries, risk_queries=risk_queries[1] if risk_queries else None),
             PageId.DIAGNOSTICS: DiagnosticsView(capability_queries, self.content),
         }
 

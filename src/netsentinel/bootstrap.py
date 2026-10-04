@@ -33,6 +33,7 @@ from netsentinel.application.services.baseline_detail import BaselineDetailServi
 from netsentinel.application.services.behavior_risk import BehaviorRiskPipeline
 from netsentinel.application.services.risk_alerts import RiskToAlertService
 from netsentinel.application.services.risk_assessments import RiskAssessmentService
+from netsentinel.application.services.risk_explanation import RiskExplanationQueryService
 from netsentinel.application.services.suppression import SuppressionEvaluationService
 from netsentinel.application.services.risk_worker import RiskAlertWorker
 from netsentinel.infrastructure.sqlite.assessment_repository import SQLiteAssessmentRepository
@@ -441,6 +442,18 @@ def create_baseline_detail_service_factory(engine: MonitoringEngine) -> Callable
         if engine.behavior_baselines is None:
             raise RuntimeError("baseline service unavailable")
         return BaselineDetailService(engine.behavior_baselines, engine.behavior_features)
+    return create
+
+
+def create_risk_explanation_service_factory(engine: MonitoringEngine, *,
+        database_path: str | PathLike[str] | None = None) -> Callable[[], RiskExplanationQueryService]:
+    """Dormant worker factory; session suppression is distinct from stored risk."""
+    def create() -> RiskExplanationQueryService:
+        database = SQLiteDatabase(database_path, busy_timeout_ms=1000)
+        worker = engine.behavior_risk.worker if engine.behavior_risk else None
+        return RiskExplanationQueryService(SQLiteAssessmentRepository(database),
+            preferences=SQLiteScopedPreferenceRepository(database),
+            suppression_lookup=worker.suppression_for if worker else None)
     return create
 
 

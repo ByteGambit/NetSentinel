@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import IntEnum
 
 from PyQt6.QtCore import (
+    QByteArray,
     QAbstractTableModel,
     QModelIndex,
     QObject,
@@ -64,6 +65,7 @@ class ConnectionRole(IntEnum):
     DURATION = ROW_ID + 9
     PROCESS_INFO = ROW_ID + 10
     NETWORK_SCOPE = ROW_ID + 11
+    LIFECYCLE_ID = ROW_ID + 12
 
 
 _DISPLAY_FIELDS = (
@@ -89,6 +91,7 @@ _RAW_ROLE_FIELDS = {
     ConnectionRole.DURATION: "duration_seconds",
     ConnectionRole.PROCESS_INFO: "process_info",
     ConnectionRole.NETWORK_SCOPE: "network_scope",
+    ConnectionRole.LIFECYCLE_ID: "lifecycle_id",
 }
 
 _CHANGED_ROLES = [
@@ -179,6 +182,7 @@ class ConnectionsTableModel(QAbstractTableModel):
                 int(ConnectionRole.DURATION): b"duration",
                 int(ConnectionRole.PROCESS_INFO): b"processInfo",
                 int(ConnectionRole.NETWORK_SCOPE): b"networkScope",
+                int(ConnectionRole.LIFECYCLE_ID): QByteArray(b"lifecycleId"),
             }
         )
         return names
@@ -226,7 +230,7 @@ class ConnectionsTableModel(QAbstractTableModel):
         row_id = connection_row_id(event.key)
         existing_index = self._row_by_id.get(row_id)
         if existing_index is None:
-            self._insert_row(connection_row_from_snapshot(event.snapshot))
+            self._insert_row(connection_row_from_snapshot(event.snapshot, lifecycle_id=event.lifecycle_id))
             return
 
         existing = self._rows[existing_index]
@@ -235,6 +239,7 @@ class ConnectionsTableModel(QAbstractTableModel):
         replacement = connection_row_from_snapshot(
             event.snapshot,
             first_seen=existing.first_seen,
+            lifecycle_id=event.lifecycle_id,
         )
         self._replace_row(existing_index, replacement)
 
@@ -246,6 +251,7 @@ class ConnectionsTableModel(QAbstractTableModel):
                 connection_row_from_snapshot(
                     event.current,
                     first_seen=event.previous.observed_at,
+                    lifecycle_id=event.lifecycle_id,
                 )
             )
             return
@@ -256,6 +262,7 @@ class ConnectionsTableModel(QAbstractTableModel):
         replacement = connection_row_from_snapshot(
             event.current,
             first_seen=existing.first_seen,
+            lifecycle_id=event.lifecycle_id,
         )
         self._replace_row(existing_index, replacement)
 

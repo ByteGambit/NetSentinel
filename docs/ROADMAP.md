@@ -229,9 +229,9 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
-## Yeni faz: M11–M13 tamamlandı; M14–M17 planlandı, M18 conditional
+## Yeni faz: M11–M14 tamamlandı; M15–M17 planlandı, M18 conditional
 
-**Durum:** M1–M13 tamamlandı. M14–M17 planlandı ve henüz uygulanmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M14 tamamlandı. M15–M17 planlandı ve henüz uygulanmadı; NS-084 başlatılmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -261,7 +261,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M14 — Explainable Risk & User Feedback
 
-- **Durum:** ⬜ Planlandı (NS-076–NS-083).
+- **Durum:** ✅ COMPLETE (NS-076–NS-083, 2026-10-04). Generic evidence/scoring/revision/persistence/AlertService ve scoped preference/mark-normal zinciri, Alerts/Connections risk explanation ile tamamlandı. Frozen çıkış kriterleri offline full suite ve legacy/lifecycle/suppression regression ile doğrulandı; [NS-083 kabul ve M14 exit raporu](RISK_EXPLANATION_UI.md). SQLite 017; M15/NS-084 başlatılmadı.
 - **Amaç:** Riskin nedenini ve feedback etkisini gösterip yanlış pozitifleri azaltmak.
 - **Ana teslimatlar:** Generic typed risk evidence, pure/versioned scoring policy, assessment revisions, AlertService entegrasyonu, dar/expiring suppression, mark-normal ve explanation UI.
 - **Açık kapsam dışı:** Malware probability iddiası, cloud bağımlılığı, automatic response, process name/PID ile kalıcı suppression.

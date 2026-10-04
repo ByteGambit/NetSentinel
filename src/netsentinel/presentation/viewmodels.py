@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from uuid import UUID
 
 from netsentinel.domain.connections import (
     ConnectionNetworkScope,
@@ -65,6 +66,7 @@ class ConnectionRow:
     observed_at: datetime
     process_info: ProcessInfo
     network_scope: ConnectionNetworkScope
+    lifecycle_id: UUID | None = None
 
 
 def connection_row_id(key: ConnectionKey) -> ConnectionRowId:
@@ -89,6 +91,7 @@ def connection_row_from_snapshot(
     snapshot: ConnectionSnapshot,
     *,
     first_seen: datetime | None = None,
+    lifecycle_id: UUID | None = None,
 ) -> ConnectionRow:
     """Map a portable domain snapshot into presentation-only row values."""
 
@@ -128,6 +131,7 @@ def connection_row_from_snapshot(
         observed_at=snapshot.observed_at,
         process_info=snapshot.process,
         network_scope=snapshot.network_scope,
+        lifecycle_id=lifecycle_id,
     )
 
 

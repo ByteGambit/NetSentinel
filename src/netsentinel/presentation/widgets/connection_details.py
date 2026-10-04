@@ -1,6 +1,7 @@
 """Selected-connection detail panel for the Connections page."""
 
 from __future__ import annotations
+from uuid import UUID
 
 from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
@@ -20,6 +21,9 @@ from netsentinel.presentation.destination_context import DestinationEvidenceWidg
 from netsentinel.presentation.baseline_query import BaselineQueryCoordinator
 from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator
 from netsentinel.presentation.widgets.baseline_detail import BaselineDetailWidget
+from netsentinel.presentation.risk_query import RiskQueryCoordinator
+from netsentinel.presentation.widgets.risk_explanation import RiskExplanationWidget
+from netsentinel.application.services.risk_explanation import RiskExplanationRequest
 
 
 _DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
@@ -40,7 +44,8 @@ class ConnectionDetailsWidget(QGroupBox):
     """Render one proxy row without exposing Python/internal values."""
 
     def __init__(self, parent: QWidget | None = None, *, baseline_queries: BaselineQueryCoordinator | None = None,
-                 preference_commands: PreferenceCommandCoordinator | None = None) -> None:
+                 preference_commands: PreferenceCommandCoordinator | None = None,
+                 risk_queries: RiskQueryCoordinator | None = None) -> None:
         super().__init__("Selected connection", parent)
         self.setObjectName("connectionDetails")
         self.setAccessibleName("Connection details")
@@ -102,6 +107,8 @@ class ConnectionDetailsWidget(QGroupBox):
         self.tabs.setAccessibleDescription("Connection context and observed behavior baseline")
         self.tabs.addTab(connection_content, "Connection")
         self.tabs.addTab(self.baseline, "Behavior baseline")
+        self.risk = RiskExplanationWidget(risk_queries, self)
+        self.tabs.addTab(self.risk, "Risk explanation")
         outer = QVBoxLayout(self)
         outer.addWidget(self.tabs)
         self.clear()
@@ -118,16 +125,19 @@ class ConnectionDetailsWidget(QGroupBox):
             label.setText(MISSING_VALUE)
         self.destination.clear()
         self.baseline.clear()
+        self.risk.clear("No connection selected.")
         self.signer_text.setText("On-demand local evidence; no file has been checked.")
 
     def set_connection(self, index: QModelIndex) -> None:
-        if not index.isValid() or index.model() is None:
+        model = index.model()
+        if not index.isValid() or model is None:
             self.clear()
             return
 
-        model = index.model()
         row = index.row()
         first = model.index(row, 0)
+        lifecycle = model.data(first, int(ConnectionRole.LIFECYCLE_ID))
+        self.risk.select(RiskExplanationRequest(lifecycle_id=lifecycle) if isinstance(lifecycle, UUID) else None)
 
         self.status_label.clear()
         self.status_label.hide()

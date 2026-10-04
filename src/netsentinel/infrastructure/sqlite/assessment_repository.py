@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import sqlite3
+from uuid import UUID
 
 from netsentinel.domain.risk_assessment import (
     ASSESSMENT_FORMAT_VERSION, MAX_ASSESSMENT_KEY_BYTES, MAX_ASSESSMENT_PAYLOAD_BYTES,
@@ -31,6 +32,57 @@ class SQLiteAssessmentRepository:
     def __init__(self, database: SQLiteDatabase, policy: AssessmentStoragePolicy | None = None) -> None:
         self._database = database
         self.policy = policy or AssessmentStoragePolicy()
+
+    def revision(self, assessment_id: str, revision: int) -> AssessmentRead:
+        """Read exactly the alert-linked revision, even if a newer one exists."""
+        _digest(assessment_id)
+        if type(revision) is not int or not 1 <= revision <= 2**63 - 1:
+            raise ValueError("invalid revision")
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                row = connection.execute(_SELECT + "WHERE r.assessment_id = ? AND r.revision = ?",
+                                         (assessment_id, revision)).fetchone()
+                return self._decode(connection, row) if row else AssessmentRead(AssessmentReadStatus.NOT_FOUND)
+        except (SQLiteAdapterError, sqlite3.Error):
+            return AssessmentRead(AssessmentReadStatus.UNAVAILABLE)
+
+    def for_connection(self, lifecycle_id: UUID) -> AssessmentRead:
+        """Bounded identity scan: the store has at most 512 parents, no payload scan.
+
+        Match the canonical lifecycle, never destination/PID/process display name.
+        Ambiguous or unreadable identity data is reported conservatively.
+        """
+        if type(lifecycle_id) is not UUID:
+            raise TypeError("canonical lifecycle required")
+        try:
+            with self._database.connection() as connection, transaction(connection):
+                parents = connection.execute(
+                    "SELECT assessment_id, CASE WHEN length(CAST(identity_payload AS BLOB)) <= 8192 "
+                    "THEN identity_payload ELSE NULL END AS identity_payload FROM risk_assessments "
+                    "ORDER BY assessment_id LIMIT ?", (self.policy.max_assessments + 1,),
+                ).fetchall()
+                if len(parents) > self.policy.max_assessments:
+                    return AssessmentRead(AssessmentReadStatus.CORRUPT)
+                matches = []
+                for parent in parents:
+                    try:
+                        key = decode_value(parent["identity_payload"], RiskAssessmentKey, MAX_ASSESSMENT_KEY_BYTES)
+                        if key.assessment_id != parent["assessment_id"]:
+                            raise ValueError("identity mismatch")
+                    except (ValueError, TypeError, KeyError, OverflowError, RecursionError, AttributeError):
+                        return AssessmentRead(AssessmentReadStatus.CORRUPT)
+                    if (key.kind == "connection_behavior" and
+                            key.observation_reference == EvidenceReference(EvidenceReferenceKind.CONNECTION_LIFECYCLE, lifecycle_id)):
+                        matches.append(key.assessment_id)
+                if len(matches) > 1:
+                    return AssessmentRead(AssessmentReadStatus.CORRUPT)
+                if not matches:
+                    return AssessmentRead(AssessmentReadStatus.NOT_FOUND)
+                row = connection.execute(_SELECT + "WHERE r.assessment_id = ? ORDER BY r.revision DESC LIMIT 1",
+                                         (matches[0],)).fetchone()
+                return self._decode(connection, row, latest=True) if row else AssessmentRead(AssessmentReadStatus.CORRUPT)
+        except (SQLiteAdapterError, sqlite3.Error):
+            return AssessmentRead(AssessmentReadStatus.UNAVAILABLE)
 
     def save(self, key: RiskAssessmentKey, snapshot: AssessmentSnapshot, assessed_at: datetime) -> AssessmentSave:
         # Validate and encode before opening the transaction.
