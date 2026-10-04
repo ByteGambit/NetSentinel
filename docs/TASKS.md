@@ -984,7 +984,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-087 — Bounded lookup scheduler
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Memory-only explicit submit/shared pollable ticket; cache-first fixed 4-worker scheduler, 64 global/16 per-provider outstanding bounds ve 1 call/1 s local provider budget tamamlandı. Pending/in-flight dedup, 3-attempt bounded retry/1–30 s backoff/300 s Retry-After clamp, A/B isolation, explicit offline defer, consent snapshot/revoke cancellation ve 2 s toplam shutdown join doğrulandı. Startup/selection/engine/consent Save sıfır lookup; optional bootstrap/lifecycle/aggregate diagnostics, secret port injection ve default unavailable credential korunur. Schema 018→018, migration yok. Geniş targeted 533 passed; son scheduler 98 passed; full offline 2824 passed, 8 deselected; Ruff/configured ve direct mypy/diff temiz. [Scheduler sözleşmesi ve kabul raporu](THREAT_INTELLIGENCE_SCHEDULER.md). M15 devam ediyor; NS-088 başlatılmadı.
 - **Amaç:** Opt-in network sorgularını monitoring/GUI'den ayırmak.
 - **Yapılacaklar:** Dedup, concurrency, rate limit, bounded retry/backoff, offline ve consent revoke için application worker kur.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/shared/diagnostics.py, src/netsentinel/bootstrap.py, tests/unit/application/.
@@ -1201,7 +1201,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
-| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; NS-084–NS-086 COMPLETE, kullanıcı için default disabled |
+| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; NS-084–NS-087 COMPLETE, kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |

@@ -1,5 +1,16 @@
 # Güvenlik ve güvenli kullanım
 
+NS-087 yalnız explicit admitted query'yi fixed worker'lara aktarır. Default-off
+consent admission/dispatch/retry öncesi kontrol edilir; Save/current değişimi
+pending/delayed işleri iptal eder. In-flight HTTP geri alınamaz; yeni retry yoktur.
+Revoke cache purge değildir. Known offline explicit input HTTP'yi defer eder;
+connectivity ping yoktur. Per-provider budget/backoff ve global capacity storm'u
+sınırlar; secret yalnız adapter'da çözülür. Runtime queue durable değildir,
+diagnostics subject/secret/exception taşımaz. Startup, selection ve engine automatic
+lookup yoktur. Shutdown beklemesi toplam 2 s; stdlib DNS için 8 s wall-clock
+garantisi verilmez. NS-088/response eklenmez.
+[NS-087 privacy/shutdown sınırları](THREAT_INTELLIGENCE_SCHEDULER.md).
+
 NS-086 read-only AbuseIPDB CHECK adapter'ı yalnız açık consent ile selected eligible
 public IPv4/IPv6 için kullanılabilir. Secret NS-084 ayrı portundan gelir ve yalnız
 Key header'a girer; normal config, result/cache, repr, log ve diagnostics'te yoktur.
@@ -9,7 +20,8 @@ platform DNS wall-clock limiti ayrıca garanti edilmez. Raw body/detail saklanma
 Typed provider score/whitelist güvenlik hükmü değildir. Provider public source IP'yi
 görür; privacy retention sıfır varsayılmaz. Business kullanımın plan şartları
 [2026-10-04 resmi incelemesinde](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md) kayıtlıdır.
-Default desktop registry boştur; startup/GUI/engine network yoktur. Live test
+Desktop registry NS-087 ile AbuseIPDB IP descriptor'ını sunar; default secret
+backend unavailable'dır. Startup/selection/engine network yoktur. Live test
 explicit marker + env enable + chosen public IP + secret gerektirir, CI dışıdır.
 
 NS-085 reputation cache yalnız canonical IP/domain/SHA-256 ve bounded normalized

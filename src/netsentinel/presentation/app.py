@@ -30,6 +30,7 @@ from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.application.services.capabilities import CapabilityService
 from netsentinel.presentation.views.main_window import MainWindow
 from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
+from netsentinel.application.services.threat_intel_scheduler import ThreatIntelLookupScheduler
 from netsentinel.version import __version__
 
 
@@ -63,6 +64,7 @@ class ApplicationLifecycle:
         baseline_queries: BaselineQueryCoordinator | None = None,
         preference_commands: PreferenceCommandCoordinator | None = None,
         risk_queries: tuple[RiskQueryCoordinator, RiskQueryCoordinator] | None = None,
+        threat_intel_scheduler: ThreatIntelLookupScheduler | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
@@ -72,6 +74,8 @@ class ApplicationLifecycle:
         self._baseline_queries = baseline_queries
         self._preference_commands = preference_commands
         self._risk_queries = risk_queries or ()
+        self._threat_intel = threat_intel_scheduler
+        self._threat_intel_failed = False
         self._device_inventory = device_inventory
         self._device_profiles = device_profiles
         self._alert_queries = alert_queries
@@ -91,6 +95,11 @@ class ApplicationLifecycle:
         if self._start_requested:
             return False
         self._start_requested = True
+        if self._threat_intel is not None:
+            try:
+                self._threat_intel_failed = not self._threat_intel.start()
+            except Exception:
+                self._threat_intel_failed = True
         for query in self._risk_queries:
             query.start()
         if self._preference_commands is not None:
@@ -99,8 +108,8 @@ class ApplicationLifecycle:
             self._baseline_queries.start()
         if self._history_queries is not None:
             self._history_queries.start()
-        for query in self._destination_queries:
-            query.start()
+        for destination_query in self._destination_queries:
+            destination_query.start()
         if self._alert_queries is not None:
             self._alert_queries.start()
         if self._dns_queries is not None:
@@ -117,6 +126,8 @@ class ApplicationLifecycle:
         try:
             return self._engine.start()
         except BaseException:
+            if self._threat_intel is not None:
+                self._threat_intel.stop()
             for query in self._risk_queries:
                 query.stop()
             if self._preference_commands is not None:
@@ -126,8 +137,8 @@ class ApplicationLifecycle:
             self._bridge.stop()
             if self._history_queries is not None:
                 self._history_queries.stop()
-            for query in self._destination_queries:
-                query.stop()
+            for destination_query in self._destination_queries:
+                destination_query.stop()
             if self._signer_service is not None:
                 self._signer_service.stop()
             if self._alert_queries is not None:
@@ -148,6 +159,7 @@ class ApplicationLifecycle:
         if self._shutdown_requested:
             return bool(self._shutdown_result)
         self._shutdown_requested = True
+        ti_stopped = True if self._threat_intel is None else self._threat_intel.stop()
         risk_stopped = all(tuple(query.stop() for query in self._risk_queries))
         preferences_stopped = True if self._preference_commands is None else self._preference_commands.stop()
         baseline_stopped = True if self._baseline_queries is None else self._baseline_queries.stop()
@@ -166,7 +178,7 @@ class ApplicationLifecycle:
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and risk_stopped and preferences_stopped and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
+        self._shutdown_result = self._engine.stop() and ti_stopped and risk_stopped and preferences_stopped and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -189,6 +201,7 @@ class ApplicationShell:
     baseline_queries: BaselineQueryCoordinator | None = None
     preference_commands: PreferenceCommandCoordinator | None = None
     risk_queries: tuple[RiskQueryCoordinator, RiskQueryCoordinator] | None = None
+    threat_intel_scheduler: ThreatIntelLookupScheduler | None = None
 
 
 def create_application(
@@ -207,6 +220,7 @@ def create_application(
     dns_service_factory: DnsServiceFactory | None = None,
     capability_service_factory: Callable[[], CapabilityService] | None = None,
     threat_intel_consent_service: ThreatIntelConsentService | None = None,
+    threat_intel_scheduler: ThreatIntelLookupScheduler | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -244,7 +258,7 @@ def create_application(
     baseline_queries = BaselineQueryCoordinator(baseline_service_factory) if baseline_service_factory else None
     preference_commands = PreferenceCommandCoordinator(preference_service_factory) if preference_service_factory else None
     risk_queries = (RiskQueryCoordinator(risk_service_factory), RiskQueryCoordinator(risk_service_factory)) if risk_service_factory else None
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
@@ -271,8 +285,8 @@ def create_application(
     if history_queries is not None:
         history_queries.setParent(window)
     if destination_queries is not None:
-        for query in destination_queries:
-            query.setParent(window)
+        for destination_query in destination_queries:
+            destination_query.setParent(window)
     if device_inventory is not None:
         device_inventory.setParent(window)
     if device_profiles is not None:
@@ -285,7 +299,7 @@ def create_application(
         capability_queries.setParent(window)
     window.bind_engine_bridge(bridge)
     application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler)
 
 
 def run_application(
@@ -303,6 +317,7 @@ def run_application(
     preference_service_factory = None
     risk_service_factory = None
     threat_intel_consent_service = None
+    threat_intel_scheduler = None
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
@@ -322,19 +337,27 @@ def run_application(
             create_preference_command_service_factory,
             runtime_config_path,
             create_threat_intel_consent_service,
+            create_threat_intel_scheduler,
+            ABUSEIPDB_DESCRIPTOR,
         )
 
         config_path = runtime_config_path()
         loaded = initialize_runtime(config_path=config_path)
         settings = loaded.config
-        threat_intel_consent_service = create_threat_intel_consent_service(config_path=config_path)
+        threat_intel_consent_service = create_threat_intel_consent_service(
+            config_path=config_path, descriptors=(ABUSEIPDB_DESCRIPTOR,))
+        try:
+            threat_intel_scheduler = create_threat_intel_scheduler(threat_intel_consent_service)
+        except Exception:
+            pass  # optional TI construction cannot prevent local monitoring
         config_issues = bool(loaded.issues)
         first_run = not settings.onboarding_completed
         engine = create_desktop_engine(config=settings)
         baseline_service_factory = create_baseline_detail_service_factory(engine)
         risk_service_factory = create_risk_explanation_service_factory(engine)
         preference_service_factory = create_preference_command_service_factory()
-        capability_service_factory = create_capability_service_factory(engine, config=settings)
+        capability_service_factory = create_capability_service_factory(
+            engine, config=settings, threat_intel=threat_intel_scheduler)
         history_service_factory = create_history_query_service_factory()
         device_service_factory = create_device_inventory_service_factory(config=settings)
         profile_service_factory = create_device_profile_service_factory()
@@ -366,6 +389,7 @@ def run_application(
         preference_service_factory=preference_service_factory,
         risk_service_factory=risk_service_factory,
         threat_intel_consent_service=threat_intel_consent_service,
+        threat_intel_scheduler=threat_intel_scheduler,
     )
     onboarding = None
     if first_run:
@@ -385,6 +409,7 @@ def run_application(
             except Exception:
                 # Completion is a user preference. A failed core worker must
                 # not turn the first-run explanation into an application gate.
+                assert shell.capability_queries is not None
                 shell.capability_queries.start()
                 shell.capability_queries.request()
             shell.window.show()

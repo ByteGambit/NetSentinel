@@ -1,17 +1,25 @@
 # Ürün tanımı
 
+NS-087 explicit tekil reputation request için bounded cache-first scheduler sağlar.
+AbuseIPDB public IP consent seçeneği Settings'te görünür; varsayılan kapalıdır.
+Desktop lookup/result controls ve risk integration NS-088 kapsamındadır ve henüz
+uygulanmadı. Secret backend/key-entry yoktur; explicit composition mevcut secret
+portunu enjekte edebilir. Startup/connection selection/consent Save sıfır lookup;
+history enumerate/upload edilmez. M15 devam ediyor, schema 018 değişmedi.
+[Scheduler ve nonblocking sınırları](THREAT_INTELLIGENCE_SCHEDULER.md).
+
 NS-086, AbuseIPDB IP-only CHECK adapter'ını explicit caller composition için
 sağlar; henüz desktop lookup akışı yoktur. Domain/hash desteklenmez; abstraction
 korunur. NO_HIT yalnız lookback içinde rapor bulunmadığını ifade eder, güvenli
-olduğu anlamına gelmez. Scheduler ve risk/UI entegrasyonu NS-087/NS-088'dir.
+olduğu anlamına gelmez. Scheduler NS-087 ile mevcut; risk/UI entegrasyonu NS-088'dir.
 [Provider/terms/privacy kararı](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
 
 NS-084, M15'in yalnız provider-independent TI port ve consent policy adımını
 uyguladı. Settings → Threat intelligence / reputation consent içinde provider ve
 data type başına manual selected izin önizlemesi vardır; yeni seçimler varsayılan
-kapalıdır. Production provider listesi henüz boştur. Consent vermek history
-tarama/gönderme veya lookup başlatma eylemi değildir; bugün reputation request
-yoktur. [İzin, veri açıklaması ve sonuç semantiği](THREAT_INTELLIGENCE_CONSENT.md).
+kapalıdır. NS-087 registry yalnız AbuseIPDB IP capability'si sunar. Consent vermek
+history tarama/gönderme veya lookup başlatma eylemi değildir.
+[İzin, veri açıklaması ve sonuç semantiği](THREAT_INTELLIGENCE_CONSENT.md).
 
 ## Ürünün amacı
 

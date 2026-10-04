@@ -1,5 +1,11 @@
 # NS-085 — Reputation cache ve freshness
 
+**NS-087 güncellemesi (2026-10-04):** Local cache service scheduler worker'larında
+lazy compose edilir; fresh result sıfır provider call, stale+refresh error ayrı
+korunur. Cache mutation completion'dan önce olur; failure provider sonucunu
+kaybettirmez. Consent revoke purge yapmaz. Key/result/codec **2**, schema **018**
+değişmez. [Runtime sözleşmesi](THREAT_INTELLIGENCE_SCHEDULER.md).
+
 **NS-086 güncellemesi (2026-10-04):** Aşağıdaki v1 kayıtları NS-085 teslimatını
 belgeler. Güncel result contract/key ve payload codec **2**'dir. Optional typed
 `ip_facts`: mapping_version=1, lookback_days, abuse_confidence_score,

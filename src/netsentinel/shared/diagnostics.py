@@ -415,6 +415,7 @@ class DiagnosticsSnapshot:
     dns_writer_running: bool | None = None
     dns_queue_depth: int | None = None
     dns_queue_capacity: int | None = None
+    threat_intel: ThreatIntelSchedulerDiagnostics | None = None
 
     def __post_init__(self) -> None:
         if self.dns_queue_depth is not None or self.dns_queue_capacity is not None:
@@ -424,7 +425,34 @@ class DiagnosticsSnapshot:
                 raise ValueError("DNS queue depth exceeds capacity")
 
 
+@dataclass(frozen=True, slots=True)
+class ThreatIntelSchedulerDiagnostics:
+    """Aggregate NS-087 counters only; no subjects, tickets, secrets or errors."""
+
+    running: bool = False
+    online: bool = True
+    outstanding: int = 0
+    active: int = 0
+    delayed: int = 0
+    offline_deferred: int = 0
+    retained: int = 0
+    accepted: int = 0
+    coalesced: int = 0
+    capacity_rejected: int = 0
+    provider_calls: int = 0
+    retries: int = 0
+    rate_limited: int = 0
+    consent_cancelled: int = 0
+    shutdown_cancelled: int = 0
+    completed: int = 0
+    failed: int = 0
+    cache_fresh: int = 0
+    cache_stale: int = 0
+    cache_misses: int = 0
+
+
 __all__ = (
+    "ThreatIntelSchedulerDiagnostics",
     "DestinationDatasetStatus", "DestinationDatasetDiagnostic",
     "CaptureCapabilityReason",
     "CaptureCapabilitySnapshot",

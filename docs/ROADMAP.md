@@ -231,7 +231,7 @@ Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
 ## Yeni faz: M11–M14 tamamlandı; M15 başladı, M16–M17 planlandı, M18 conditional
 
-**Durum:** M1–M14 tamamlandı. M15 başladı; NS-084–NS-086 tamamlandı, NS-087–NS-088 planlandı. M16–M17 planlandı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M14 tamamlandı. M15 başladı; NS-084–NS-087 tamamlandı, NS-088 planlandı. M16–M17 planlandı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -269,7 +269,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M15 — Optional Threat Intelligence Evidence
 
-- **Durum:** Devam ediyor; NS-084–NS-086 ✅ COMPLETE (2026-10-04), NS-087–NS-088 planlandı. Kullanıcı için varsayılan kapalı; AbuseIPDB adapter yalnız explicit composition için vardır, desktop lookup henüz yok. [NS-084 sözleşme](THREAT_INTELLIGENCE_CONSENT.md), [NS-085 cache ve kabul raporu](THREAT_INTELLIGENCE_CACHE.md), [NS-086 provider kararı ve kabul raporu](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md). M15 COMPLETE değildir.
+- **Durum:** Devam ediyor; NS-084–NS-087 ✅ COMPLETE (2026-10-04), NS-088 planlandı. Kullanıcı için varsayılan kapalı; explicit lookup scheduler/cache/AbuseIPDB portu compose edilir, desktop lookup/result controls ve credential backend henüz yoktur. Startup/selection/consent Save sıfır lookup. [NS-084 sözleşme](THREAT_INTELLIGENCE_CONSENT.md), [NS-085 cache ve kabul raporu](THREAT_INTELLIGENCE_CACHE.md), [NS-086 provider kararı ve kabul raporu](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md), [NS-087 scheduler ve kabul raporu](THREAT_INTELLIGENCE_SCHEDULER.md). M15 COMPLETE değildir.
 - **Amaç:** Kullanıcı onayıyla destekleyici destination reputation evidence sağlamak.
 - **Ana teslimatlar:** Provider port/adapter, provider/subject/data consent, local TTL/stale cache, bounded rate-limited/offline scheduler ve risk revision/UI entegrasyonu.
 - **Açık kapsam dışı:** Varsayılan reputation request, toplu IP/domain/hash history upload, provider verdict'inden malware hükmü veya automatic blocking.

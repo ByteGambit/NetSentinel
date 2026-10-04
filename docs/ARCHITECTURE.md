@@ -1,5 +1,17 @@
 # Mimari
 
+NS-087 `ThreatIntelLookupScheduler`, single explicit query admission → worker
+cache-first → provider port → bounded retry/put → shared pollable completion
+yolunu kurar. 64 outstanding job, 4 worker; provider başına 16 job/1 call/1 s local
+interval, en çok 3 attempt ve 300 s Retry-After. Consent memory snapshot Save/current
+sonrasında revoke bildirimiyle güncellenir; her dispatch/retry tekrar kontrol eder.
+Bootstrap dormant AbuseIPDB/cache/consent composition sağlar; ApplicationLifecycle
+optional start/2 s toplam join ile stop eder. Secret backend default unavailable,
+explicit port injection mümkündür. Startup/selection/engine/consent Save lookup
+üretmez. Shared diagnostics yalnız aggregate counters taşır; GUI/engine I/O
+beklemez. Schema **018**, migration yok; NS-088 risk/UI başlamadı.
+[Scheduler sözleşmesi ve kabul raporu](THREAT_INTELLIGENCE_SCHEDULER.md).
+
 NS-086, explicit composition için synchronous AbuseIPDB API v2 CHECK adapter'ı
 ve bağımsız injected HTTP transport ekler. IP-only descriptor; mevcut application
 consent/secret portları korunur. Fixed HTTPS, verified TLS, redirect/retry yok,
@@ -7,7 +19,7 @@ consent/secret portları korunur. Fixed HTTPS, verified TLS, redirect/retry yok,
 result contract **2**'dir; SQLite cache codec **2** yalnız minimum facts'i saklar,
 operational metadata/errors'ı saklamaz. Schema **018** değişmez. Cache key'deki
 result_version mapping v1'i izole eder; v1 key/codec yeniden yorumlanmaz.
-Desktop registry/engine/GUI composition değişmez; scheduler NS-087'dir.
+NS-086 teslimatında desktop composition değişmedi; güncel scheduler yukarıdaki NS-087'dir.
 [Provider kararı, privacy ve sınırlar](THREAT_INTELLIGENCE_PROVIDER_ABUSEIPDB.md).
 
 NS-085 local reputation cache backend'ini ekler: immutable canonical
@@ -24,8 +36,9 @@ single-subject lookup service yalnız current provider/data-type/manual consent 
 external-eligible subject sonrası provider portunu çağırabilir; desktop/engine bu
 service'i henüz compose etmez. Ayrı secret port yalnız gelecekteki adapter içindir.
 Settings consent dialog'u yalnız local JSON config okuma/kaydetme boundary'sini
-kullanır; provider, secret veya network erişimi yoktur. Production registry boştur,
-schema 017 ve migration yoktur. [Port tasarımı ve karar tabloları](THREAT_INTELLIGENCE_CONSENT.md).
+kullanır; dialog provider, secret veya network erişmez. NS-084 teslimatında production
+registry boştu; NS-087 desktop registry AbuseIPDB IP descriptor'ını ilan eder.
+[Port tasarımı ve karar tabloları](THREAT_INTELLIGENCE_CONSENT.md).
 
 NS-083 Alerts/Connections ortak `RiskExplanationQueryService` → immutable bounded
 read model → plain-text panel yolunu ekler. İki yüzeyde ayrı latest-slot query

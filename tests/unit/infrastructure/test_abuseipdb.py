@@ -312,12 +312,14 @@ def test_operational_metadata_model_validation(fields):
         ThreatIntelRateLimit(**fields)
 
 
-def test_fixture_privacy_and_no_runtime_wiring():
+def test_fixture_privacy_and_scheduler_only_runtime_wiring():
     for path in FIXTURES.glob("*.json"):
         assert DUMMY_KEY not in path.read_text() and '"Key"' not in path.read_text()
     source = Path(__file__).parents[3] / "src" / "netsentinel"
-    for path in (source / "bootstrap.py", source / "application" / "engine.py"):
-        assert "AbuseIpDbAdapter" not in path.read_text()
+    assert "AbuseIpDbAdapter" not in (source / "application" / "engine.py").read_text()
+    bootstrap = (source / "bootstrap.py").read_text()
+    assert "create_threat_intel_scheduler" in bootstrap
+    assert "ThreatIntelLookupService" not in bootstrap and ".query(" not in bootstrap
     module = (source / "infrastructure" / "abuseipdb.py").read_text()
     for absent in ("RiskEvidence", "AlertService", "Thread(", "firewall", "/report", "/blacklist", "/check-block"):
         assert absent not in module

@@ -64,7 +64,7 @@ class ThreatIntelConsentDialog(QDialog):
               "Process paths, command lines, raw packets, evidence bundles and user notes are not sent.", content)
         label("Only a selected SHA-256 digest is eligible for hash lookup; the file and file path "
               "are not uploaded. Hash permission is separate from IP/domain permission.", content)
-        label("NS-084 defines consent only. No production provider or network lookup is available yet.", content)
+        label("This screen manages consent only. Saving consent never submits a lookup request.", content)
         if not service.descriptors:
             label("No providers configured. All reputation lookups remain disabled.", content)
         for descriptor in service.descriptors:

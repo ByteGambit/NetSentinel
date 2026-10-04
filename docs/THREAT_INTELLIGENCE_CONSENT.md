@@ -1,5 +1,12 @@
 # NS-084 — TI port ve consent policy
 
+**NS-087 güncellemesi (2026-10-04):** Desktop registry AbuseIPDB IP capability'sini
+sunar; consent Save/current tek notification slot ile memory snapshot'ı günceller.
+Scheduler submit/dispatch/retry disk I/O olmadan bu snapshot'ı kontrol eder;
+pending/delayed revoke iptal edilir. Default secret backend unavailable'dır.
+Startup/selection/consent Save hiçbir lookup başlatmaz. Aşağıdaki önceki teslimat
+kayıtları tarihseldir. [Güncel scheduler](THREAT_INTELLIGENCE_SCHEDULER.md).
+
 **NS-086 güncellemesi (2026-10-04):** Aşağıdaki NS-084 v1 teslimat kaydı korunur.
 Güncel optional typed IP facts ve bounded operational rate hints result contract
 **2**'dir; query/consent policy **1** değişmez. AbuseIPDB descriptor yalnız

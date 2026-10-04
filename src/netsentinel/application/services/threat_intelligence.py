@@ -1,6 +1,6 @@
 """NS-084 explicit single-subject lookup and local consent commands.
 
-No runtime provider is composed yet; no startup, history or engine hook exists.
+NS-087 uses a memory consent snapshot; no startup/history/engine lookup exists.
 Reading/saving consent never calls a provider. Each lookup reads current consent
 so revocation (including reopening settings) denies subsequent requests.
 """
@@ -8,6 +8,7 @@ so revocation (including reopening settings) denies subsequent requests.
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from threading import RLock
 
 from netsentinel.application.ports import ThreatIntelligenceProvider
 from netsentinel.domain.threat_intelligence import (
@@ -34,17 +35,45 @@ class ThreatIntelConsentService:
         self.descriptors = descriptors
         self._read = read
         self._save = save
+        self._snapshot: tuple[ThreatIntelConsent, ...] = ()
+        self._lock = RLock()
+        self._on_change: Callable[[], None] | None = None
+
+    def snapshot(self) -> tuple[ThreatIntelConsent, ...]:
+        """Memory-only current grants for NS-087 admission/execution gates."""
+        with self._lock:
+            return self._snapshot
+
+    def bind_scheduler_wakeup(self, callback: Callable[[], None]) -> None:
+        """One component notification slot; no per-request subscriber list."""
+        if not callable(callback):
+            raise TypeError("scheduler notification must be callable")
+        with self._lock:
+            self._on_change = callback
+
+    def _update_snapshot(self, consents: tuple[ThreatIntelConsent, ...]) -> None:
+        with self._lock:
+            changed = consents != self._snapshot
+            self._snapshot = consents
+            callback = self._on_change if changed else None
+        if callback is not None:
+            try:
+                callback()
+            except Exception:
+                pass  # optional worker failure must not break saved consent
 
     def current(self) -> tuple[ThreatIntelConsent, ...]:
         try:
             consents = self._read()
             validate_consents(consents)
         except (OSError, TypeError, ValueError):
-            return ()
-        return tuple(c for c in consents if any(
+            consents = ()
+        filtered = tuple(c for c in consents if any(
             d.provider == c.provider and c.data_type in d.supported_data_types
             for d in self.descriptors
         ))
+        self._update_snapshot(filtered)
+        return filtered
 
     def save(self, consents: tuple[ThreatIntelConsent, ...]) -> None:
         validate_consents(consents)
@@ -52,6 +81,7 @@ class ThreatIntelConsentService:
                        for d in self.descriptors) for c in consents):
             raise ValueError("unsupported provider consent")
         self._save(consents)
+        self._update_snapshot(consents)
 
 
 @dataclass(frozen=True, slots=True)
