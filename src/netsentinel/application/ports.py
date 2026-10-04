@@ -35,6 +35,9 @@ from netsentinel.domain.dns import (
 )
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.domain.risk_evidence import RiskEvidenceBatch
+from netsentinel.domain.threat_intelligence import (
+    ThreatIntelProviderDescriptor, ThreatIntelProviderId, ThreatIntelQuery, ThreatIntelResult,
+)
 from netsentinel.domain.risk_assessment import (
     AssessmentHistory, AssessmentRead, AssessmentSave, AssessmentSnapshot, RiskAssessmentKey,
 )
@@ -51,6 +54,29 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class ThreatIntelligenceProvider(Protocol):
+    """Only the policy-gated application lookup service may call this port.
+
+    NS-084 supplies test fakes only. Future adapters own fixed endpoints and
+    credential resolution; queries never contain keys, URLs or arbitrary data.
+    """
+
+    @property
+    def descriptor(self) -> ThreatIntelProviderDescriptor: ...
+
+    def query(self, request: ThreatIntelQuery) -> ThreatIntelResult: ...
+
+
+class ThreatIntelSecretStore(Protocol):
+    """Adapter-only credential boundary; no backend or secrets in normal config.
+
+    Values must never be logged, included in exceptions, or returned to the UI.
+    Provider ID is the reference, not a credential value.
+    """
+
+    def get_secret(self, provider: ThreatIntelProviderId) -> str | None: ...
 
 
 class ScopedPreferenceRepository(Protocol):

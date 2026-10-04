@@ -951,7 +951,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-084 — TI port ve consent policy
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Provider-independent IP/domain/SHA-256 query/result, pure default-deny consent policy, ayrı secret port ve Settings consent UI tamamlandı. Provider/data-type/manual trigger izolasyonu, private/local subject dışlaması, atomic JSON persistence, bozuk config fail-closed ve iki fake provider contract doğrulandı. Startup/selection/consent Save sıfır request; gerçek provider/HTTP yok. SQLite 017, migration yok. Full offline suite: 2465 passed, 7 deselected; [tasarım ve kabul raporu](THREAT_INTELLIGENCE_CONSENT.md). M15 devam ediyor; NS-085 başlatılmadı.
 - **Amaç:** Provider-independent reputation query ve açık veri iznini tanımlamak.
 - **Yapılacaklar:** IP/domain/SHA-256 subject, result, provider ve sent-data sözleşmesini; default-disabled config/consent UI'ı kur.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/shared/config.py, src/netsentinel/presentation/, tests/unit/.
@@ -1201,7 +1201,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M12 Local Destination Context & Attribution | NS-062–NS-068 | 7 | ✅ COMPLETE; NS-067 GO ve NS-068 conditional adapter tamamlandı |
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
-| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Planlandı; kullanıcı için default disabled |
+| M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | Devam ediyor; yalnız NS-084 COMPLETE, kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |

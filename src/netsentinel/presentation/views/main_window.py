@@ -21,6 +21,8 @@ from PyQt6.QtWidgets import (
 )
 
 from netsentinel.application.services.statistics import StatisticsService
+from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
+from netsentinel.presentation.widgets.threat_intel_consent import ThreatIntelConsentDialog
 from netsentinel.application.services.executable_signer import ExecutableSignerService
 from netsentinel.presentation.bridge import QtEngineBridge
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
@@ -96,6 +98,7 @@ class MainWindow(QMainWindow):
         alert_queries: AlertQueryCoordinator | None = None,
         dns_queries: DnsQueryCoordinator | None = None,
         capability_queries: CapabilityCoordinator | None = None,
+        threat_intel_consent_service: ThreatIntelConsentService | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -104,6 +107,8 @@ class MainWindow(QMainWindow):
         self._current_page = PageId.DASHBOARD
         self._engine_bridge: QtEngineBridge | None = None
         self._device_inventory = device_inventory
+        self._ti_consent_service = threat_intel_consent_service or ThreatIntelConsentService((), lambda: (), lambda _: None)
+        self._ti_consent_dialog: ThreatIntelConsentDialog | None = None
         self._dns_persisted_count = 0
         self.connections_model = (
             ConnectionsTableModel(self)
@@ -117,6 +122,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("NetSentinel")
         self.resize(1080, 680)
         self.setMinimumSize(760, 480)
+        menu_bar = self.menuBar()
+        assert menu_bar is not None
+        settings_menu = menu_bar.addMenu("Settings")
+        assert settings_menu is not None
+        self.threat_intel_consent_action = settings_menu.addAction("Threat intelligence / reputation consent…")
+        assert self.threat_intel_consent_action is not None
+        self.threat_intel_consent_action.triggered.connect(self._show_ti_consent)
 
         self.navigation = QListWidget(self)
         self.navigation.setObjectName("navigation")
@@ -190,6 +202,14 @@ class MainWindow(QMainWindow):
         devices = self.page_widget(PageId.DEVICES)
         assert isinstance(devices, DevicesView)
         devices.profile_alerts_requested.connect(self._show_profile_alerts)
+
+    def _show_ti_consent(self) -> None:
+        if self._ti_consent_dialog is None:
+            self._ti_consent_dialog = ThreatIntelConsentDialog(self._ti_consent_service, self)
+            self._ti_consent_dialog.finished.connect(lambda _: setattr(self, "_ti_consent_dialog", None))
+            self._ti_consent_dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._ti_consent_dialog.show()
+        self._ti_consent_dialog.raise_()
 
     def _show_profile_alerts(self, profile_id: object, network_fingerprint: str) -> None:
         alerts = self.page_widget(PageId.ALERTS)

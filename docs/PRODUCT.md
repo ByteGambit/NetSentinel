@@ -1,5 +1,12 @@
 # Ürün tanımı
 
+NS-084, M15'in yalnız provider-independent TI port ve consent policy adımını
+uyguladı. Settings → Threat intelligence / reputation consent içinde provider ve
+data type başına manual selected izin önizlemesi vardır; yeni seçimler varsayılan
+kapalıdır. Production provider listesi henüz boştur. Consent vermek history
+tarama/gönderme veya lookup başlatma eylemi değildir; bugün reputation request
+yoktur. [İzin, veri açıklaması ve sonuç semantiği](THREAT_INTELLIGENCE_CONSENT.md).
+
 ## Ürünün amacı
 
 NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel ağın davranışını anlaşılır biçimde gösteren, yerel çalışan bir network security monitoring uygulamasıdır. Amaç yalnızca trafik göstermek değil; bağlantı, süreç, cihaz kimliği ve temel ağ protokolleri arasındaki ilişkiyi açıklayarak kullanıcının networking ve cybersecurity bilgilerini geliştirmesine yardımcı olmaktır.
@@ -15,7 +22,7 @@ NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel 
 
 NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve güvenlik uyarısını birbirinden ayırır. Uyarıların açıklaması ve dayanak verisi kullanıcıya sunulur; tek başına “kötü niyetli” hükmü verilmez.
 
-## Yeni fazın ürün yönü (M11–M14 tamamlandı; M15–M17 planlandı)
+## Yeni fazın ürün yönü (M11–M14 tamamlandı; M15 başladı, M16–M17 planlandı)
 
 NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
 application/destination/network/rule için dar typed selector, explicit expiry veya

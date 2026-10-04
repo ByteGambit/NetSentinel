@@ -29,6 +29,7 @@ from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFa
 from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.application.services.capabilities import CapabilityService
 from netsentinel.presentation.views.main_window import MainWindow
+from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
 from netsentinel.version import __version__
 
 
@@ -205,6 +206,7 @@ def create_application(
     alert_service_factory: AlertServiceFactory | None = None,
     dns_service_factory: DnsServiceFactory | None = None,
     capability_service_factory: Callable[[], CapabilityService] | None = None,
+    threat_intel_consent_service: ThreatIntelConsentService | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -257,6 +259,7 @@ def create_application(
         alert_queries=alert_queries,
         dns_queries=dns_queries,
         capability_queries=capability_queries,
+        threat_intel_consent_service=threat_intel_consent_service,
     )
     bridge.setParent(window)
     for query in risk_queries or ():
@@ -299,6 +302,7 @@ def run_application(
     baseline_service_factory = None
     preference_service_factory = None
     risk_service_factory = None
+    threat_intel_consent_service = None
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
@@ -317,11 +321,13 @@ def run_application(
             create_risk_explanation_service_factory,
             create_preference_command_service_factory,
             runtime_config_path,
+            create_threat_intel_consent_service,
         )
 
         config_path = runtime_config_path()
         loaded = initialize_runtime(config_path=config_path)
         settings = loaded.config
+        threat_intel_consent_service = create_threat_intel_consent_service(config_path=config_path)
         config_issues = bool(loaded.issues)
         first_run = not settings.onboarding_completed
         engine = create_desktop_engine(config=settings)
@@ -359,6 +365,7 @@ def run_application(
         baseline_service_factory=baseline_service_factory,
         preference_service_factory=preference_service_factory,
         risk_service_factory=risk_service_factory,
+        threat_intel_consent_service=threat_intel_consent_service,
     )
     onboarding = None
     if first_run:
@@ -371,7 +378,7 @@ def run_application(
         def finish() -> bool:
             try:
                 complete_onboarding(config_path, settings)
-            except OSError:
+            except (OSError, ValueError):
                 return False
             try:
                 shell.lifecycle.start()

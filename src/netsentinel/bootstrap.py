@@ -1,6 +1,7 @@
 """Composition root for NetSentinel application and infrastructure adapters."""
 
 from __future__ import annotations
+from dataclasses import replace
 
 from os import PathLike
 from collections.abc import Callable
@@ -75,6 +76,9 @@ from netsentinel.infrastructure.sqlite.dns_repository import (
 )
 from netsentinel.infrastructure.sqlite.dns_association_repository import SQLiteDnsAssociationRepository
 from netsentinel.shared.config import AppConfig, ConfigLoadResult, HistoryRetentionConfig, load_config_file
+from netsentinel.shared.config import save_config_file
+from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
+from netsentinel.domain.threat_intelligence import ThreatIntelConsent, ThreatIntelProviderDescriptor
 from netsentinel.shared.diagnostics import DatabaseDiagnostic, DatabaseStatus, DiagnosticsSnapshot
 from netsentinel.shared.logging import configure_logging, log_event
 from netsentinel.infrastructure.sqlite.database import default_database_path
@@ -340,6 +344,27 @@ def initialize_runtime(*, config_path: str | Path | None = None, log_path: str |
         # Field names and user values are deliberately never logged.
         log_event(logger, component="config", code=issue.code)
     return result
+
+
+def create_threat_intel_consent_service(
+    *, config_path: str | PathLike[str] | None = None,
+    descriptors: tuple[ThreatIntelProviderDescriptor, ...] = (),
+) -> ThreatIntelConsentService:
+    """Local consent only; production registry is empty until NS-086.
+
+    Reload at Save to preserve other settings (including onboarding completion).
+    Unknown providers remain inert because the service filters the registry.
+    """
+    path = runtime_config_path() if config_path is None else Path(config_path)
+
+    def read() -> tuple[ThreatIntelConsent, ...]:
+        return load_config_file(path).config.threat_intel_consents
+
+    def save(consents: tuple[ThreatIntelConsent, ...]) -> None:
+        config = load_config_file(path).config
+        save_config_file(path, replace(config, threat_intel_consents=consents))
+
+    return ThreatIntelConsentService(descriptors, read, save)
 
 
 def runtime_config_path() -> Path:

@@ -1,5 +1,13 @@
 # Mimari
 
+NS-084 provider-independent TI contract ve pure consent policy'yi ekler. Application
+single-subject lookup service yalnız current provider/data-type/manual consent ve
+external-eligible subject sonrası provider portunu çağırabilir; desktop/engine bu
+service'i henüz compose etmez. Ayrı secret port yalnız gelecekteki adapter içindir.
+Settings consent dialog'u yalnız local JSON config okuma/kaydetme boundary'sini
+kullanır; provider, secret veya network erişimi yoktur. Production registry boştur,
+schema 017 ve migration yoktur. [Port tasarımı ve karar tabloları](THREAT_INTELLIGENCE_CONSENT.md).
+
 NS-083 Alerts/Connections ortak `RiskExplanationQueryService` → immutable bounded
 read model → plain-text panel yolunu ekler. İki yüzeyde ayrı latest-slot query
 worker, factory/SQL reads'i GUI dışında çalıştırır; generation ve aynı-seçim dedup

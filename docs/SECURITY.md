@@ -598,6 +598,17 @@ Executable hashing on-demand bounded worker'da yapılır; dosya çalıştırılm
 
 ### Threat intelligence ve dış sınır
 
+NS-084 typed subject/query/result, consent policy ve Settings consent UI'ını
+uyguladı; gerçek provider veya reputation networking henüz yoktur. Consent
+provider × IP/domain/SHA-256 data type × manual selected trigger bazındadır;
+consent Save lookup değildir. Otomatik trigger her zaman reddedilir. Missing veya
+bozuk config izinleri kapatır; bilinmeyen provider kaydı registry'de etkisizdir.
+Policy provider portundan önce çalışır; revoke sonraki istekleri anında reddeder.
+Pure global-address policy private/local/special/documentation IP'leri dışlar;
+local domain ve invalid subject gönderilemez. Secret normal config/query/result'a
+girmez; ayrı portta kalır. UI source IP görünürlüğünü, history/file/path upload
+olmadığını ve retention unknown olduğunu açıklar. [NS-084 privacy/port sınırları](THREAT_INTELLIGENCE_CONSENT.md).
+
 M15 reputation özelliği **default DISABLED**; temiz başlangıçta hiçbir reputation request yoktur. Consent provider, subject type (public IP/domain/SHA-256) ve gönderilen veri bazında ayrı açık eylemdir. Tüm IP/domain/hash history topluca gönderilmez; file bytes, executable path, command line, raw packet, user note veya secret gönderilmez. Private/local adresler varsayılan dışlanır. Provider'ın kendi log/retention politikasının güvenilir olduğu varsayılmaz; seçim öncesi terms/privacy ve rate-limit incelenir. Provider verdict destekleyici evidence'dır; tek başına malware veya automatic blocking kararı üretmez. No-hit, offline, stale, timeout, 429 ve provider failure ayrı durumlar olarak görünür.
 
 API key normal config, DB evidence, log, diagnostics, export veya UI error text'ine girmez; ayrı secret-storage port gerekir. Adapter yalnız sabit/allowlisted provider endpoints'e bağlanır. Evidence içindeki URL/host keyfi fetch tetikleyemez; response body, redirect, concurrency, timeout, retry ve queue boyutları bounded olur. Consent geri alındığında henüz başlamamış sorgular durur; cache purge ayrı kullanıcı kontrolüdür. DNS/IP reputation network isteği provider'a konu veriyi ve bağlantının source IP'sini gösterebilir; kullanıcı bunu önceden görür.

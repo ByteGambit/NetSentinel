@@ -11,6 +11,12 @@ import os
 from pathlib import Path
 import tempfile
 from typing import Any
+from uuid import UUID
+
+from netsentinel.domain.threat_intelligence import (
+    MAX_TI_CONSENTS, ThreatIntelConsent, ThreatIntelDataType, ThreatIntelProviderId, ThreatIntelTrigger,
+    validate_consents,
+)
 
 
 DEFAULT_RETENTION_DAYS = 30
@@ -116,8 +122,10 @@ class AppConfig:
     log_backups: int = 3
     onboarding_completed: bool = False
     destination_dataset_path: str | None = None
+    threat_intel_consents: tuple[ThreatIntelConsent, ...] = ()
 
     def __post_init__(self) -> None:
+        validate_consents(self.threat_intel_consents)
         if self.destination_dataset_path is not None:
             path = self.destination_dataset_path
             if (not isinstance(path, str) or not path or len(path) > 4096
@@ -178,6 +186,8 @@ def load_config_values(values: Mapping[str, Any]) -> ConfigLoadResult:
             continue
         value = values[name]
         try:
+            if name == "threat_intel_consents":
+                value = _load_threat_intel_consents(value)
             probe = {name: value}
             if name in ("history_queue_capacity", "dns_queue_capacity"):
                 probe[name.replace("queue_capacity", "batch_size")] = 1
@@ -195,6 +205,10 @@ def load_config_values(values: Mapping[str, Any]) -> ConfigLoadResult:
             if getattr(defaults, batch_name) > accepted.get(queue_name, getattr(defaults, queue_name)):
                 accepted.pop(queue_name, None)
                 issues.append(ConfigIssue(queue_name, "below_default_batch_size"))
+    if issues and accepted.get("threat_intel_consents"):
+        # A damaged config cannot silently preserve an outbound-data permission.
+        accepted.pop("threat_intel_consents")
+        issues.append(ConfigIssue("threat_intel_consents", "disabled_due_to_config_issue"))
     return ConfigLoadResult(AppConfig(**accepted), tuple(issues))
 
 
@@ -218,8 +232,46 @@ def load_config_file(path: str | Path) -> ConfigLoadResult:
 def complete_onboarding(path: str | Path, config: AppConfig) -> AppConfig:
     """Atomically persist an explicit user completion with validated settings."""
 
-    target = Path(path)
     completed = replace(config, onboarding_completed=True)
+    save_config_file(path, completed)
+    return completed
+
+
+def _load_threat_intel_consents(value: Any) -> tuple[ThreatIntelConsent, ...]:
+    # Entire malformed TI section is disabled, not partially opted in.
+    if not isinstance(value, list) or len(value) > MAX_TI_CONSENTS:
+        raise ValueError("invalid consent section")
+    consents = []
+    for entry in value:
+        if not isinstance(entry, dict) or set(entry) != {
+            "consent_id", "provider", "data_type", "trigger", "policy_version",
+        }:
+            raise ValueError("invalid consent entry")
+        if not isinstance(entry["provider"], dict) or set(entry["provider"]) != {"value"}:
+            raise ValueError("invalid provider reference")
+        if any(not isinstance(entry[field], str) for field in ("consent_id", "data_type", "trigger")):
+            raise ValueError("invalid consent fields")
+        consents.append(ThreatIntelConsent(
+            UUID(entry["consent_id"]), ThreatIntelProviderId(entry["provider"]["value"]),
+            ThreatIntelDataType(entry["data_type"]), ThreatIntelTrigger(entry["trigger"]),
+            entry["policy_version"],
+        ))
+    result = tuple(consents)
+    validate_consents(result)
+    return result
+
+
+def save_config_file(path: str | Path, config: AppConfig) -> None:
+    """Atomically persist validated local config after explicit user action."""
+    if not isinstance(config, AppConfig):
+        raise TypeError("config must be AppConfig")
+    values = asdict(config)
+    for entry in values["threat_intel_consents"]:
+        entry["consent_id"] = str(entry["consent_id"])
+    content = json.dumps(values, separators=(",", ":"))
+    if len(content) > 16_384:
+        raise ValueError("serialized config exceeds loader bound")
+    target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary: str | None = None
     try:
@@ -228,14 +280,13 @@ def complete_onboarding(path: str | Path, config: AppConfig) -> AppConfig:
             prefix=".config-", suffix=".tmp", delete=False,
         ) as stream:
             temporary = stream.name
-            json.dump(asdict(completed), stream, separators=(",", ":"))
+            stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, target)
     finally:
         if temporary is not None and os.path.exists(temporary):
             os.unlink(temporary)
-    return completed
 
 
 __all__ = (
@@ -244,5 +295,5 @@ __all__ = (
     "DEFAULT_RETENTION_DAYS",
     "HistoryRetentionConfig",
     "TrafficRateConfig",
-    "AppConfig", "ConfigIssue", "ConfigLoadResult", "load_config_values", "load_config_file", "complete_onboarding",
+    "AppConfig", "ConfigIssue", "ConfigLoadResult", "load_config_values", "load_config_file", "complete_onboarding", "save_config_file",
 )
