@@ -1041,7 +1041,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-092 — Incident acceptance/soak
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-05). Acceptance-only: actual polling/accumulator/baseline → risk worker/evidence/assessment/AlertService → explicit incident persistence → timeline/offscreen GUI hikâyesi doğrulandı. DNS ambiguity ayrı context kalır; yeni producer/detector/provider yoktur. Stable UUIDv5/restart/dedup, typed loss/source expiry/corruption, 10-minute fixed UTC bucket ve 5-minute inclusive reopen korunur. Soak 256 runtime/1024 durable parent, 128 relations/32 revisions, 16.383 index memberships, 256 GUI row ve 11 page/55 SELECT ölçtü; source/ref/snapshot/cleanup bounds geçti. 45 yeni test; story/GUI 36 passed; soak 9 passed ve critical repeat 14 passed; broad 2277 passed/8 deselected; full offline 3365 passed/8 deselected (306.73 s). Ruff/configured/direct mypy/diff temiz. Schema 019→019, migration veya production behavior change yoktur. [NS-092 raporu ve M16 exit matrisi](INCIDENT_ACCEPTANCE_SOAK.md). M16 ✅ COMPLETE; NS-093 başlatılmadı.
 - **Amaç:** Incident zincirini bounded uçtan uca doğrulamak.
 - **Yapılacaklar:** Sentetik connection+DNS+baseline+risk+optional fake TI story, restart/dedup/loss/retention acceptance ve resource budget ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** tests/integration/, tests/performance/, tests/gui/, docs/ARCHITECTURE.md.
@@ -1202,7 +1202,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M13 Deterministic Behavioral Baseline | NS-069–NS-075 | 7 | ✅ COMPLETE |
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
-| M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | Planlandı |
+| M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

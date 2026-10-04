@@ -229,9 +229,9 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
-## Yeni faz: M11–M15 tamamlandı; M16–M17 planlandı, M18 conditional
+## Yeni faz: M11–M16 tamamlandı; M17 planlandı, M18 conditional
 
-**Durum:** M1–M15 tamamlandı; NS-084–NS-088 COMPLETE. M16 devam ediyor; NS-089–NS-091 COMPLETE; NS-092 planlandı, başlatılmadı. M17 planlandı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M16 tamamlandı; NS-001–NS-092 COMPLETE (M16 exit: 2026-10-05). M17 planlandı; NS-093 başlatılmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -277,7 +277,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M16 — Incident Correlation & Timeline
 
-- **Durum:** 🟨 Devam ediyor. NS-089 bounded memory correlator ve NS-090 incident persistence/lifecycle COMPLETE (2026-10-04); NS-091 Incident timeline GUI COMPLETE (2026-10-05). NS-092 planlandı, başlatılmadı. M16 COMPLETE değildir. [NS-089 kabul raporu](INCIDENT_CORRELATION_ACCEPTANCE.md), [NS-090 kabul raporu](INCIDENT_PERSISTENCE_ACCEPTANCE.md), [NS-091 kabul raporu](INCIDENT_TIMELINE_ACCEPTANCE.md).
+- **Durum:** ✅ COMPLETE (2026-10-05; NS-089–NS-092). Offline gerçek servis/repository hikâyesi, source retention/restart/dedup/loss, fixed UTC buckets, inclusive reopen, offscreen salt-okunur timeline ve ölçülmüş runtime/storage/query bütçeleri geçti. 45 yeni test; broad 2277 passed/8 deselected, full 3365 passed/8 deselected. Production değişikliği ve migration yok; SQLite 019. [NS-092 kabul/soak ve M16 exit raporu](INCIDENT_ACCEPTANCE_SOAK.md). NS-093 başlatılmadı; önceki [correlation](INCIDENT_CORRELATION_ACCEPTANCE.md), [persistence](INCIDENT_PERSISTENCE_ACCEPTANCE.md), [timeline](INCIDENT_TIMELINE_ACCEPTANCE.md) kabul kayıtları korunur.
 - **Amaç:** Ayrı observation, assessment ve alert'ler arasındaki sınırlı olay hikayesini göstermek.
 - **Ana teslimatlar:** Typed references, bounded correlation window, incident lifecycle/persistence, timeline GUI ve offline acceptance/soak.
 - **Açık kapsam dışı:** Alert'in yerine geçme, aynı IP'den otomatik incident merge, olmayan process creation event'i, forensic integrity garantisi.

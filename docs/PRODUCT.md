@@ -1,5 +1,13 @@
 # Ürün tanımı
 
+NS-092 offline acceptance/soak M16 çıkışını doğruladı: restart-safe incident
+kimliği, dedup/reopen/source-expiry ve dürüst timeline sınırları korunur.
+Sentetik connection/DNS/baseline/risk/fake TI ve offscreen GUI gerçek servis ve
+repository sınırlarını geçer. DNS association process attribution değildir;
+incident üretimi mevcut explicit API'de kalır. Yeni ürün davranışı veya dış ağ
+işlemi eklenmedi. M16 COMPLETE; NS-093 başlatılmadı.
+[Kabul hikâyesi ve ölçülen bütçeler](INCIDENT_ACCEPTANCE_SOAK.md).
+
 NS-091 Incidents sayfası yerel kayıtlı incident listesi, detail ve bounded timeline
 sunar. Gözlem, ilişki/inference, assessment ve lifecycle action zamanları açıkça
 ayrıdır; kaynak kaybı veya unknown ilişki açıklaması saklanan minimum context ile
@@ -55,7 +63,7 @@ NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel 
 
 NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve güvenlik uyarısını birbirinden ayırır. Uyarıların açıklaması ve dayanak verisi kullanıcıya sunulur; tek başına “kötü niyetli” hükmü verilmez.
 
-## Yeni fazın ürün yönü (M11–M15 tamamlandı; M16–M17 planlandı)
+## Yeni fazın ürün yönü (M11–M16 tamamlandı; M17 planlandı)
 
 NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
 application/destination/network/rule için dar typed selector, explicit expiry veya

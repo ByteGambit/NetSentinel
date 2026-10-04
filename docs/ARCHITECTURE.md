@@ -1,5 +1,16 @@
 # Mimari
 
+NS-092 acceptance-only doğrulaması M16'yı tamamlar. Gerçek polling/feature/baseline
+→ risk worker/assessment/AlertService → explicit incident persistence → worker
+timeline/GUI sınırları offline sentetik hikâyeyle test edilir. DNS ambiguity ayrı
+context kalır; otomatik incident producer veya DNS-process attribution eklenmez.
+Restart/dedup/loss/retention, inclusive reopen ve fixed UTC bucket semantics
+korunur. Accelerated soak 256 runtime/1024 durable parent, 128 relation, 32 retained
+revision, 16.383/16.384 index membership ve 256 GUI row sınırını ölçer; long query
+11 sayfada 55 SELECT yapar. Şema **019 → 019**, production değişikliği yoktur.
+Full offline 3365 passed/8 deselected; [ölçümler, sınırlamalar ve M16 exit](INCIDENT_ACCEPTANCE_SOAK.md).
+NS-093 başlatılmadı. Aşağıdaki önceki task teslimat kayıtları tarihseldir.
+
 NS-091 `IncidentTimelineQueryService` / `IncidentTimelineRepository` read port,
 `SQLiteIncidentTimelineRepository` coherent read transaction ve Incidents GUI
 sayfasını ekler. Ayrı list/detail latest-slot workers DB reads/factory'yi GUI
