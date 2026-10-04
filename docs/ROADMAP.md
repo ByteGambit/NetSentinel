@@ -277,7 +277,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M16 — Incident Correlation & Timeline
 
-- **Durum:** ⬜ Planlandı (NS-089–NS-092).
+- **Durum:** 🟨 Devam ediyor. NS-089 bounded memory correlator COMPLETE (2026-10-04); NS-090–NS-092 planlandı, başlatılmadı. M16 COMPLETE değildir. [NS-089 kabul raporu](INCIDENT_CORRELATION_ACCEPTANCE.md).
 - **Amaç:** Ayrı observation, assessment ve alert'ler arasındaki sınırlı olay hikayesini göstermek.
 - **Ana teslimatlar:** Typed references, bounded correlation window, incident lifecycle/persistence, timeline GUI ve offline acceptance/soak.
 - **Açık kapsam dışı:** Alert'in yerine geçme, aynı IP'den otomatik incident merge, olmayan process creation event'i, forensic integrity garantisi.

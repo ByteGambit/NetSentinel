@@ -1,5 +1,15 @@
 # Mimari
 
+NS-089 `IncidentCorrelator`, explicit synchronous application boundary olarak
+canonical observation/entity/evidence pointers ile bounded memory grouping sağlar.
+Tek lock; immutable snapshot; 10-minute UTC cohort/span, inclusive lateness,
+typed gap/quality ve atomic reference/index caps vardır. Same IP/PID-only/app
+tek başına relation değildir; process-created inference yoktur. Connection,
+generic evidence ve historical assessment adapters existing IDs/original time'ı
+korur; engine/detector subscription veya worker eklenmedi. Persistence/lifecycle,
+GUI/timeline ve forensic graph yoktur; schema 018 değişmez. NS-090 başlamadı.
+[Policy freeze](INCIDENT_CORRELATION.md), [NS-089 kabul raporu](INCIDENT_CORRELATION_ACCEPTANCE.md).
+
 NS-088 `ThreatIntelEvidenceAdapter`, explicit scheduler sonucunu generic
 THREAT_INTELLIGENCE / threat_intelligence_reputation_context evidence ve küçük
 typed provenance'a dönüştürür. HIT/NO_HIT informational, sıfır puanlıdır; numeric

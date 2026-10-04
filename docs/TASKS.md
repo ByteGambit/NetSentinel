@@ -1008,7 +1008,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-089 — Bounded incident correlator
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Immutable typed incident/reference/reason contract, synchronous locked memory correlator ve existing connection/evidence/assessment adapters tamamlandı. Canonical lifecycle/evidence/assessment/alert priority; tam process instance + destination port/protocol + resolved scope dışında weak merge yok. Central 10-minute UTC cohort/span, inclusive lateness, gap/quality, atomic capacity ve index cleanup; no process-created inference. 140 yeni test, dependency-targeted 493 passed ve full offline 3039 passed/8 deselected; Ruff/configured/direct mypy/diff temiz. Schema 018→018, migration/persistence/GUI yok. [Policy freeze](INCIDENT_CORRELATION.md), [103 maddelik kabul raporu](INCIDENT_CORRELATION_ACCEPTANCE.md). M16 devam ediyor; NS-090 başlatılmadı.
 - **Amaç:** Observation/assessment/alert arasındaki ilişkiyi typed reason ile kurmak.
 - **Yapılacaklar:** Process/lifecycle/destination identity, correlation window ve bounded relation graph service tanımla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/services/, src/netsentinel/application/events.py, tests/unit/.
