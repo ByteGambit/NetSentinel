@@ -325,7 +325,7 @@ def test_migrations_001_015_unchanged_and_legacy_row_survives_016(tmp_path):
     try:
         assert MigrationRunner(builtin_migrations()[:15]).migrate(connection) == 15
         before = tuple(connection.execute("SELECT * FROM alerts").fetchone())
-        assert MigrationRunner(builtin_migrations()).migrate(connection) == 18
+        assert MigrationRunner(builtin_migrations()).migrate(connection) == 19
         assert tuple(connection.execute("SELECT * FROM alerts").fetchone()) == before
     finally:
         connection.close()

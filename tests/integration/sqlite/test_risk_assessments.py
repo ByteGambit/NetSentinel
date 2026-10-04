@@ -425,7 +425,7 @@ def test_migration_014_preserves_legacy_alerts_no_fabrication_or_lifecycle_chang
     repo = SQLiteAssessmentRepository(database)
     assert repo.latest(key().assessment_id).status is ReadStatus.NOT_FOUND
     with database.connection() as c:
-        assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 18
+        assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
         assert c.execute("SELECT COUNT(*) FROM risk_assessment_revisions").fetchone()[0] == 0
     for i in range(3):
         repo.save(key(), snapshot(evidence(reason_code=f"reason_{i}")), NOW + timedelta(seconds=i))

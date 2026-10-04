@@ -446,8 +446,8 @@ def test_production_wiring_is_dormant_and_evaluation_runs_on_existing_worker(tmp
 
 
 def test_schema_017_immutable_after_additive_migrations(tmp_path):
-    assert builtin_migrations()[-1].version == 18
+    assert builtin_migrations()[-1].version == 19
     with SQLiteDatabase(tmp_path / "schema.db").connection() as c:
-        assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 18
+        assert c.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
     data = Path("src/netsentinel/infrastructure/sqlite/schema/017_scoped_preferences.sql").read_bytes().replace(b"\r\n", b"\n")
     assert sha256(data).hexdigest() == "b830405d9c799085673bac0f5cddc2603e0a261511cb54ae4bec20a58c165281"

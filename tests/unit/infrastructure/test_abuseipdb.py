@@ -302,7 +302,7 @@ def test_cache_roundtrip_restart_version_isolation_and_error_skip(tmp_path, fixt
     with database.connection() as connection:
         payload = connection.execute("SELECT normalized_result FROM threat_intel_cache").fetchone()[0]
         assert len(payload.encode()) < 4096 and DUMMY_KEY not in payload and '"reports"' not in payload
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 18
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
 
 
 @pytest.mark.parametrize("fields", [dict(retry_after_seconds=-1), dict(limit=2**31),

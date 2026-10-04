@@ -203,7 +203,7 @@ def test_legacy_unknown_origin_and_retention_does_not_cascade(tmp_path) -> None:
             f"INSERT INTO dns_history ({columns}) VALUES ({','.join('?' for _ in values)})",
             values,
         )
-        assert MigrationRunner(builtin_migrations()).migrate(connection) == 18
+        assert MigrationRunner(builtin_migrations()).migrate(connection) == 19
     finally:
         connection.close()
     db = SQLiteDatabase(path)

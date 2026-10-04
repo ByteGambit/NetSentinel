@@ -1019,7 +1019,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-090 — Incident persistence/lifecycle
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-04). Typed additive durable contract, IncidentRepository port, explicit blocking service ve worker-owned SQLite repository tamamlandı. Canonical seed/policy/cohort UUIDv5, independent OPEN/ACK/RESOLVED ve REOPENED action, idempotent bounded append, 5-minute inclusive UTC reopen horizon + NS-089 membership, atomic expected-revision commands ve immutable newest-32 revisions vardır. Retention-safe refs/source states, 1024 parent/320 refs bound, explicit resolved-only chunk cleanup ve conservative bounded restart matching doğrulandı. Schema 018→019 (`019_incidents.sql`), 001–018 değişmez. 151 yeni test; targeted 526 passed; full offline 3190 passed/8 deselected; Ruff/configured/direct mypy/diff temiz. [Persistence sözleşmesi](INCIDENT_PERSISTENCE.md), [125 maddelik kabul raporu](INCIDENT_PERSISTENCE_ACCEPTANCE.md). Alert lifecycle değişmez; GUI/timeline yok. M16 devam ediyor; NS-091/092 başlatılmadı.
 - **Amaç:** Incident open/ack/resolved/reopen ve evidence append'i saklamak.
 - **Yapılacaklar:** Typed repository, stable incident ID, horizon ve retention-safe reference ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, src/netsentinel/infrastructure/sqlite/, tests/integration/sqlite/.

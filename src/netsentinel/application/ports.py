@@ -8,6 +8,10 @@ from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
 from collections.abc import Callable
 from typing import Protocol
+from netsentinel.domain.incident_persistence import (
+    IncidentHistory, IncidentPage, IncidentRecord, IncidentResult, IncidentState,
+    IncidentStoragePolicy,
+)
 from netsentinel.domain.threat_intel_cache import (
     ThreatIntelCacheEntry, ThreatIntelCacheKey, ThreatIntelCacheLookup,
     ThreatIntelCacheMutation, ThreatIntelCachePolicy,
@@ -58,6 +62,31 @@ from netsentinel.shared.diagnostics import (
 MAX_HISTORY_QUERY_LIMIT = 500
 MAX_ALERT_QUERY_LIMIT = 100
 MAX_DNS_HISTORY_QUERY_LIMIT = 500
+
+
+class IncidentRepository(Protocol):
+    """Blocking durable boundary. Update callback is pure and runs atomically.
+
+    Call on an owning worker. Callbacks must not perform I/O or call this port.
+    """
+
+    @property
+    def policy(self) -> IncidentStoragePolicy: ...
+
+    def update(self, incident_id: UUID,
+               transform: Callable[[IncidentRecord | None], IncidentRecord], *,
+               expected_revision: int | None = None) -> IncidentResult: ...
+
+    def get(self, incident_id: UUID) -> IncidentResult: ...
+
+    def list_current(self, *, limit: int = 100, after_id: UUID | None = None,
+                     state: IncidentState | None = None,
+                     cohort: datetime | None = None) -> IncidentPage: ...
+
+    def history(self, incident_id: UUID, *, limit: int = 32,
+                before_revision: int | None = None) -> IncidentHistory: ...
+
+    def cleanup(self, cutoff: datetime, now: datetime) -> int: ...
 
 
 class ThreatIntelCacheRepository(Protocol):

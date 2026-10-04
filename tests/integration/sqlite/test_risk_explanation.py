@@ -96,7 +96,7 @@ def test_open_and_refresh_are_read_only_for_every_store_and_schema(store):
         assert "source" in all_text(result).lower()
     assert dump() == before  # Includes alert/lifecycle, revision, policy/audit, baseline tables.
     with database.connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 18
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
 
 
 def test_missing_database_failure_is_typed(tmp_path, monkeypatch):

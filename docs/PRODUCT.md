@@ -1,5 +1,11 @@
 # Ürün tanımı
 
+NS-090 yerel backend, correlated incident'i restart sonrası aynı kimlikle saklar;
+ACK/RESOLVE/REOPEN ve evidence append alert lifecycle'ından bağımsızdır. Kaynak
+history silinse de bounded canonical explanation ve expired/unavailable durumu
+okunabilir. Explicit service API vardır; incident ekranı ve timeline NS-091'de
+planlanmıştır. SQLite 019. [Incident persistence sınırları](INCIDENT_PERSISTENCE.md).
+
 NS-088 Connections → External reputation içinde explicit **Check reputation**
 eylemi ve Alerts/Connections ortak risk açıklamasında tarihi TI context sağlar.
 AbuseIPDB public IPv4/IPv6, provider/type consent ve NS-087 bounded cache-first

@@ -422,7 +422,7 @@ def test_migration_017_to_018_preserves_data_and_key_index(tmp_path):
         before = [tuple(r) for r in connection.execute('SELECT * FROM schema_migrations')]
     upgraded = SQLiteDatabase(database.path)
     with upgraded.connection() as connection:
-        assert connection.execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0] == 18
+        assert connection.execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0] == 19
         assert [tuple(r) for r in connection.execute('SELECT * FROM schema_migrations WHERE version <= 17')] == before
         plan = connection.execute('EXPLAIN QUERY PLAN SELECT normalized_result FROM threat_intel_cache WHERE '
                                   'provider_id=? AND data_type=? AND subject_kind=? AND canonical_subject=? '

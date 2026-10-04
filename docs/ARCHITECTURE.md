@@ -1,5 +1,18 @@
 # Mimari
 
+NS-090 `IncidentPersistenceService` / `IncidentRepository` / `SQLiteIncidentRepository`
+explicit worker-owned blocking boundary ile stable incident UUIDv5, independent
+OPEN/ACKNOWLEDGED/RESOLVED lifecycle, bounded append ve immutable revision events
+saklar. Reopen action → OPEN; 5-minute inclusive UTC horizon ve NS-089 fixed-cohort
+membership birlikte gerekir. Short atomic transactions, expected revision,
+128 KiB current snapshot, 2 KiB reference/event, 1024 incidents/32 revisions ve
+retention-safe lazy source states vardır. Restart matching en fazla 256 exact-cohort
+candidate okur; unknown continuity derived links'i durdurur. Engine subscription,
+GUI/timeline veya alert cascade eklenmedi. SQLite **018 → 019**; 001–018 değişmez.
+[Persistence sözleşmesi](INCIDENT_PERSISTENCE.md),
+[NS-090 kabul raporu](INCIDENT_PERSISTENCE_ACCEPTANCE.md). M16 devam ediyor;
+NS-091/092 planlandı. Aşağıdaki NS-089 teslimat kaydı tarihseldir.
+
 NS-089 `IncidentCorrelator`, explicit synchronous application boundary olarak
 canonical observation/entity/evidence pointers ile bounded memory grouping sağlar.
 Tek lock; immutable snapshot; 10-minute UTC cohort/span, inclusive lateness,

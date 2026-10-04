@@ -271,6 +271,54 @@ class IncidentCorrelator:
             return tuple(sorted((s.snapshot for s in self._states.values()), key=lambda s: (
                 s.first_observed_at, s.incident_id.int)))
 
+    def hydrate(self, snapshots: tuple[CorrelatedIncident, ...], *, continuity_gap: bool = True) -> None:
+        """NS-090 bounded explicit restore, without synthetic events or counters.
+
+        Unknown continuity disables derived keys. Canonical keys remain exact;
+        aggregate entities are never expanded into a Cartesian relation graph.
+        Restore only into a fresh, private correlator before accepting input.
+        """
+        from netsentinel.domain.incident_persistence import validate_incident
+
+        if type(snapshots) is not tuple or len(snapshots) > self.policy.max_incidents:
+            raise ValueError("hydration exceeds incident bound")
+        states: dict[UUID, _State] = {}
+        indexes: dict[tuple[datetime, IncidentCorrelationKey], set[UUID]] = {}
+        observations: dict[IncidentObservationRef, UUID] = {}
+        entries = 0
+        for original in snapshots:
+            validate_incident(original, self.policy)
+            if original.incident_id in states:
+                raise ValueError("duplicate hydrated incident")
+            incident = replace(original, limitations=_add(original.limitations, (Limitation.MONITORING_GAP,))) if continuity_gap else original
+            keys = {IncidentCorrelationKey(Reason.SAME_CONNECTION_LIFECYCLE, r) for r in incident.connections}
+            keys.update(IncidentCorrelationKey(Reason.SAME_CANONICAL_EVIDENCE, r) for r in incident.evidence)
+            keys.update(IncidentCorrelationKey(Reason.SAME_ASSESSMENT_LINEAGE, r.assessment_id) for r in incident.assessments)
+            keys.update(IncidentCorrelationKey(Reason.SAME_ALERT_OBSERVATION, r) for r in incident.alerts)
+            if not continuity_gap:
+                keys.update(r.matched_key for r in incident.relations if r.matched_key is not None)
+                if len(incident.processes) == len(incident.destinations) == len(incident.scopes) == 1:
+                    process, destination, scope = incident.processes[0], incident.destinations[0], incident.scopes[0]
+                    if process.identity.create_time is not None and destination.port is not None and destination.protocol is not None and scope.kind is EvidenceScopeKind.NETWORK:
+                        keys.add(IncidentCorrelationKey(Reason.SAME_PROCESS_AND_DESTINATION,
+                            IncidentProcessDestination(process, destination, scope)))
+            entries += len(keys) + len(incident.relations)
+            if len(keys) > self.policy.max_keys_per_incident or entries > self.policy.max_index_entries:
+                raise ValueError("hydration exceeds index bound")
+            states[incident.incident_id] = _State(incident, keys)
+            for key in keys:
+                indexes.setdefault((incident.cohort, key), set()).add(incident.incident_id)
+            for relation in incident.relations:
+                if relation.observation in observations:
+                    raise ValueError("ambiguous hydrated observation")
+                observations[relation.observation] = incident.incident_id
+        with self._lock:
+            if self._states or self._watermark is not None:
+                raise ValueError("hydrate requires a fresh correlator")
+            self._states, self._indexes, self._observations = states, indexes, observations
+            self._index_entries = entries
+            self._watermark = max((s.last_observed_at for s in snapshots), default=None)
+
     def diagnostics(self) -> IncidentDiagnostics:
         """Only aggregate counts; never pointers, addresses or exception text."""
         with self._lock:

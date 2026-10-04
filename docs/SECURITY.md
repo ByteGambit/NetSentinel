@@ -1,5 +1,13 @@
 # Güvenlik ve güvenli kullanım
 
+NS-090 incident storage yerel, bounded behavioral/security history'dir. Typed
+canonical refs, scopes/destinations, original UTC observation times ve relation
+reasons saklanır; full source object, raw packet, secret ve arbitrary metadata
+yoktur. Source cleanup incident açıklamasını silmez veya history'yi FK ile pinlemez.
+Incident ve alert command'ları birbirini değiştirmez. GUI/network/upload/response
+eklenmez; yerel SQLite forensic authenticity veya tamper-proof audit garantisi
+vermez. [Storage/retention sözleşmesi](INCIDENT_PERSISTENCE.md).
+
 NS-088 yalnız Connections → External reputation → Check reputation ile selected
 eligible public IP lookup başlatır. Startup, observation, alert, selection, page/detail
 open ve consent Save sıfır external request üretir. NS-084 default-deny consent ve
