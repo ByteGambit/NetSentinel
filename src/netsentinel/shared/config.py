@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import asdict, replace
+from enum import Enum
 from math import isfinite
 from collections.abc import Mapping
 import json
@@ -22,6 +23,13 @@ from netsentinel.domain.threat_intelligence import (
 DEFAULT_RETENTION_DAYS = 30
 DEFAULT_MAX_HISTORY_ROWS = 100_000
 DEFAULT_CLEANUP_CHUNK_SIZE = 500
+
+
+class WindowCloseBehavior(str, Enum):
+    """NS-093 user preference, independent of session tray capability."""
+
+    QUIT_APPLICATION = "quit_application"
+    HIDE_TO_TRAY = "hide_to_tray"
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,11 +129,14 @@ class AppConfig:
     log_max_bytes: int = 1_048_576
     log_backups: int = 3
     onboarding_completed: bool = False
+    window_close_behavior: WindowCloseBehavior = WindowCloseBehavior.QUIT_APPLICATION
     destination_dataset_path: str | None = None
     threat_intel_consents: tuple[ThreatIntelConsent, ...] = ()
 
     def __post_init__(self) -> None:
         validate_consents(self.threat_intel_consents)
+        if not isinstance(self.window_close_behavior, WindowCloseBehavior):
+            raise ValueError("window_close_behavior must be WindowCloseBehavior")
         if self.destination_dataset_path is not None:
             path = self.destination_dataset_path
             if (not isinstance(path, str) or not path or len(path) > 4096
@@ -188,6 +199,8 @@ def load_config_values(values: Mapping[str, Any]) -> ConfigLoadResult:
         try:
             if name == "threat_intel_consents":
                 value = _load_threat_intel_consents(value)
+            if name == "window_close_behavior":
+                value = WindowCloseBehavior(value)
             probe = {name: value}
             if name in ("history_queue_capacity", "dns_queue_capacity"):
                 probe[name.replace("queue_capacity", "batch_size")] = 1
@@ -235,6 +248,13 @@ def complete_onboarding(path: str | Path, config: AppConfig) -> AppConfig:
     completed = replace(config, onboarding_completed=True)
     save_config_file(path, completed)
     return completed
+
+
+def save_window_close_behavior(path: str | Path, behavior: WindowCloseBehavior) -> None:
+    """Explicit settings Save preserves other settings changed this session."""
+
+    current = load_config_file(path).config
+    save_config_file(path, replace(current, window_close_behavior=behavior))
 
 
 def _load_threat_intel_consents(value: Any) -> tuple[ThreatIntelConsent, ...]:
@@ -295,5 +315,5 @@ __all__ = (
     "DEFAULT_RETENTION_DAYS",
     "HistoryRetentionConfig",
     "TrafficRateConfig",
-    "AppConfig", "ConfigIssue", "ConfigLoadResult", "load_config_values", "load_config_file", "complete_onboarding", "save_config_file",
+    "AppConfig", "WindowCloseBehavior", "save_window_close_behavior", "ConfigIssue", "ConfigLoadResult", "load_config_values", "load_config_file", "complete_onboarding", "save_config_file",
 )

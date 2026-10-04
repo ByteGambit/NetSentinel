@@ -229,9 +229,9 @@ güvenlik, izin, migration ve paketleme kontrollerini kapsar.
 
 Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
-## Yeni faz: M11–M16 tamamlandı; M17 planlandı, M18 conditional
+## Yeni faz: M11–M16 tamamlandı; M17 devam ediyor, M18 conditional
 
-**Durum:** M1–M16 tamamlandı; NS-001–NS-092 COMPLETE (M16 exit: 2026-10-05). M17 planlandı; NS-093 başlatılmadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M16 tamamlandı; NS-001–NS-093 COMPLETE (2026-10-05). M17 devam ediyor: NS-093 tray/application lifecycle tamamlandı, NS-094 başlamadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -285,7 +285,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M17 — Public Beta & Product Usability
 
-- **Durum:** ⬜ Planlandı (NS-093–NS-099).
+- **Durum:** Devam ediyor. NS-093 ✅ COMPLETE (2026-10-05): tray/show/hide/quit, opt-in close preference, visible startup, safe unavailable fallback ve existing bounded lifecycle; 3401 passed/8 deselected. [Policy ve native smoke checklist](TRAY_APPLICATION_LIFECYCLE.md); native Windows smoke henüz çalıştırılmadı. NS-094–NS-099 planlandı.
 - **Amaç:** Günlük kullanım ve gerçek kullanıcı geri bildirimi için hazır olmak.
 - **Ana teslimatlar:** Tray, privacy-aware desktop notification, storage/privacy controls, installer/upgrade/uninstall, signing/update kararı, first-run/feedback ve NS-099 beta gate.
 - **Açık kapsam dışı:** Automatic blocking/elevation, otomatik crash/history upload, custom WFP driver.

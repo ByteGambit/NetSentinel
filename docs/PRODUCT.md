@@ -1,5 +1,14 @@
 # Ürün tanımı
 
+NS-093 günlük desktop kullanımına Qt tray ve Settings → Application behavior
+close preference ekler. Normal launch görünür başlar; varsayılan X = Quit
+NetSentinel. Kullanıcı Hide to system tray seçerse X yalnız pencereyi gizler,
+monitoring devam eder. Tray yoksa/kurulamazsa X quit yapar; tray çalışma sırasında
+kaybolursa gizli pencere geri gösterilir. File/tray Quit bounded ve idempotent
+lifecycle shutdown kullanır. SQLite 019 değişmez. Windows service, autostart ve
+desktop notification yoktur; NS-094 başlamadı. [Policy ve smoke checklist](TRAY_APPLICATION_LIFECYCLE.md).
+Aşağıdaki önceki task teslimat kayıtları tarihseldir.
+
 NS-092 offline acceptance/soak M16 çıkışını doğruladı: restart-safe incident
 kimliği, dedup/reopen/source-expiry ve dürüst timeline sınırları korunur.
 Sentetik connection/DNS/baseline/risk/fake TI ve offscreen GUI gerçek servis ve
@@ -63,7 +72,7 @@ NetSentinel, Windows kullanıcısına bilgisayarının ve bağlı olduğu yerel 
 
 NetSentinel bir öğrenme aracı olarak, ham gözlemi, türetilmiş olayı ve güvenlik uyarısını birbirinden ayırır. Uyarıların açıklaması ve dayanak verisi kullanıcıya sunulur; tek başına “kötü niyetli” hükmü verilmez.
 
-## Yeni fazın ürün yönü (M11–M16 tamamlandı; M17 planlandı)
+## Yeni fazın ürün yönü (M11–M16 tamamlandı; M17 devam ediyor)
 
 NS-080 scoped preference/suppression storage yerel backend olarak uygulanmıştır:
 application/destination/network/rule için dar typed selector, explicit expiry veya
@@ -88,7 +97,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, tray/desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 

@@ -1,5 +1,17 @@
 # Mimari
 
+NS-093 `ApplicationController` yalnız window visibility/close policy/Qt quit ve
+tray cleanup koordine eder; engine/worker ownership `ApplicationLifecycle`'da
+kalır. `QtTrayAdapter` QSystemTrayIcon capability/menu/activation sınırını
+kapsüller; offscreen fake adapter aynı sınırı kullanır. X hide event'i ignore
+eder ve shutdown çağırmaz. Tray unavailable/init failure quit fallback, runtime
+capability loss visible recovery yapar. Qt Quit event'i closeEvent'ten önce
+quitting flag'i koyar; aboutToQuit/finally aynı guarded shutdown yoludur.
+Fatal engine start rollback de aynı shutdown guard'ını kullanır; shutdown sonrası
+start yoktur. Shared typed config dışında domain/infrastructure değişmedi,
+SQLite 019 aynı kaldı. [Frozen policy, lifecycle ve smoke](TRAY_APPLICATION_LIFECYCLE.md).
+Aşağıdaki teslimat kayıtları tarihseldir.
+
 NS-092 acceptance-only doğrulaması M16'yı tamamlar. Gerçek polling/feature/baseline
 → risk worker/assessment/AlertService → explicit incident persistence → worker
 timeline/GUI sınırları offline sentetik hikâyeyle test edilir. DNS ambiguity ayrı
@@ -584,9 +596,11 @@ Bu sınır sayesinde detector ve tracker testleri GUI açmadan, GUI testleri ise
 `presentation.app`, `QApplication` oluşturma/yeniden kullanma, `MainWindow`
 oluşturma ve engine yaşam döngüsünü bir araya getirir. Engine somut bağımlılıkları
 yalnızca `bootstrap.py` composition root'undan alınır. Uygulama çalıştırıldığında
-engine event loop öncesinde başlatılır; pencere kapanışı, Qt `aboutToQuit` sinyali
+engine event loop öncesinde başlatılır; gerçek quit, Qt `aboutToQuit` sinyali
 ve event loop çıkışı aynı idempotent lifecycle controller üzerinden tek bounded
 `engine.stop()` isteğine indirgenir.
+NS-093 hide/close-to-tray bu shutdown yolunu çağırmaz; explicit close preference
+ve tray capability yalnız presentation davranışını belirler.
 
 `MainWindow`, Dashboard, Connections, Devices, DNS ve Alerts view örneklerinin
 composition sorumluluğunu taşır. Sol `QListWidget` kararlı `PageId` değerleriyle

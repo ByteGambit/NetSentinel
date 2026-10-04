@@ -1,5 +1,14 @@
 # Güvenlik ve güvenli kullanım
 
+NS-093 tray yalnız görünürlüğü değiştirir. Tooltip/menu process, IP, domain veya
+alert preview içermez; tooltip sabit NetSentinel'dir. Hide monitoring/capture/DNS
+lifecycle değiştirmez, capture veya reputation lookup başlatmaz. Autostart,
+Registry Run, Task Scheduler, Windows service, elevation, installer ve notification
+eklenmedi. Tray unavailable/failure görünmez background app bırakmaz; X quit
+fallback yapar, runtime capability loss gizli pencereyi gösterir. Shutdown mevcut
+bileşen timeout'larıyla best-effort bounded'dır; forced kill altında cleanup
+garantisi yoktur. [Policy ve native smoke sınırı](TRAY_APPLICATION_LIFECYCLE.md).
+
 NS-090 incident storage yerel, bounded behavioral/security history'dir. Typed
 canonical refs, scopes/destinations, original UTC observation times ve relation
 reasons saklanır; full source object, raw packet, secret ve arbitrary metadata

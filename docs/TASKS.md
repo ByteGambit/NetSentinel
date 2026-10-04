@@ -1054,7 +1054,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-093 — Tray ve application lifecycle
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-05). Qt tray adapter/controller, Show/Hide/Quit, File Quit ve typed persisted close preference mevcut lifecycle'a bağlandı. Visible startup ve opt-in HIDE_TO_TRAY; unavailable/init failure quit fallback, runtime tray loss visible recovery; hidden monitoring/alert/risk/incident continuity, tek actual stop ve bounded shutdown doğrulandı. Fatal startup/finally aynı idempotent guard'ı kullanır. 36 yeni test; targeted 198 passed, new-only 36 passed; full offline 3401 passed/8 deselected (235.24 s). Ruff/configured/direct lifecycle mypy/diff temiz. Schema 019→019, migration yok. [Frozen policy, lifecycle kabul matrisi ve Windows smoke checklist](TRAY_APPLICATION_LIFECYCLE.md). Native Windows manual smoke çalıştırılmadı; offscreen kanıt native shell acceptance değildir. M17 devam ediyor; NS-094 başlatılmadı.
 - **Amaç:** Günlük background kullanımda görünür start/stop ve quit davranışı sağlamak.
 - **Yapılacaklar:** PyQt tray, show/hide/quit ve close preference'ı mevcut lifecycle'a bağla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/app.py, src/netsentinel/presentation/views/main_window.py, src/netsentinel/shared/config.py, tests/gui/.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Planlandı |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Devam ediyor; NS-093 COMPLETE, NS-094–NS-099 planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

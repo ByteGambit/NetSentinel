@@ -113,6 +113,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self._on_close = on_close
         self._close_notified = False
+        self._close_policy: Callable[[], bool] | None = None
         self._current_page = PageId.DASHBOARD
         self._engine_bridge: QtEngineBridge | None = None
         self._device_inventory = device_inventory
@@ -138,6 +139,14 @@ class MainWindow(QMainWindow):
         self.threat_intel_consent_action = settings_menu.addAction("Threat intelligence / reputation consent…")
         assert self.threat_intel_consent_action is not None
         self.threat_intel_consent_action.triggered.connect(self._show_ti_consent)
+        self.application_behavior_action = settings_menu.addAction("Application behavior…")
+        assert self.application_behavior_action is not None
+        self.application_behavior_action.setEnabled(False)
+        file_menu = menu_bar.addMenu("File")
+        assert file_menu is not None
+        self.quit_action = file_menu.addAction("Quit NetSentinel")
+        assert self.quit_action is not None
+        self.quit_action.setEnabled(False)
 
         self.navigation = QListWidget(self)
         self.navigation.setObjectName("navigation")
@@ -322,9 +331,23 @@ class MainWindow(QMainWindow):
         # selected. Keep programmatic repeated selection explicit and harmless.
         self._show_page(page_id)
 
+    def bind_application_controls(
+        self, close_policy: Callable[[], bool], quit_application: Callable[[], None],
+        settings: Callable[[], None],
+    ) -> None:
+        self._close_policy = close_policy
+        assert self.quit_action is not None and self.application_behavior_action is not None
+        self.quit_action.setEnabled(True)
+        self.quit_action.triggered.connect(quit_application)
+        self.application_behavior_action.setEnabled(True)
+        self.application_behavior_action.triggered.connect(settings)
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt API
         """Request application shutdown exactly once before accepting close."""
 
+        if self._close_policy is not None and not self._close_policy():
+            event.ignore()
+            return
         if not self._close_notified:
             self._close_notified = True
             if self._on_close is not None:

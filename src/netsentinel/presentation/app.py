@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from importlib import resources
 import sys
 from typing import Protocol
+from pathlib import Path
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QStyle
 from PyQt6.QtGui import QIcon, QPixmap
 
 from netsentinel.application.services.statistics import StatisticsService
@@ -34,6 +35,8 @@ from netsentinel.application.services.threat_intelligence import ThreatIntelCons
 from netsentinel.application.services.threat_intel_scheduler import ThreatIntelLookupScheduler
 from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget, ThreatIntelRiskSubmit
 from netsentinel.version import __version__
+from netsentinel.presentation.tray import ApplicationController, QtTrayAdapter, TrayAdapter
+from netsentinel.shared.config import AppConfig, save_window_close_behavior
 
 
 class EngineLifecycle(Protocol):
@@ -100,7 +103,7 @@ class ApplicationLifecycle:
     def start(self) -> bool:
         """Attach the bridge before starting the engine, at most once."""
 
-        if self._start_requested:
+        if self._start_requested or self._shutdown_requested:
             return False
         self._start_requested = True
         if self._threat_intel is not None:
@@ -112,8 +115,8 @@ class ApplicationLifecycle:
             query.start()
         if self._incident_risk_queries is not None:
             self._incident_risk_queries.start()
-        for query in self._risk_queries:
-            query.start()
+        for risk_query in self._risk_queries:
+            risk_query.start()
         if self._preference_commands is not None:
             self._preference_commands.start()
         if self._baseline_queries is not None:
@@ -138,37 +141,9 @@ class ApplicationLifecycle:
         try:
             return self._engine.start()
         except BaseException:
-            if self._threat_intel_lookup is not None:
-                self._threat_intel_lookup.stop()
-            if self._threat_intel is not None:
-                self._threat_intel.stop()
-            for query in self._incident_queries:
-                query.stop()
-            if self._incident_risk_queries is not None:
-                self._incident_risk_queries.stop()
-            for query in self._risk_queries:
-                query.stop()
-            if self._preference_commands is not None:
-                self._preference_commands.stop()
-            if self._baseline_queries is not None:
-                self._baseline_queries.stop()
-            self._bridge.stop()
-            if self._history_queries is not None:
-                self._history_queries.stop()
-            for destination_query in self._destination_queries:
-                destination_query.stop()
-            if self._signer_service is not None:
-                self._signer_service.stop()
-            if self._alert_queries is not None:
-                self._alert_queries.stop()
-            if self._dns_queries is not None:
-                self._dns_queries.stop()
-            if self._device_inventory is not None:
-                self._device_inventory.stop()
-            if self._device_profiles is not None:
-                self._device_profiles.stop()
-            if self._capability_queries is not None:
-                self._capability_queries.stop()
+            # Fatal startup and run_application.finally share the same guard;
+            # rollback must not stop each query worker twice.
+            self.shutdown()
             raise
 
     def shutdown(self) -> bool:
@@ -226,6 +201,7 @@ class ApplicationShell:
     threat_intel_scheduler: ThreatIntelLookupScheduler | None = None
     incident_queries: tuple[IncidentQueryCoordinator, IncidentQueryCoordinator] | None = None
     incident_risk_queries: RiskQueryCoordinator | None = None
+    controller: ApplicationController | None = None
 
 
 def create_application(
@@ -247,6 +223,9 @@ def create_application(
     threat_intel_consent_service: ThreatIntelConsentService | None = None,
     threat_intel_scheduler: ThreatIntelLookupScheduler | None = None,
     threat_intel_risk_submit: ThreatIntelRiskSubmit | None = None,
+    config: AppConfig | None = None,
+    config_path: Path | None = None,
+    tray_adapter: TrayAdapter | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -262,8 +241,16 @@ def create_application(
     application.setOrganizationName("NetSentinel")
     application.setApplicationVersion(__version__)
     icon = QPixmap()
-    icon.loadFromData(resources.files("netsentinel.assets").joinpath("netsentinel.ico").read_bytes(), "ICO")
-    application.setWindowIcon(QIcon(icon))
+    try:
+        icon.loadFromData(resources.files("netsentinel.assets").joinpath("netsentinel.ico").read_bytes(), "ICO")
+    except (OSError, ModuleNotFoundError):
+        pass
+    app_icon = QIcon(icon)
+    if app_icon.isNull():
+        style = application.style()
+        if style is not None:
+            app_icon = style.standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+    application.setWindowIcon(app_icon)
 
     bridge = QtEngineBridge(engine)
     history_queries = (
@@ -312,8 +299,8 @@ def create_application(
     if incident_risk_queries is not None:
         incident_risk_queries.setParent(window)
     bridge.setParent(window)
-    for query in risk_queries or ():
-        query.setParent(window)
+    for risk_query in risk_queries or ():
+        risk_query.setParent(window)
     if preference_commands is not None:
         preference_commands.setParent(window)
     if baseline_queries is not None:
@@ -334,8 +321,14 @@ def create_application(
     if capability_queries is not None:
         capability_queries.setParent(window)
     window.bind_engine_bridge(bridge)
-    application.aboutToQuit.connect(lifecycle.shutdown)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries)
+    controller = ApplicationController(
+        application, window, lifecycle,
+        tray_adapter if tray_adapter is not None else QtTrayAdapter(application, window),
+        (config or AppConfig()).window_close_behavior,
+        (lambda behavior: save_window_close_behavior(config_path, behavior)) if config_path is not None else None,
+    )
+    window.bind_application_controls(controller.close_requested, controller.request_quit, controller.show_settings)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller)
 
 
 def run_application(
@@ -356,6 +349,7 @@ def run_application(
     threat_intel_scheduler = None
     threat_intel_risk_submit: ThreatIntelRiskSubmit | None = None
     incident_service_factory = None
+    settings = AppConfig()
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
         # infrastructure dependencies and keeps GUI tests lightweight.
@@ -434,7 +428,10 @@ def run_application(
         threat_intel_consent_service=threat_intel_consent_service,
         threat_intel_scheduler=threat_intel_scheduler,
         threat_intel_risk_submit=threat_intel_risk_submit,
+        config=settings,
+        config_path=config_path,
     )
+    assert shell.controller is not None
     onboarding = None
     if first_run:
         from netsentinel.presentation.widgets.onboarding import OnboardingDialog
@@ -462,17 +459,17 @@ def run_application(
         onboarding = OnboardingDialog(shell.capability_queries, finish)
         if config_issues:
             onboarding.error.setText("Configuration invalid; safe defaults are being used.")
-        onboarding.rejected.connect(shell.application.quit)
+        onboarding.rejected.connect(shell.controller.request_quit)
         onboarding.show()
-    else:
-        shell.lifecycle.start()
-        shell.window.show()
     try:
+        if not first_run:
+            shell.lifecycle.start()
+            shell.window.show()
         return shell.application.exec()
     finally:
         # closeEvent and aboutToQuit also use this path. The lifecycle guard
         # ensures the engine receives one bounded stop request only.
-        shell.lifecycle.shutdown()
+        shell.controller.shutdown()
         if onboarding is not None:
             onboarding.close()
         if engine is not None and 'settings' in locals():
