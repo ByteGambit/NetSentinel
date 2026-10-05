@@ -18,6 +18,7 @@ from netsentinel.domain.observations import MacAddress
 from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
 from netsentinel.domain.connections import NetworkScopeStatus
 from netsentinel.infrastructure.sqlite.database import SQLiteAdapterError, SQLiteDatabase, transaction
+from netsentinel.domain.storage_privacy import ALERT_ROW_QUOTA
 from netsentinel.infrastructure.sqlite.repositories import datetime_to_epoch_microseconds as to_us, epoch_microseconds_to_datetime as from_us
 
 
@@ -104,6 +105,8 @@ class SQLiteAlertRepository:
                 with transaction(connection):
                     row = connection.execute(f"SELECT {_COLUMNS} FROM alerts WHERE fingerprint = ?", (candidate.fingerprint,)).fetchone()
                     if row is None:
+                        if connection.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] >= ALERT_ROW_QUOTA:
+                            raise AlertRepositoryError("Alert capacity requires local maintenance.")
                         connection.execute("""INSERT INTO alerts (id, fingerprint, rule_id, network_fingerprint, entity_id, severity, confidence, status, first_seen_utc_us, last_seen_utc_us, occurrence_count, evidence_json, created_at_utc_us, updated_at_utc_us, last_notified_at_utc_us)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (str(alert_id(candidate.fingerprint)), candidate.fingerprint, candidate.rule_id,

@@ -1,5 +1,21 @@
 # Güvenlik ve güvenli kullanım
 
+NS-095 yerel veri yaşam döngüsü kullanıcı kontrolündedir. IP/DNS/process/path,
+MAC, davranış zamanı, evidence, label/note/trust ve suppression hassas metadata
+olabilir. Retention default kapalı; kullanıcı Save ile açarsa 60s deferred ve
+hourly bounded maintenance işler. Aktif/current durum, unexpired baseline,
+profile/trust/preferences ve retained alert-linked assessment açıklaması korunur;
+korunan kapasite dolarsa veri silmek yerine typed failure/pressure raporlanır.
+Purge exact scope ve estimate/protected/reference-impact confirmation gerektirir;
+Cancel önce sıfır silme, başladıktan sonra önceki chunk commit'leri kalır.
+Source deletion retained snapshot'ı silmez; lazy expired/unavailable durumunu
+açık gösterir. Sanitized support-export-v1 yalnız kullanıcı önizlemesi sonrası
+seçilen yerel dosyaya yazılır; raw IP/domain/MAC/path/hash/not/config/secrets,
+evidence veya provider response okunmaz/export edilmez. Otomatik upload yoktur.
+Export anonim/adli kayıt iddiası taşımaz. SQLite/WAL/filesystem kalıntıları
+nedeniyle secure erasure ve anında file shrink garantisi yoktur; DB encryption
+garantisi yoktur. [Politika ve bounds](STORAGE_PRIVACY.md).
+
 NS-094 desktop notifications varsayılan kapalıdır; Settings'te explicit Enable/Save
 sonrası yalnız gelecekteki persisted eligible alert intent'leri değerlendirilir.
 OS bildirimi başka kişilerce ve OS ayarlarına bağlı olarak lock screen'de görülebilir.

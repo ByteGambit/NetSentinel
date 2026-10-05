@@ -143,6 +143,9 @@ class MainWindow(QMainWindow):
         self.threat_intel_consent_action.triggered.connect(self._show_ti_consent)
         self.application_behavior_action = settings_menu.addAction("Application behavior…")
         self.notification_settings_action = settings_menu.addAction("Desktop notifications…")
+        self.storage_privacy_action = settings_menu.addAction("Storage & Privacy…")
+        assert self.storage_privacy_action is not None
+        self.storage_privacy_action.setEnabled(False)
         assert self.notification_settings_action is not None
         self.notification_settings_action.setEnabled(False)
         assert self.application_behavior_action is not None

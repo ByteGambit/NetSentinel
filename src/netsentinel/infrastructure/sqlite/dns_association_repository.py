@@ -86,12 +86,16 @@ def insert_association(connection: sqlite3.Connection, item: DomainAssociation, 
 
 
 def prune_associations(connection: sqlite3.Connection) -> None:
-    """Enforce a hard global row cap in the writer transaction."""
-    connection.execute(
-        "DELETE FROM dns_associations WHERE rowid IN ("
-        "SELECT rowid FROM dns_associations ORDER BY observed_at_utc_us DESC, rowid DESC "
-        "LIMIT -1 OFFSET ?) ", (MAX_STORED_ASSOCIATIONS,),
-    )
+    """Enforce the hard cap with <=128 deletes; larger overflow rolls back batch."""
+    excess = max(0, connection.execute("SELECT COUNT(*) FROM dns_associations").fetchone()[0] - MAX_STORED_ASSOCIATIONS)
+    if excess > 128:
+        raise ValueError("DNS association quota requires bounded maintenance")
+    if excess:
+        connection.execute(
+            "DELETE FROM dns_associations WHERE rowid IN ("
+            "SELECT rowid FROM dns_associations ORDER BY observed_at_utc_us, evidence_id, association_index LIMIT ?)",
+            (excess,),
+        )
 
 
 class SQLiteDnsAssociationRepository:

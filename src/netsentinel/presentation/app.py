@@ -40,6 +40,8 @@ from netsentinel.shared.config import AppConfig, save_window_close_behavior
 from netsentinel.shared.config import save_notification_preference
 from netsentinel.application.services.notifications import DesktopNotificationSink
 from netsentinel.presentation.notifications import DesktopNotificationController, QtDesktopNotificationSink
+from netsentinel.application.services.storage_worker import StorageMaintenanceWorker
+from netsentinel.presentation.widgets.storage_privacy import StoragePrivacyDialog
 
 
 class EngineLifecycle(Protocol):
@@ -76,6 +78,7 @@ class ApplicationLifecycle:
         threat_intel_lookup: ThreatIntelLookupWidget | None = None,
         incident_queries: tuple[IncidentQueryCoordinator, IncidentQueryCoordinator] | None = None,
         incident_risk_queries: RiskQueryCoordinator | None = None,
+        storage_maintenance: StorageMaintenanceWorker | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
@@ -99,6 +102,7 @@ class ApplicationLifecycle:
         self._shutdown_requested = False
         self._shutdown_result: bool | None = None
         self.notifications: DesktopNotificationController | None = None
+        self.storage_maintenance = storage_maintenance
 
     @property
     def shutdown_requested(self) -> bool:
@@ -110,6 +114,8 @@ class ApplicationLifecycle:
         if self._start_requested or self._shutdown_requested:
             return False
         self._start_requested = True
+        if self.storage_maintenance is not None:
+            self.storage_maintenance.start()
         if self._threat_intel is not None:
             try:
                 self._threat_intel_failed = not self._threat_intel.start()
@@ -156,6 +162,7 @@ class ApplicationLifecycle:
         if self._shutdown_requested:
             return bool(self._shutdown_result)
         self._shutdown_requested = True
+        storage_stopped = True if self.storage_maintenance is None else self.storage_maintenance.stop()
         if self.notifications is not None:
             self.notifications.close()
         if self._threat_intel_lookup is not None:
@@ -181,7 +188,7 @@ class ApplicationLifecycle:
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and incident_stopped and incident_risk_stopped and ti_stopped and risk_stopped and preferences_stopped and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
+        self._shutdown_result = self._engine.stop() and storage_stopped and incident_stopped and incident_risk_stopped and ti_stopped and risk_stopped and preferences_stopped and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -209,6 +216,7 @@ class ApplicationShell:
     incident_risk_queries: RiskQueryCoordinator | None = None
     controller: ApplicationController | None = None
     notifications: DesktopNotificationController | None = None
+    storage_maintenance: StorageMaintenanceWorker | None = None
 
 
 def create_application(
@@ -234,6 +242,7 @@ def create_application(
     config_path: Path | None = None,
     tray_adapter: TrayAdapter | None = None,
     notification_sink: DesktopNotificationSink | None = None,
+    storage_maintenance: StorageMaintenanceWorker | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -282,7 +291,7 @@ def create_application(
     incident_queries = (IncidentQueryCoordinator(incident_service_factory), IncidentQueryCoordinator(incident_service_factory)) if incident_service_factory else None
     incident_risk_queries = RiskQueryCoordinator(risk_service_factory) if risk_service_factory and incident_service_factory else None
     ti_lookup = ThreatIntelLookupWidget(threat_intel_scheduler, threat_intel_consent_service, threat_intel_risk_submit)
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, ti_lookup, incident_queries, incident_risk_queries)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, ti_lookup, incident_queries, incident_risk_queries, storage_maintenance)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
@@ -342,7 +351,11 @@ def create_application(
         save_preference=(lambda enabled: save_notification_preference(config_path, enabled)) if config_path is not None else None,
     )
     lifecycle.notifications = notifications
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications)
+    if storage_maintenance is not None:
+        assert window.storage_privacy_action is not None
+        window.storage_privacy_action.setEnabled(True)
+        window.storage_privacy_action.triggered.connect(lambda: StoragePrivacyDialog(storage_maintenance, window).exec())
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications, storage_maintenance)
 
 
 def run_application(
@@ -363,6 +376,7 @@ def run_application(
     threat_intel_scheduler = None
     threat_intel_risk_submit: ThreatIntelRiskSubmit | None = None
     incident_service_factory = None
+    storage_maintenance = None
     settings = AppConfig()
     if engine is None:
         # Importing the composition root lazily keeps widget modules free from
@@ -385,12 +399,14 @@ def run_application(
             runtime_config_path,
             create_threat_intel_consent_service,
             create_threat_intel_scheduler,
+            create_storage_maintenance_worker,
             ABUSEIPDB_DESCRIPTOR,
         )
 
         config_path = runtime_config_path()
         loaded = initialize_runtime(config_path=config_path)
         settings = loaded.config
+        storage_maintenance = create_storage_maintenance_worker(config=settings, config_path=config_path)
         threat_intel_consent_service = create_threat_intel_consent_service(
             config_path=config_path, descriptors=(ABUSEIPDB_DESCRIPTOR,))
         try:
@@ -444,6 +460,7 @@ def run_application(
         threat_intel_risk_submit=threat_intel_risk_submit,
         config=settings,
         config_path=config_path,
+        storage_maintenance=storage_maintenance,
     )
     assert shell.controller is not None
     onboarding = None

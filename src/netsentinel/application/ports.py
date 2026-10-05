@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from netsentinel.domain.storage_privacy import (
+    Store, StoreRetentionRule, StorageSummary, SupportRecord,
+)
+
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
 from collections.abc import Callable
 from typing import Protocol
+
+
 from netsentinel.domain.incident_persistence import (
     IncidentHistory, IncidentPage, IncidentRecord, IncidentResult, IncidentState,
     IncidentStoragePolicy,
@@ -57,6 +63,19 @@ from netsentinel.shared.diagnostics import (
     CaptureHealthSnapshot,
     DestinationDatasetDiagnostic,
 )
+
+
+class StorageMaintenanceRepository(Protocol):
+    """Blocking NS-095 port. Caller owns worker and a cancellable SQL deadline."""
+
+    def summary(self, rules: tuple[StoreRetentionRule, ...], now: datetime,
+                stop: Callable[[], bool]) -> StorageSummary: ...
+
+    def cleanup_chunk(self, rule: StoreRetentionRule, now: datetime, limit: int,
+                      purge: bool, stop: Callable[[], bool]) -> int: ...
+
+    def export_page(self, category: Store, offset: int, limit: int,
+                    stop: Callable[[], bool]) -> tuple[SupportRecord, ...]: ...
 
 
 MAX_HISTORY_QUERY_LIMIT = 500
@@ -801,6 +820,7 @@ __all__ = (
     "HistoryRetentionRepository",
     "HistoryRetentionRepositoryError",
     "HistoryStorageDiagnostics",
+    "StorageMaintenanceRepository",
     "MAX_HISTORY_QUERY_LIMIT",
     "NetworkContextCollectionError",
     "NetworkContextPermissionDenied",

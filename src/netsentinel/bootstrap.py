@@ -212,6 +212,37 @@ def create_history_retention_service(
     return HistoryRetentionService(repository, config=config)
 
 
+def create_storage_maintenance_worker(
+    *, database_path: str | PathLike[str] | None = None,
+    config: AppConfig | None = None, config_path: Path | None = None,
+):
+    """Compose dormant NS-095 owner; no startup DB/file work or implicit purge."""
+    from netsentinel.application.services.storage_privacy import StoragePrivacyService
+    from netsentinel.application.services.storage_worker import StorageMaintenanceWorker, StorageSettings
+    from netsentinel.domain.storage_privacy import StorageRetentionPolicy
+    from netsentinel.infrastructure.sqlite.storage_maintenance import SQLiteStorageMaintenanceRepository
+    from netsentinel.shared.config import StorageMaintenanceConfig, save_storage_preferences
+
+    settings = config or AppConfig()
+    budgets = StorageMaintenanceConfig()
+    storage_settings = StorageSettings(settings.storage_retention_enabled,
+        StorageRetentionPolicy(settings.storage_history_days, settings.storage_security_days))
+    database = SQLiteDatabase(database_path, busy_timeout_ms=budgets.busy_timeout_ms,
+                              setup_timeout_ms=budgets.busy_timeout_ms)
+
+    def factory() -> StoragePrivacyService:
+        return StoragePrivacyService(SQLiteStorageMaintenanceRepository(database),
+                                     policy=storage_settings.policy, budgets=budgets)
+
+    def save(value: StorageSettings) -> None:
+        if config_path is None:
+            raise ValueError("config destination unavailable")
+        save_storage_preferences(config_path, value.enabled, value.policy.history_days, value.policy.security_days)
+
+    return StorageMaintenanceWorker(factory, settings=storage_settings,
+                                    save_settings=save, budgets=budgets)
+
+
 def create_dns_history_writer(
     *, database_path: str | PathLike[str] | None = None, config: AppConfig | None = None,
     **writer_options: Unpack[_DnsWriterOptions],

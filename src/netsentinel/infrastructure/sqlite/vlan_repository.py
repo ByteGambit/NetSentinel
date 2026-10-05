@@ -16,8 +16,8 @@ from netsentinel.infrastructure.sqlite.repositories import (
 class SQLiteVlanSummaryRepository:
     """One atomic upsert per observation; at most 64 scopes and 128 VIDs each.
 
-    The oldest scope by last observed UTC time is evicted first, with its key
-    breaking ties. No event history or raw packet is stored. A connection is
+    Capacity rejects new scopes instead of evicting learned/user state.
+    No event history or raw packet is stored. A connection is
     opened and closed for each call on the owning inventory worker.
     """
 
@@ -51,14 +51,7 @@ class SQLiteVlanSummaryRepository:
                     if existing is None:
                         count = connection.execute("SELECT COUNT(*) FROM vlan_summaries").fetchone()[0]
                         if count >= self._max_scopes:
-                            connection.execute(
-                                """DELETE FROM vlan_summaries WHERE
-                                   (network_fingerprint, interface_id, interface_index) IN
-                                   (SELECT network_fingerprint, interface_id, interface_index
-                                    FROM vlan_summaries ORDER BY last_seen_utc_us,
-                                    network_fingerprint, interface_id, interface_index LIMIT ?)""",
-                                (count - self._max_scopes + 1,),
-                            )
+                            raise VlanSummaryRepositoryError("VLAN baseline capacity is protected.")
                     elif (existing.baseline_state is not VlanBaselineState.LEARNING and
                           summary.baseline_state is VlanBaselineState.LEARNING):
                         raise VlanSummaryRepositoryError("Learned VLAN baseline cannot regress.")

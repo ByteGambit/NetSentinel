@@ -231,7 +231,7 @@ Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
 ## Yeni faz: M11–M16 tamamlandı; M17 devam ediyor, M18 conditional
 
-**Durum:** M1–M16 tamamlandı; NS-001–NS-094 COMPLETE (2026-10-05). M17 devam ediyor: NS-093 tray/application lifecycle ve NS-094 desktop notifications tamamlandı; NS-095 başlamadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M16 tamamlandı; NS-001–NS-095 COMPLETE (2026-10-06). M17 devam ediyor: NS-093 tray/application lifecycle, NS-094 desktop notifications ve NS-095 storage/privacy controls tamamlandı; NS-096 başlamadı. M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
@@ -285,7 +285,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M17 — Public Beta & Product Usability
 
-- **Durum:** Devam ediyor. NS-093 ve NS-094 ✅ COMPLETE (2026-10-05). NS-094 default-disabled/LIMITED desktop notifications, dedup/120 s cooldown/hysteresis, exact-ID navigation, restart/storm/failure/offscreen acceptance ekler. Schema 019→019, 84 yeni test; full offline 3543 passed/8 deselected; Ruff/configured/direct mypy/diff temiz. [Notification policy ve 82 maddelik kabul raporu](DESKTOP_NOTIFICATIONS_ACCEPTANCE.md); [tray policy](TRAY_APPLICATION_LIFECYCLE.md). Native Windows smoke henüz çalıştırılmadı. NS-095–NS-099 planlandı; NS-095 başlatılmadı.
+- **Durum:** Devam ediyor. NS-093/NS-094/NS-095 ✅ COMPLETE (2026-10-06). NS-095 opt-in deferred/hourly retention, admission quotas, reference/current protection, confirmed scope purge ve sanitized local support export preview/Save ekler. Schema 019→019, 83 yeni test; full offline 3626 passed/8 deselected; Ruff/configured/direct mypy/diff temiz. [Storage policy ve 98 maddelik kabul raporu](STORAGE_PRIVACY_ACCEPTANCE.md); [notification policy](DESKTOP_NOTIFICATIONS_ACCEPTANCE.md); [tray policy](TRAY_APPLICATION_LIFECYCLE.md). Native Windows tray/notification smoke henüz çalıştırılmadı. NS-096–NS-099 planlandı; NS-096 başlatılmadı.
 - **Amaç:** Günlük kullanım ve gerçek kullanıcı geri bildirimi için hazır olmak.
 - **Ana teslimatlar:** Tray, privacy-aware desktop notification, storage/privacy controls, installer/upgrade/uninstall, signing/update kararı, first-run/feedback ve NS-099 beta gate.
 - **Açık kapsam dışı:** Automatic blocking/elevation, otomatik crash/history upload, custom WFP driver.

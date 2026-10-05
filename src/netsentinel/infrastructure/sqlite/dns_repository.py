@@ -22,6 +22,8 @@ from netsentinel.domain.dns import (
     DnsTransport,
 )
 from netsentinel.infrastructure.sqlite.database import SQLiteAdapterError, SQLiteDatabase, transaction
+from netsentinel.infrastructure.sqlite.retention_guards import admit_new
+from netsentinel.domain.storage_privacy import HISTORY_ROW_QUOTA
 from netsentinel.infrastructure.sqlite.repositories import (
     datetime_to_epoch_microseconds as to_us, epoch_microseconds_to_datetime as from_us,
 )
@@ -87,7 +89,8 @@ def _decode(row: sqlite3.Row) -> DnsHistoryRecord:
         )
         if row["qname"] != (questions[0].name if questions else None):
             raise ValueError("inconsistent qname")
-        if row["event_at_utc_us"] != to_us(tx.query_at or tx.response_at):
+        event_at = tx.query_at or tx.response_at
+        if event_at is None or row["event_at_utc_us"] != to_us(event_at):
             raise ValueError("inconsistent event time")
         return DnsHistoryRecord(UUID(row["id"]), tx)
     except (TypeError, ValueError, KeyError, IndexError, OverflowError, json.JSONDecodeError):
@@ -117,6 +120,7 @@ class SQLiteDnsHistoryRepository:
         values = tuple(_encode(record) for record in records)
         with transaction(connection):
             for record, value in zip(records, values, strict=True):
+                admit_new(connection, "dns_history", HISTORY_ROW_QUOTA, "id = ? OR evidence_id = ?", (value[0], value[-1]))
                 cursor = connection.execute(
                     f"INSERT INTO dns_history ({_COLUMNS}) VALUES ({','.join('?' for _ in value)}) "
                     "ON CONFLICT DO NOTHING",

@@ -343,9 +343,10 @@ def test_age_cleanup_is_chunked_clock_jump_safe_and_restart_safe(database):
         repo.save(key(i), snapshot(), NOW)
         repo.save(key(i), snapshot(evidence(reason_code="changed")), NOW)
     assert repo.cleanup(NOW - timedelta(days=100)) == 0
-    assert repo.cleanup(NOW + timedelta(days=100)) == 4
-    assert repo.cleanup(NOW + timedelta(days=100)) == 4
-    assert repo.cleanup(NOW + timedelta(days=100)) == 4
+    # NS-095 also charges each parent deletion to the physical chunk budget.
+    # The legacy API still returns deleted revision rows, not parent rows.
+    for _ in range(6):
+        assert repo.cleanup(NOW + timedelta(days=100)) == 2
     assert repo.cleanup(NOW + timedelta(days=100)) == 0
 
 

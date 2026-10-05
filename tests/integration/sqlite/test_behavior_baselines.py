@@ -342,19 +342,22 @@ def test_policy_configuration_mismatch_requires_explicit_reset(tmp_path):
         assert service.checkpoint(force=True) == 0
 
 
-def test_retention_chunk_row_cap_and_eviction_origin(tmp_path):
+def test_retention_chunk_row_cap_and_protected_current_capacity(tmp_path):
     config = BehaviorBaselineConfig(max_rows=3, load_limit=3, cleanup_chunk_size=2)
     service, _, _, _ = make_service(config=config)
     with SQLiteDatabase(tmp_path / "test.db").connection() as connection:
         repo = SQLiteBaselineRepository(connection, config)
-        for i in range(6):
+        for i in range(3):
             value = summary(service, key(str(i)))
             repo.write(value, value.features.scope)
             assert connection.execute("SELECT COUNT(*) FROM behavior_baselines").fetchone()[0] <= 3
         loaded = repo.load(3)
-        assert loaded.capacity_loss
+        with pytest.raises(ValueError, match="quota"):
+            value = summary(service, key("new"))
+            repo.write(value, value.features.scope)
+        assert not loaded.capacity_loss
         service.restore(loaded)
-        assert service.snapshot(key("0")).state is BaselineState.UNAVAILABLE
+        assert service.snapshot(key("0")).state is BaselineState.READY
         assert repo.cleanup(NOW + timedelta(days=90)) == 2
         assert repo.cleanup(NOW + timedelta(days=90)) == 1
         assert repo.cleanup(NOW + timedelta(days=90)) == 0

@@ -25,6 +25,39 @@ DEFAULT_MAX_HISTORY_ROWS = 100_000
 DEFAULT_CLEANUP_CHUNK_SIZE = 500
 
 
+@dataclass(frozen=True, slots=True)
+class StorageMaintenanceConfig:
+    """Central NS-095 worker budgets, independent of engine polling."""
+
+    interval_seconds: float = 3600.0
+    startup_delay_seconds: float = 60.0
+    runtime_seconds: float = 2.0
+    max_chunks: int = 16
+    max_deletes: int = 2048
+    busy_timeout_ms: int = 100
+    shutdown_seconds: float = 2.0
+    export_category_records: int = 50
+    export_page_records: int = 25
+    preview_category_records: int = 10
+    export_bytes: int = 65_536
+
+    def __post_init__(self) -> None:
+        for name, maximum in (("max_chunks", 16), ("max_deletes", 2048),
+                              ("busy_timeout_ms", 100), ("export_category_records", 50),
+                              ("export_page_records", 25), ("preview_category_records", 10),
+                              ("export_bytes", 65_536)):
+            value = getattr(self, name)
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise ValueError("maintenance integer outside budget")
+        for name, maximum in (("interval_seconds", 86_400), ("startup_delay_seconds", 3600),
+                              ("runtime_seconds", 2), ("shutdown_seconds", 2)):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or not 0.01 <= value <= maximum:
+                raise ValueError("maintenance duration outside budget")
+        if self.interval_seconds < self.startup_delay_seconds:
+            raise ValueError("maintenance interval must exceed startup delay")
+
+
 class WindowCloseBehavior(str, Enum):
     """NS-093 user preference, independent of session tray capability."""
 
@@ -130,12 +163,20 @@ class AppConfig:
     log_backups: int = 3
     onboarding_completed: bool = False
     desktop_notifications_enabled: bool = False
+    storage_retention_enabled: bool = False
+    storage_history_days: int = 30
+    storage_security_days: int = 90
     window_close_behavior: WindowCloseBehavior = WindowCloseBehavior.QUIT_APPLICATION
     destination_dataset_path: str | None = None
     threat_intel_consents: tuple[ThreatIntelConsent, ...] = ()
 
     def __post_init__(self) -> None:
         validate_consents(self.threat_intel_consents)
+        if type(self.storage_retention_enabled) is not bool:
+            raise ValueError("storage_retention_enabled must be a boolean")
+        for value in (self.storage_history_days, self.storage_security_days):
+            if type(value) is not int or not 30 <= value <= 365:
+                raise ValueError("storage retention days must be between 30 and 365")
         if type(self.desktop_notifications_enabled) is not bool:
             raise ValueError("desktop_notifications_enabled must be a boolean")
         if not isinstance(self.window_close_behavior, WindowCloseBehavior):
@@ -265,6 +306,13 @@ def save_notification_preference(path: str | Path, enabled: bool) -> None:
     save_config_file(path, replace(current, desktop_notifications_enabled=enabled))
 
 
+def save_storage_preferences(path: str | Path, enabled: bool, history_days: int, security_days: int) -> None:
+    """Called by the maintenance worker after explicit Save; preserve other fields."""
+    current = load_config_file(path).config
+    save_config_file(path, replace(current, storage_retention_enabled=enabled,
+                                   storage_history_days=history_days, storage_security_days=security_days))
+
+
 def _load_threat_intel_consents(value: Any) -> tuple[ThreatIntelConsent, ...]:
     # Entire malformed TI section is disabled, not partially opted in.
     if not isinstance(value, list) or len(value) > MAX_TI_CONSENTS:
@@ -323,5 +371,6 @@ __all__ = (
     "DEFAULT_RETENTION_DAYS",
     "HistoryRetentionConfig",
     "TrafficRateConfig",
+    "StorageMaintenanceConfig", "save_storage_preferences",
     "AppConfig", "WindowCloseBehavior", "save_window_close_behavior", "ConfigIssue", "ConfigLoadResult", "load_config_values", "load_config_file", "complete_onboarding", "save_config_file",
 )

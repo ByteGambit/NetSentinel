@@ -51,6 +51,11 @@ from netsentinel.domain.connections import (
     ProcessInfoStatus,
     TransportProtocol,
 )
+from netsentinel.infrastructure.sqlite.retention_guards import admit_new
+from netsentinel.domain.storage_privacy import (
+    HISTORY_ROW_QUOTA, DEVICE_ROW_QUOTA, BINDING_ROW_QUOTA, PROFILE_ROW_QUOTA,
+    GATEWAY_ROW_QUOTA, GATEWAY_HISTORY_ROW_QUOTA,
+)
 from netsentinel.infrastructure.sqlite.database import (
     SQLiteAdapterError,
     SQLiteDatabase,
@@ -378,6 +383,8 @@ class SQLiteConnectionHistoryRepository:
         session_id: UUID,
         lifecycle_id: UUID,
     ) -> None:
+        if connection.execute("SELECT COUNT(*) FROM connection_history").fetchone()[0] >= HISTORY_ROW_QUOTA:
+            raise HistoryRepositoryError("Connection history capacity requires local maintenance.")
         values = _snapshot_values(snapshot)
         metadata = _metadata_values(snapshot.process)
         scope = _scope_values(snapshot)
@@ -953,6 +960,10 @@ class SQLiteDeviceRepository:
         try:
             with self._database.connection() as connection:
                 with transaction(connection):
+                    admit_new(connection, "devices", DEVICE_ROW_QUOTA, "network_fingerprint = ? AND mac = ?",
+                              (device.network_fingerprint, str(device.mac)))
+                    admit_new(connection, "device_bindings", BINDING_ROW_QUOTA, "device_id = ? AND ip_address = ?",
+                              (str(device.device_id), binding.ip_address))
                     connection.execute(
                         """
                         INSERT INTO devices
@@ -1061,6 +1072,8 @@ class SQLiteDeviceProfileRepository:
         try:
             with self._database.connection() as connection, transaction(connection):
                 _require_device_scope(connection, device_id, profile.network_fingerprint)
+                if connection.execute("SELECT COUNT(*) FROM device_profiles").fetchone()[0] >= PROFILE_ROW_QUOTA:
+                    raise DeviceProfileRepositoryError("Device profile capacity is protected.")
                 if connection.execute("SELECT 1 FROM device_profile_members WHERE device_id = ?", (str(device_id),)).fetchone():
                     raise DeviceProfileMergeConflict("Device already has a profile.")
                 connection.execute(
@@ -1402,6 +1415,8 @@ class SQLiteGatewayBaselineRepository:
                         "SELECT * FROM gateway_baselines WHERE network_fingerprint = ?",
                         (baseline.network_fingerprint,),
                     ).fetchone()
+                    if existing is None and connection.execute("SELECT COUNT(*) FROM gateway_baselines").fetchone()[0] >= GATEWAY_ROW_QUOTA:
+                        raise GatewayBaselineRepositoryError("Gateway baseline capacity is protected.")
                     if existing is not None:
                         current = _row_to_gateway_baseline(existing)
                         if current.gateway_ip != baseline.gateway_ip:
@@ -1414,6 +1429,8 @@ class SQLiteGatewayBaselineRepository:
                             return current
                         if baseline.last_seen < current.last_seen:
                             return current
+                    if change is not None and connection.execute("SELECT COUNT(*) FROM gateway_baseline_changes").fetchone()[0] >= GATEWAY_HISTORY_ROW_QUOTA:
+                        raise GatewayBaselineRepositoryError("Gateway history capacity requires local maintenance.")
                     connection.execute(
                         """
                         INSERT INTO gateway_baselines (

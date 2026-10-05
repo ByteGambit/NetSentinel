@@ -170,12 +170,16 @@ class SQLiteDatabase:
         *,
         busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
         migration_runner: _MigrationRunner | None = None,
+        setup_timeout_ms: int | None = None,
     ) -> None:
         self._factory = SQLiteConnectionFactory(
             path,
             busy_timeout_ms=busy_timeout_ms,
         )
         self._migration_runner = migration_runner
+        if setup_timeout_ms is not None and (type(setup_timeout_ms) is not int or not 1 <= setup_timeout_ms <= 60_000):
+            raise ValueError("setup_timeout_ms must be between 1 and 60000")
+        self._setup_timeout_ms = setup_timeout_ms
 
     @property
     def path(self) -> Path:
@@ -186,7 +190,10 @@ class SQLiteDatabase:
 
         # DNS, inventory and history workers may open a fresh database at
         # startup. Serialize WAL setup and migration ledger/DDL in this process.
-        with _MIGRATION_LOCK:
+        acquired = _MIGRATION_LOCK.acquire() if self._setup_timeout_ms is None else _MIGRATION_LOCK.acquire(timeout=self._setup_timeout_ms / 1000)
+        if not acquired:
+            raise DatabaseOpenError("SQLite connection setup is busy.")
+        try:
             connection = self._factory.connect()
             try:
                 runner = self._migration_runner
@@ -200,7 +207,9 @@ class SQLiteDatabase:
             except BaseException:
                 connection.close()
                 raise
-        return connection
+            return connection
+        finally:
+            _MIGRATION_LOCK.release()
 
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:

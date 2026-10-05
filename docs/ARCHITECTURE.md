@@ -1,5 +1,23 @@
 # Mimari
 
+NS-095 typed StorageRetentionPolicy/StoreRetentionRule → blocking
+StoragePrivacyService → StorageMaintenanceRepository → SQLite adapter sınırını
+ekler. Tek portable worker, bir pending veya active komut, coarse opt-in timer,
+scoped confirmation token ve immutable sanitized export preview kullanılır.
+Bootstrap lazy worker compose eder; ApplicationLifecycle start/2s stop sağlar.
+Settings → Storage & Privacy Future sonuçlarını Qt timer ile alır; DB/config/file
+işleri GUI dışında kalır. Her cleanup BEGIN IMMEDIATE altında protection'ı
+yeniden değerlendirir, gerçek owned cascade satırlarını budget'a dahil eder.
+2s runtime/16 chunks/2048 deletes, 100ms busy/setup-lock timeout ve SQL progress
+handler vardır; store failure izole, committed chunk receipt korunur. Final
+counts deadline içinde okunamazsa unavailable, protected-only pressure açık olur.
+Alert reference set'i uncorrelated JSON projection; active lifecycle probe mevcut
+index'i kullanır. Parent/revision quota eviction aynı guard'ı kullanır. Baseline
+ve VLAN capacity artık current/user state'i körlemesine evict etmez.
+No global writer redesign, schema 019→019, migration yok. Raw support export,
+network/upload veya generic trust/preference reset yoktur.
+[Store/retention/purge/export matrisi](STORAGE_PRIVACY.md).
+
 NS-094 commit sonrası portable `PersistedNotificationIntent` → immutable policy
 ve `NotificationDeliveryService` → Qt thread sink → stable-ID worker query
 navigation akışını ekler. Legacy AlertService ve risk/suppression pipeline aynı

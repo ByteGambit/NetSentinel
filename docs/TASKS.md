@@ -1076,7 +1076,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-095 — Storage/privacy controls
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-06). Typed central policy, opt-in deferred/hourly single maintenance worker, bounded cleanup/admission quotas, confirmed scoped purge ve allowlist support-export-v1 preview/atomic Save tamamlandı. 2s/16 chunks/2048 physical deletes, 100ms busy/setup timeout; current/reference/user data korunur, source-expiry snapshot/timeline restart-safe kalır. Profile/trust/preferences generic purge dışındadır; no upload/VACUUM/secure erase/encryption claim. 83 yeni test; dependency-targeted 487 passed, final changed-path targeted 221 passed; full offline 3626 passed/8 deselected (290.41 s). Ruff/configured mypy (35)/direct mypy (16)/diff temiz. Requested venv SQLite/ctypes DLL'leri Windows Application Control ile engellendi; aynı CPython 3.12.14 bundled runtime + mevcut repo venv packages ile doğrulandı. Schema 019→019, migration yok. [Store/policy matrisi](STORAGE_PRIVACY.md), [98 maddelik kabul/teslim raporu](STORAGE_PRIVACY_ACCEPTANCE.md). M17 devam ediyor; NS-096 başlatılmadı.
 - **Amaç:** Yerel veri yaşam döngüsünü kullanıcı kontrolüne almak.
 - **Yapılacaklar:** Bounded retention scheduling, store quota, scoped purge ve sanitized export preview ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/retention.py, src/netsentinel/infrastructure/sqlite/, src/netsentinel/shared/config.py, src/netsentinel/presentation/, tests/integration/.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Devam ediyor; NS-093/NS-094 COMPLETE, NS-095–NS-099 planlandı |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Devam ediyor; NS-093/NS-094/NS-095 COMPLETE, NS-096–NS-099 planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

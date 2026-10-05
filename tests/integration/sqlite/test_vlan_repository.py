@@ -46,17 +46,18 @@ def test_round_trip_restart_preserves_counts_first_last_and_frozen_reference(tmp
         assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
 
 
-def test_scope_eviction_removes_child_rows_with_deterministic_oldest_first(tmp_path) -> None:
+def test_scope_capacity_preserves_current_parent_and_child_state(tmp_path) -> None:
     database = SQLiteDatabase(tmp_path / "capacity.sqlite3")
     repo = SQLiteVlanSummaryRepository(database, max_scopes=2)
     service = VlanSummaryService(repo, clock=Clock())
     a, b, c = context("A", 1), context("B", 2), context("C", 3)
     service.observe(a, packet(a, 10))
     service.observe(b, packet(b, 20, at=AT + timedelta(seconds=1)))
-    service.observe(c, packet(c, 30, at=AT + timedelta(seconds=2)))
-    assert service.get(a) is None
+    with pytest.raises(VlanSummaryRepositoryError, match="capacity"):
+        service.observe(c, packet(c, 30, at=AT + timedelta(seconds=2)))
+    assert service.get(a).vlan_ids[0].vlan_id == 10
     assert service.get(b).vlan_ids[0].vlan_id == 20
-    assert service.get(c).vlan_ids[0].vlan_id == 30
+    assert service.get(c) is None
     with database.connection() as connection:
         assert connection.execute("SELECT COUNT(*) FROM vlan_summaries").fetchone()[0] == 2
         assert connection.execute("SELECT COUNT(*) FROM vlan_id_summaries").fetchone()[0] == 2

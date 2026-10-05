@@ -133,7 +133,8 @@ class SQLiteBaselineRepository:
                 count = self._connection.execute("SELECT COUNT(*) FROM behavior_baselines").fetchone()[0]
                 if existing is None and count >= self.config.max_rows:
                     # One new scope displaces at most one row in the normal path.
-                    deleted = self._delete_oldest(min(count - self.config.max_rows + 1, self.config.cleanup_chunk_size))
+                    deleted = self._delete_oldest(min(count - self.config.max_rows + 1, self.config.cleanup_chunk_size),
+                        (summary.last_observed_at - timedelta(days=self.config.retention_days)).isoformat())
                     if count - deleted >= self.config.max_rows:
                         raise ValueError("baseline quota requires cleanup")
                 self._connection.execute(
@@ -151,11 +152,12 @@ class SQLiteBaselineRepository:
                 )
         return deleted
 
-    def _delete_oldest(self, limit: int) -> int:
+    def _delete_oldest(self, limit: int, cutoff: str) -> int:
         deleted = self._connection.execute(
             """DELETE FROM behavior_baselines WHERE (application_key, revision_digest, network_fingerprint) IN
                (SELECT application_key, revision_digest, network_fingerprint FROM behavior_baselines
-                ORDER BY last_observed_at, application_key, revision_digest, network_fingerprint LIMIT ?)""", (limit,),
+                WHERE last_observed_at <= ?
+                ORDER BY last_observed_at, application_key, revision_digest, network_fingerprint LIMIT ?)""", (cutoff, limit),
         ).rowcount
         if deleted:
             self._mark_loss()
@@ -182,7 +184,7 @@ class SQLiteBaselineRepository:
                 self._mark_loss()
             remaining = self.config.cleanup_chunk_size - deleted
             if remaining > 0 and count > self.config.max_rows:
-                deleted += self._delete_oldest(min(remaining, count - self.config.max_rows))
+                deleted += self._delete_oldest(min(remaining, count - self.config.max_rows), cutoff)
             return deleted
 
 

@@ -1,5 +1,17 @@
 # Ürün tanımı
 
+NS-095 Settings → Storage & Privacy yerel store sayıları/approximate DB-WAL
+boyutu, opt-in retention, scope önizlemeli/onaylı purge ve sanitized support JSON
+önizleme/Save sağlar. Retention varsayılan kapalıdır; Save ile açılırsa ilk kontrol
+60 saniye sonra, ardından saatte bir bounded worker'da çalışır. Aktif/current veri,
+alert-linked explanation, cihaz profili/trust ve suppression/mark-normal korunur.
+Kaynak silinse de retained incident/assessment snapshot ve expired/unavailable
+açıklaması okunabilir. Support export raw history, IP/domain/path/MAC/hash/not,
+provider response veya secret içermez; otomatik upload yoktur. SQLite 019 değişmez.
+Silme secure erase veya anında dosya küçülmesi garantisi vermez; DB encryption
+garantisi yoktur. [Store envanteri, politika ve sınırlar](STORAGE_PRIVACY.md).
+M17 devam ediyor; NS-096 başlatılmadı. Aşağıdaki teslimat kayıtları tarihseldir.
+
 NS-094 privacy-aware desktop notifications ve Settings → Desktop notifications
 tamamlandı. Varsayılan kapalı, Enable/Save ile gelecekteki eligible alert'ler
 için açılır. Preview yalnız genel LOW/MEDIUM/HIGH metnidir; OS başka kişilere veya
@@ -148,7 +160,7 @@ Kullanıcı aktif TCP/UDP bağlantılarını; durum, local/remote endpoint, PID,
 
 ### 2. Geçmiş inceleme
 
-Kullanıcı daha önce açılmış bağlantıları zaman, process veya endpoint üzerinden inceler. Uygulamanın yeniden başlatılmasından sonra geçmiş korunur; mevcut retention servisi temizliği manuel komutla uygular, otomatik zamanlanmış temizleme henüz yoktur.
+Kullanıcı daha önce açılmış bağlantıları zaman, process veya endpoint üzerinden inceler. Uygulamanın yeniden başlatılmasından sonra geçmiş korunur; Settings → Storage & Privacy üzerinden kullanıcı opt-in scheduled retention ve onaylı scope purge seçebilir. Legacy manual retention API de korunur.
 
 ### 3. Yerel ağ envanteri
 

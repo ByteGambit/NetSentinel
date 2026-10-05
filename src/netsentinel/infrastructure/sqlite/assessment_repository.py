@@ -16,6 +16,7 @@ from netsentinel.domain.risk_assessment import (
 from netsentinel.domain.risk_evidence import EvidenceReference, EvidenceReferenceKind, _digest
 from netsentinel.infrastructure.sqlite.assessment_codec import decode_value
 from netsentinel.infrastructure.sqlite.database import SQLiteAdapterError, SQLiteDatabase, transaction
+from netsentinel.infrastructure.sqlite.retention_guards import ASSESSMENT_UNPROTECTED, REVISION_UNPROTECTED
 
 # Size gates are applied in SQL before transferring untrusted payloads to Python.
 _SELECT = """SELECT r.assessment_id, r.revision, r.format_version,
@@ -134,10 +135,14 @@ class SQLiteAssessmentRepository:
                 if excess > 0:
                     if excess > self.policy.cleanup_chunk_size:
                         raise AssessmentPersistenceError("Assessment revision quota requires cleanup.")
-                    connection.execute(
-                        "DELETE FROM risk_assessment_revisions WHERE assessment_id = ? AND revision IN (SELECT revision FROM risk_assessment_revisions WHERE assessment_id = ? ORDER BY revision LIMIT ?)",
-                        (key.assessment_id, key.assessment_id, excess),
-                    )
+                    deleted = connection.execute(
+                        "DELETE FROM risk_assessment_revisions WHERE assessment_id = ? AND revision IN "
+                        "(SELECT revision FROM risk_assessment_revisions WHERE assessment_id = ? AND "
+                        + REVISION_UNPROTECTED + " AND revision < ? ORDER BY revision LIMIT ?)",
+                        (key.assessment_id, key.assessment_id, number, excess),
+                    ).rowcount
+                    if deleted != excess:
+                        raise AssessmentPersistenceError("Assessment explanation capacity is protected.")
             return AssessmentSave(RiskAssessmentRevision(key, number, assessed_at, snapshot, version), True)
         except (SQLiteAdapterError, sqlite3.Error):
             raise AssessmentPersistenceError("Assessment could not be persisted.") from None
@@ -212,16 +217,19 @@ class SQLiteAssessmentRepository:
 
     def _delete_assessments(self, connection: sqlite3.Connection, limit: int, cutoff: str | None = None) -> int:
         rows = connection.execute(
-            "SELECT assessment_id FROM risk_assessments WHERE (? IS NULL OR original_observed_at <= ?) ORDER BY original_observed_at, assessment_id LIMIT ?",
+            "SELECT assessment_id FROM risk_assessments WHERE " + ASSESSMENT_UNPROTECTED +
+            " AND (? IS NULL OR original_observed_at <= ?) ORDER BY original_observed_at, assessment_id LIMIT ?",
             (cutoff, cutoff, limit),
         ).fetchall()
         deleted = 0
+        physical_deleted = 0
         for row in rows:
             count = connection.execute("SELECT COUNT(*) FROM risk_assessment_revisions WHERE assessment_id = ?", (row[0],)).fetchone()[0]
-            if deleted + count > self.policy.cleanup_chunk_size:
+            if physical_deleted + count + 1 > self.policy.cleanup_chunk_size:
                 break
             connection.execute("DELETE FROM risk_assessments WHERE assessment_id = ?", (row[0],))
             deleted += count
+            physical_deleted += count + 1
         return deleted
 
     def cleanup(self, now: datetime) -> int:
