@@ -13,6 +13,9 @@ from netsentinel.domain.alerts import (
 )
 from netsentinel.domain.alert_risk import AlertWriteIntent
 from dataclasses import replace
+from netsentinel.application.events import EventDispatcher
+from netsentinel.application.services.notifications import PersistedNotificationIntent
+from netsentinel.domain.alerts import alert_id
 
 
 DEFAULT_RATE_WINDOW = timedelta(seconds=120)
@@ -22,27 +25,41 @@ class AlertService:
     """Store meaningful detector output; rate limit outward notifications."""
 
     def __init__(self, repository: AlertRepository, *, clock: Callable[[], datetime] | None = None,
-                 rate_window: timedelta = DEFAULT_RATE_WINDOW) -> None:
+                 rate_window: timedelta = DEFAULT_RATE_WINDOW,
+                 dispatcher: EventDispatcher | None = None) -> None:
         if not isinstance(rate_window, timedelta) or rate_window <= timedelta(0):
             raise ValueError("rate_window must be positive")
         self._repository = repository
         self._clock = clock or (lambda: datetime.now(UTC))
         self._rate_window = rate_window
+        self._dispatcher = dispatcher
 
     def record(self, event: ArpRiskAssessment | NewDeviceDetected | AlertCandidate) -> tuple[Alert, bool]:
         """Return persisted state and whether a new notification is warranted."""
 
-        return self._repository.record(self._candidate(event), self._now(), self._rate_window)
+        candidate = self._candidate(event)
+        previous = self._repository.get(alert_id(candidate.fingerprint)) if self._dispatcher else None
+        alert, eligible = self._repository.record(candidate, self._now(), self._rate_window)
+        if self._dispatcher and (eligible or alert.status is not AlertStatus.OPEN):
+            self._dispatcher.publish(PersistedNotificationIntent.from_alert(
+                alert, previous, eligible=eligible, write_intent=candidate.intent))
+        return alert, eligible
 
     def acknowledge(self, alert_id: UUID) -> Alert | None:
-        return self._repository.set_status(alert_id, AlertStatus.ACKNOWLEDGED, self._now())
+        return self._set_status(alert_id, AlertStatus.ACKNOWLEDGED)
 
     def update_assessment(self, candidate: AlertCandidate) -> tuple[Alert, bool]:
         """Refresh explanation without inventing a new observation or reopening."""
         return self.record(replace(candidate, intent=AlertWriteIntent.REASSESSMENT))
 
     def resolve(self, alert_id: UUID) -> Alert | None:
-        return self._repository.set_status(alert_id, AlertStatus.RESOLVED, self._now())
+        return self._set_status(alert_id, AlertStatus.RESOLVED)
+
+    def _set_status(self, alert_id: UUID, status: AlertStatus) -> Alert | None:
+        alert = self._repository.set_status(alert_id, status, self._now())
+        if alert is not None and self._dispatcher:
+            self._dispatcher.publish(PersistedNotificationIntent.from_alert(alert, None, eligible=False))
+        return alert
 
     def get(self, alert_id: UUID) -> Alert | None:
         return self._repository.get(alert_id)

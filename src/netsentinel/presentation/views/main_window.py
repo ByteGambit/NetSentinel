@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import Enum
+from typing import cast
+from netsentinel.application.services.device_inventory import DeviceInventorySnapshot
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QCloseEvent
@@ -140,6 +142,9 @@ class MainWindow(QMainWindow):
         assert self.threat_intel_consent_action is not None
         self.threat_intel_consent_action.triggered.connect(self._show_ti_consent)
         self.application_behavior_action = settings_menu.addAction("Application behavior…")
+        self.notification_settings_action = settings_menu.addAction("Desktop notifications…")
+        assert self.notification_settings_action is not None
+        self.notification_settings_action.setEnabled(False)
         assert self.application_behavior_action is not None
         self.application_behavior_action.setEnabled(False)
         file_menu = menu_bar.addMenu("File")
@@ -245,7 +250,7 @@ class MainWindow(QMainWindow):
         self.navigate_to(PageId.ALERTS)
         alerts.refresh()
 
-    def _on_device_snapshot_for_alerts(self, snapshot: object) -> None:
+    def _on_device_snapshot_for_alerts(self, snapshot: DeviceInventorySnapshot) -> None:
         if self._close_notified or (self._device_inventory is not None
                                    and not self._device_inventory.accepting):
             return
@@ -318,7 +323,7 @@ class MainWindow(QMainWindow):
 
         if not isinstance(page_id, PageId):
             raise TypeError("page_id must be a PageId")
-        return self.navigation.item(PAGE_ORDER.index(page_id))
+        return cast(QListWidgetItem, self.navigation.item(PAGE_ORDER.index(page_id)))
 
     def navigate_to(self, page_id: PageId) -> None:
         """Select a page; selecting the current page is an idempotent operation."""
@@ -342,8 +347,11 @@ class MainWindow(QMainWindow):
         self.application_behavior_action.setEnabled(True)
         self.application_behavior_action.triggered.connect(settings)
 
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt API
+    def closeEvent(self, event: QCloseEvent | None) -> None:  # noqa: N802 - Qt API
         """Request application shutdown exactly once before accepting close."""
+
+        if event is None:
+            return
 
         if self._close_policy is not None and not self._close_policy():
             event.ignore()
@@ -399,6 +407,7 @@ class MainWindow(QMainWindow):
         self._current_page = page_id
         if (
             previous_page is not self._pages[page_id]
+            and previous_page is not None
             and focused is not None
             and (
                 focused is previous_page

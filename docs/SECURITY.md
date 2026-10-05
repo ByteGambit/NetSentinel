@@ -1,5 +1,16 @@
 # Güvenlik ve güvenli kullanım
 
+NS-094 desktop notifications varsayılan kapalıdır; Settings'te explicit Enable/Save
+sonrası yalnız gelecekteki persisted eligible alert intent'leri değerlendirilir.
+OS bildirimi başka kişilerce ve OS ayarlarına bağlı olarak lock screen'de görülebilir.
+LIMITED preview sabit genel severity metnidir; IP, domain/DNS query, path, MAC,
+hash, username, command line, raw evidence/payload veya provider bilgisi içermez.
+Submission kullanıcıya gösterildiğinin kanıtı değildir. Restart/enable geçmişi
+replay etmez; click yalnız exact alert ID'yi okur, ACK/resolve/reassessment/TI lookup
+yapmaz. Kuyruk/state/click handles bounded, diagnostics aggregate-only'dir.
+Native Windows smoke henüz çalıştırılmadı. [Bildirim policy ve sınırları](DESKTOP_NOTIFICATIONS.md).
+Aşağıdaki teslimat kayıtları tarihseldir.
+
 NS-093 tray yalnız görünürlüğü değiştirir. Tooltip/menu process, IP, domain veya
 alert preview içermez; tooltip sabit NetSentinel'dir. Hide monitoring/capture/DNS
 lifecycle değiştirmez, capture veya reputation lookup başlatmaz. Autostart,

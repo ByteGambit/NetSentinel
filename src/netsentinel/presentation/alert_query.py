@@ -21,6 +21,7 @@ class AlertQueryCoordinator(QObject):
     query_failed = pyqtSignal(int)
     acknowledged = pyqtSignal(object)
     action_failed = pyqtSignal(object)
+    detail_ready = pyqtSignal(int, object)
 
     def __init__(self, factory: AlertServiceFactory, *, shutdown_timeout: float = 2.0,
                  parent: QObject | None = None) -> None:
@@ -34,7 +35,7 @@ class AlertQueryCoordinator(QObject):
         self._thread: Thread | None = None
         self._accepting = False
         self._generation = 0
-        self._pending: tuple[int, AlertQuery, Event] | None = None
+        self._pending: tuple[int, AlertQuery | UUID, Event] | None = None
         self._current_cancel: Event | None = None
         self._actions: deque[UUID] = deque()
 
@@ -53,9 +54,9 @@ class AlertQueryCoordinator(QObject):
             self._thread.start()
             return True
 
-    def request(self, query: AlertQuery) -> int:
-        if not isinstance(query, AlertQuery):
-            raise TypeError("query must be an AlertQuery")
+    def request(self, query: AlertQuery | UUID) -> int:
+        if not isinstance(query, (AlertQuery, UUID)):
+            raise TypeError("query must be an AlertQuery or exact alert UUID")
         with self._condition:
             if not self._accepting:
                 raise RuntimeError("alert worker is not running")
@@ -148,12 +149,16 @@ class AlertQueryCoordinator(QObject):
                 try:
                     if service is None:
                         raise RuntimeError("alert service unavailable")
-                    page = service.load_page(query, is_cancelled=lambda: cancellation.is_set() or self._stop.is_set())
+                    page = (service.get(query) if isinstance(query, UUID) else
+                            service.load_page(query, is_cancelled=lambda: cancellation.is_set() or self._stop.is_set()))
                     with self._condition:
                         deliver = self._accepting and generation == self._generation
                     if deliver:
                         try:
-                            self.page_ready.emit(generation, page)
+                            if isinstance(query, UUID):
+                                self.detail_ready.emit(generation, page)
+                            else:
+                                self.page_ready.emit(generation, page)
                         except RuntimeError:
                             pass
                 except AlertQueryCancelled:

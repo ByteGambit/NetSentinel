@@ -1065,7 +1065,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-094 — Desktop notifications
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-05). Commit sonrası portable intent/policy/service/sink, bounded Qt delivery ve exact-ID worker navigation tamamlandı. Default disabled/LIMITED preview; 120 s monotonic cooldown, severity escalation bypass, dedup/decrease/score-only/ACK/RESOLVED/reopen/suppression policy doğrulandı. Queue 32, subject state 512/session, immutable Qt click sources 8/600 s; failure/overflow typed ve aggregate diagnostics; startup/re-enable/restart backlog replay yoktur. Existing SQLite occurrence/revision watermark yeterli: schema 019→019, migration yok. 84 yeni test; dependency-targeted 225 passed, final new-only 84 passed; full offline 3543 passed/8 deselected (254.29 s). Ruff/configured mypy (34)/direct mypy (12)/diff temiz. [Frozen policy ve Windows smoke](DESKTOP_NOTIFICATIONS.md), [82 maddelik kabul/teslim raporu](DESKTOP_NOTIFICATIONS_ACCEPTANCE.md). Native Windows manual smoke çalıştırılmadı; temporary Qt icon/expiry ve OS display sınırları açık. M17 devam ediyor; NS-095 başlatılmadı.
 - **Amaç:** Persisted alert intent'ini privacy-aware desktop bildirime çevirmek.
 - **Yapılacaklar:** Delivery adapter/port, dedup/cooldown/hysteresis ve click navigation kur.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/infrastructure/, src/netsentinel/presentation/, tests/gui/.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Devam ediyor; NS-093 COMPLETE, NS-094–NS-099 planlandı |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Devam ediyor; NS-093/NS-094 COMPLETE, NS-095–NS-099 planlandı |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

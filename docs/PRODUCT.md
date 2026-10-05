@@ -1,5 +1,15 @@
 # Ürün tanımı
 
+NS-094 privacy-aware desktop notifications ve Settings → Desktop notifications
+tamamlandı. Varsayılan kapalı, Enable/Save ile gelecekteki eligible alert'ler
+için açılır. Preview yalnız genel LOW/MEDIUM/HIGH metnidir; OS başka kişilere veya
+lock screen'e gösterebilir. Dedup/cooldown/hysteresis ve suppression popup yükünü
+sınırlar. Click gizli/minimize pencereyi geri getirir ve exact alert detail açar;
+submission OS display garantisi değildir. Restart/enable geçmişi replay etmez.
+SQLite 019 değişmez; native Windows manual smoke çalıştırılmadı.
+[Policy, platform sınırları ve smoke](DESKTOP_NOTIFICATIONS.md). M17 devam ediyor;
+NS-095 başlatılmadı. Aşağıdaki önceki task teslimat kayıtları tarihseldir.
+
 NS-093 günlük desktop kullanımına Qt tray ve Settings → Application behavior
 close preference ekler. Normal launch görünür başlar; varsayılan X = Quit
 NetSentinel. Kullanıcı Hide to system tray seçerse X yalnız pencereyi gizler,
@@ -97,7 +107,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, desktop notification, installer ve firewall bugün uygulanmış değildir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, installer ve firewall bugün uygulanmış değildir; desktop notification NS-094 ile eklenmiştir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 

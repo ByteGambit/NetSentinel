@@ -37,6 +37,9 @@ from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLook
 from netsentinel.version import __version__
 from netsentinel.presentation.tray import ApplicationController, QtTrayAdapter, TrayAdapter
 from netsentinel.shared.config import AppConfig, save_window_close_behavior
+from netsentinel.shared.config import save_notification_preference
+from netsentinel.application.services.notifications import DesktopNotificationSink
+from netsentinel.presentation.notifications import DesktopNotificationController, QtDesktopNotificationSink
 
 
 class EngineLifecycle(Protocol):
@@ -95,6 +98,7 @@ class ApplicationLifecycle:
         self._start_requested = False
         self._shutdown_requested = False
         self._shutdown_result: bool | None = None
+        self.notifications: DesktopNotificationController | None = None
 
     @property
     def shutdown_requested(self) -> bool:
@@ -152,6 +156,8 @@ class ApplicationLifecycle:
         if self._shutdown_requested:
             return bool(self._shutdown_result)
         self._shutdown_requested = True
+        if self.notifications is not None:
+            self.notifications.close()
         if self._threat_intel_lookup is not None:
             self._threat_intel_lookup.stop()
         ti_stopped = True if self._threat_intel is None else self._threat_intel.stop()
@@ -202,6 +208,7 @@ class ApplicationShell:
     incident_queries: tuple[IncidentQueryCoordinator, IncidentQueryCoordinator] | None = None
     incident_risk_queries: RiskQueryCoordinator | None = None
     controller: ApplicationController | None = None
+    notifications: DesktopNotificationController | None = None
 
 
 def create_application(
@@ -226,6 +233,7 @@ def create_application(
     config: AppConfig | None = None,
     config_path: Path | None = None,
     tray_adapter: TrayAdapter | None = None,
+    notification_sink: DesktopNotificationSink | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -328,7 +336,13 @@ def create_application(
         (lambda behavior: save_window_close_behavior(config_path, behavior)) if config_path is not None else None,
     )
     window.bind_application_controls(controller.close_requested, controller.request_quit, controller.show_settings)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller)
+    notifications = DesktopNotificationController(
+        engine.dispatcher, notification_sink if notification_sink is not None else QtDesktopNotificationSink(application, window),
+        controller, window, enabled=(config or AppConfig()).desktop_notifications_enabled,
+        save_preference=(lambda enabled: save_notification_preference(config_path, enabled)) if config_path is not None else None,
+    )
+    lifecycle.notifications = notifications
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications)
 
 
 def run_application(
@@ -395,9 +409,9 @@ def run_application(
         capability_service_factory = create_capability_service_factory(
             engine, config=settings, threat_intel=threat_intel_scheduler)
         history_service_factory = create_history_query_service_factory()
-        device_service_factory = create_device_inventory_service_factory(config=settings)
+        device_service_factory = create_device_inventory_service_factory(config=settings, dispatcher=engine.dispatcher)
         profile_service_factory = create_device_profile_service_factory()
-        alert_service_factory = create_alert_query_service_factory()
+        alert_service_factory = create_alert_query_service_factory(dispatcher=engine.dispatcher)
         dns_service_factory = create_dns_query_service_factory()
         destination_service_factory = create_destination_evidence_service_factory(config=settings)
         signer_service = create_executable_signer_service()

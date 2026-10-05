@@ -10,7 +10,7 @@ from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtWidgets import (QAbstractItemView, QComboBox, QFormLayout, QGroupBox,
     QHBoxLayout, QLabel, QPushButton, QSplitter, QTableView,
     QTextEdit, QVBoxLayout, QWidget, QTabWidget, QScrollArea)
-from PyQt6.QtCore import QSignalBlocker
+from PyQt6.QtCore import QSignalBlocker, pyqtSignal
 
 from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
 from netsentinel.application.ports import AlertQuery
@@ -139,6 +139,7 @@ class AlertDetailsWidget(QGroupBox):
 
 
 class AlertsView(QWidget):
+    notification_navigation_finished = pyqtSignal(bool)
     def __init__(self, parent: QWidget | None = None, *, coordinator: AlertQueryCoordinator | None = None,
                  risk_queries: RiskQueryCoordinator | None = None) -> None:
         super().__init__(parent)
@@ -153,6 +154,7 @@ class AlertsView(QWidget):
         self._initial_requested = False
         self._selected_id: UUID | None = None
         self._ack_pending = False
+        self._notification_target: UUID | None = None
         self._network_labels: dict[str, str] = {}
         self._linked_profile: tuple[str, str] | None = None
 
@@ -251,6 +253,7 @@ class AlertsView(QWidget):
         cast(QItemSelectionModel, self.table.selectionModel()).currentRowChanged.connect(self._selection_changed)
         if coordinator is not None:
             coordinator.page_ready.connect(self._page_ready)
+            coordinator.detail_ready.connect(self._detail_ready)
             coordinator.query_failed.connect(self._query_failed)
             coordinator.acknowledged.connect(self._acknowledged)
             coordinator.action_failed.connect(self._action_failed)
@@ -282,7 +285,55 @@ class AlertsView(QWidget):
             self.load_initial()
 
     def refresh(self) -> None:
+        self._notification_target = None
         self._request_page()
+
+    def open_notification_alert(self, alert_id: UUID) -> None:
+        """Reveal an exact record in a single-row view, using the existing worker."""
+        self._initial_requested = True
+        self._notification_target = alert_id
+        self._selected_id = None
+        self._page_index = 0
+        self._linked_profile = None
+        self._has_next = False
+        for control in (self.status_filter, self.severity_filter, self.confidence_filter, self.rule_filter):
+            blocker = QSignalBlocker(control)
+            control.setCurrentIndex(0)
+            del blocker
+        self.linked_profile_label.hide()
+        self.clear_profile_button.hide()
+        self.model.replace_alerts(())
+        self.details.clear()
+        self._loading = True
+        self.state_label.setText("Loading notification alert…")
+        self.state_label.show()
+        self._update_controls()
+        try:
+            if self.coordinator is None:
+                raise RuntimeError("alert worker unavailable")
+            self._generation = self.coordinator.request(alert_id)
+        except RuntimeError:
+            self._generation = -1
+            self._query_failed(-1)
+
+    def _detail_ready(self, generation: int, alert: object) -> None:
+        if generation != self._generation or self._notification_target is None:
+            return
+        self._loading = False
+        target = self._notification_target
+        self._notification_target = None
+        if isinstance(alert, Alert) and alert.id == target:
+            self.model.replace_alerts((alert,))
+            self.table.selectRow(0)
+            self.state_label.setText("Notification alert. Refresh to browse all alerts.")
+            self.notification_navigation_finished.emit(True)
+        else:
+            self.model.replace_alerts(())
+            self.details.clear()
+            self.state_label.setText("Alert is no longer available.")
+            self.notification_navigation_finished.emit(False)
+        self.state_label.show()
+        self._update_controls()
 
     def show_profile_identity_alerts(self, profile_id, network_fingerprint: str) -> None:
         """Browse alerts emitted for one user profile by NS-040."""
@@ -308,6 +359,7 @@ class AlertsView(QWidget):
         self._request_page()
 
     def _filters_changed(self) -> None:
+        self._notification_target = None
         self._linked_profile = None
         self.linked_profile_label.hide()
         self.clear_profile_button.hide()
@@ -381,6 +433,9 @@ class AlertsView(QWidget):
         if generation != self._generation:
             return
         self._loading = False
+        if self._notification_target is not None:
+            self._notification_target = None
+            self.notification_navigation_finished.emit(False)
         self._has_next = False
         self.model.replace_alerts(())
         self._selected_id = None

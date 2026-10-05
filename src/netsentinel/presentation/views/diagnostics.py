@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 from netsentinel.application.services.capabilities import CapabilityMatrix
 from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot
+from netsentinel.application.services.notifications import NotificationDiagnostics
 
 
 _REASONS = {
@@ -69,6 +70,11 @@ class DiagnosticsView(QWidget):
         self.health.setWordWrap(True)
         self.health.setAccessibleName("Worker and database health")
         layout.addWidget(self.health)
+        self.notifications = QLabel("Desktop notifications: Not checked", self)
+        self.notifications.setWordWrap(True)
+        self.notifications.setTextFormat(Qt.TextFormat.PlainText)
+        self.notifications.setAccessibleName("Desktop notification delivery diagnostics")
+        layout.addWidget(self.notifications)
         self.retry_button = QPushButton("Retry check", self)
         self.retry_button.setAccessibleName("Retry capability check")
         self.retry_button.setEnabled(coordinator is not None)
@@ -81,6 +87,17 @@ class DiagnosticsView(QWidget):
 
     def deactivate(self) -> None:
         self._active = False
+
+    def set_notification_diagnostics(self, snapshot: NotificationDiagnostics, *, enabled: bool) -> None:
+        if self._active:
+            self.notifications.setText(
+                f"Desktop notifications: {'enabled' if enabled else 'disabled'}; "
+                f"submitted {snapshot.submitted_to_sink} (display unconfirmed); "
+                f"unavailable {snapshot.sink_unavailable}; failed {snapshot.sink_failure}; "
+                f"queue coalesced {snapshot.queue_coalesced}, dropped {snapshot.queue_dropped}; "
+                f"session capacity skipped {snapshot.capacity_skipped}; "
+                f"navigation succeeded {snapshot.navigation_success}, failed {snapshot.navigation_failure}."
+            )
 
     def _receive_matrix(self, generation: int, matrix: CapabilityMatrix) -> None:
         if self._active and self._coordinator is not None and generation == self._coordinator.generation:

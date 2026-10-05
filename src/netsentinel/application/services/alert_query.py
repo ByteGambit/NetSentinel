@@ -37,5 +37,9 @@ class AlertQueryService:
     def acknowledge(self, alert_id: UUID) -> Alert | None:
         return self._alerts.acknowledge(alert_id)
 
+    def get(self, alert_id: UUID) -> Alert | None:
+        """Exact read independent of pagination and filters; no mutation."""
+        return self._alerts.get(alert_id)
+
 
 __all__ = ("AlertPage", "AlertQueryService")

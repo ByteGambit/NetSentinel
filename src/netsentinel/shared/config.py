@@ -129,12 +129,15 @@ class AppConfig:
     log_max_bytes: int = 1_048_576
     log_backups: int = 3
     onboarding_completed: bool = False
+    desktop_notifications_enabled: bool = False
     window_close_behavior: WindowCloseBehavior = WindowCloseBehavior.QUIT_APPLICATION
     destination_dataset_path: str | None = None
     threat_intel_consents: tuple[ThreatIntelConsent, ...] = ()
 
     def __post_init__(self) -> None:
         validate_consents(self.threat_intel_consents)
+        if type(self.desktop_notifications_enabled) is not bool:
+            raise ValueError("desktop_notifications_enabled must be a boolean")
         if not isinstance(self.window_close_behavior, WindowCloseBehavior):
             raise ValueError("window_close_behavior must be WindowCloseBehavior")
         if self.destination_dataset_path is not None:
@@ -255,6 +258,11 @@ def save_window_close_behavior(path: str | Path, behavior: WindowCloseBehavior) 
 
     current = load_config_file(path).config
     save_config_file(path, replace(current, window_close_behavior=behavior))
+
+
+def save_notification_preference(path: str | Path, enabled: bool) -> None:
+    current = load_config_file(path).config
+    save_config_file(path, replace(current, desktop_notifications_enabled=enabled))
 
 
 def _load_threat_intel_consents(value: Any) -> tuple[ThreatIntelConsent, ...]:

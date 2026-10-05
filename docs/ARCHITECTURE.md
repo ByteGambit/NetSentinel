@@ -1,5 +1,17 @@
 # Mimari
 
+NS-094 commit sonrası portable `PersistedNotificationIntent` → immutable policy
+ve `NotificationDeliveryService` → Qt thread sink → stable-ID worker query
+navigation akışını ekler. Legacy AlertService ve risk/suppression pipeline aynı
+engine dispatcher'ına bağlanır. Producer yalnız portable locked queue'ya yazar;
+bir GUI timer saniyede bir intent drain eder. Queue 32, subject state 512/session,
+Qt immutable click sources 8/600 s; overflow/failure typed ve aggregate'dir.
+Runtime cooldown 120 s monotonic; severity yükselişi bypass, düşüş/skor/ACK/resolve
+skip. Default disabled/LIMITED, no startup/backlog replay; SQLite 019 ve eski
+migration'lar değişmez. Exact ID detail query mevcut alert worker'ında, filtre ve
+pagination'dan bağımsızdır. `last_notified_at` intent watermark'dır, submission
+veya OS display proof değildir. [Frozen policy ve adapter tradeoff](DESKTOP_NOTIFICATIONS.md).
+
 NS-093 `ApplicationController` yalnız window visibility/close policy/Qt quit ve
 tray cleanup koordine eder; engine/worker ownership `ApplicationLifecycle`'da
 kalır. `QtTrayAdapter` QSystemTrayIcon capability/menu/activation sınırını

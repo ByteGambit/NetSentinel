@@ -12,7 +12,7 @@ from netsentinel.application.services.risk_assessments import RiskAssessmentServ
 from netsentinel.application.services.risk_evidence import BehaviorEvidence, evidence_from_behavior
 from netsentinel.application.services.suppression import SuppressionEvaluationService, unavailable_evaluation
 from netsentinel.domain.alert_risk import AlertAssessmentReference, AlertWriteIntent
-from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence, alert_id
+from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence, AlertStatus, alert_id
 from netsentinel.domain.application_identity import ApplicationIdentityQuality
 from netsentinel.domain.connections import NetworkScopeStatus
 from netsentinel.domain.risk_assessment import (
@@ -208,6 +208,14 @@ class RiskToAlertService:
             suppression = unavailable_evaluation(result, reference, signal.assessed_at,
                                                 SuppressionLimitation.EVALUATION_UNAVAILABLE)
         if suppression.disposition is SuppressionDisposition.SUPPRESSED:
+            from netsentinel.application.services.notifications import PersistedNotificationIntent
+            try:
+                existing = self._alerts.get(alert_id(risk_alert_fingerprint(key)))
+                if existing is not None:
+                    self._dispatcher.publish(PersistedNotificationIntent.from_alert(
+                        existing, existing, eligible=False, suppressed=True))
+            except Exception:
+                pass  # Suppression remains effective if the historical read fails.
             return RiskAlertResult(RiskAlertStatus.NO_ALERT, saved, suppression=suppression)
         # A replay of a retained older revision must never rewind current state.
         fingerprint = risk_alert_fingerprint(key)
@@ -216,6 +224,7 @@ class RiskToAlertService:
             result.confidence.value if result.confidence is not None else "low",
             AlertEvidence(key.original_observed_at, assessment=reference), signal.intent)
         try:
+            previous = self._alerts.get(alert_id(fingerprint))
             eligible = alert_eligible(result) and suppression.alert_eligible
             if not eligible:
                 if self._alerts.get(alert_id(fingerprint)) is None:
@@ -231,5 +240,9 @@ class RiskToAlertService:
         if notify:
             report = self._dispatcher.publish(AlertNotificationIntent(
                 alert.id, alert.fingerprint, reference, alert.severity, signal.intent, alert.updated_at))
+        if notify or not eligible or alert.status is not AlertStatus.OPEN:
+            from netsentinel.application.services.notifications import PersistedNotificationIntent
+            self._dispatcher.publish(PersistedNotificationIntent.from_alert(
+                alert, previous, eligible=notify and eligible, write_intent=signal.intent))
         return RiskAlertResult(RiskAlertStatus.SUCCESS if eligible else RiskAlertStatus.NO_ALERT,
                                saved, alert, report, suppression)

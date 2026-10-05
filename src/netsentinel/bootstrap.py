@@ -179,7 +179,7 @@ def create_desktop_engine(
     network_context_provider = create_network_context_provider()
     dns_config = DnsConfigMonitoringService(
         network_context_provider,
-        AlertService(SQLiteAlertRepository(database)),
+        AlertService(SQLiteAlertRepository(database), dispatcher=dispatcher),
     )
     return MonitoringEngine(
         collector=PsutilConnectionCollector(),
@@ -261,13 +261,14 @@ def create_history_query_service_factory(
 
 def create_alert_query_service_factory(
     *, database_path: str | PathLike[str] | None = None,
+    dispatcher: EventDispatcher | None = None,
 ) -> Callable[[], AlertQueryService]:
     """Construct the alert port/service inside its owning query worker."""
 
     database = SQLiteDatabase(database_path)
 
     def create_service() -> AlertQueryService:
-        return AlertQueryService(AlertService(SQLiteAlertRepository(database)))
+        return AlertQueryService(AlertService(SQLiteAlertRepository(database), dispatcher=dispatcher))
 
     return create_service
 
@@ -319,6 +320,7 @@ def create_packet_capture(
 
 def create_device_inventory_service_factory(
     *, database_path: str | PathLike[str] | None = None, config: AppConfig | None = None,
+    dispatcher: EventDispatcher | None = None,
 ) -> Callable[[], DeviceInventoryService]:
     """Create worker-owned portable inventory dependencies without starting capture."""
 
@@ -336,7 +338,7 @@ def create_device_inventory_service_factory(
             SQLiteDeviceRepository(database),
             create_packet_capture(context_provider=contexts, config=config),
             GatewayBaselineService(SQLiteGatewayBaselineRepository(database), contexts),
-            AlertService(SQLiteAlertRepository(database)),
+            AlertService(SQLiteAlertRepository(database), dispatcher=dispatcher),
             dns_writer=create_dns_history_writer(database_path=database_path, config=config),
             dns_associations=associations,
             profiles=SQLiteDeviceProfileRepository(database),
