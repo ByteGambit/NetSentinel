@@ -4,7 +4,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from PyQt6.QtCore import QModelIndex, Qt
-from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFormLayout, QGroupBox, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from netsentinel.domain.connections import ProcessInfo
 from netsentinel.domain.executable_signer import ExecutableSigner, SignerAvailability
@@ -12,6 +12,8 @@ from netsentinel.presentation.models.connections import (
     ConnectionColumn,
     ConnectionRole,
 )
+from netsentinel.presentation.widgets.page_flow import FlowTabWidget
+from netsentinel.presentation.theme import SECONDARY_TEXT
 from netsentinel.presentation.process_context import (
     PROCESS_CONTEXT_FIELDS,
     process_context_text,
@@ -54,7 +56,7 @@ class ConnectionDetailsWidget(QGroupBox):
         self.status_label = QLabel(self)
         self.status_label.setObjectName("connectionDetailsStatus")
         self.status_label.setAccessibleName("Connection details status")
-        self.status_label.setStyleSheet("color: #627d98;")
+        self.status_label.setStyleSheet(SECONDARY_TEXT)
 
         self.value_labels: dict[str, QLabel] = {}
         content = QWidget(self)
@@ -79,18 +81,9 @@ class ConnectionDetailsWidget(QGroupBox):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
         layout.addWidget(self.status_label)
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setWidget(content)
-        layout.addWidget(scroll)
+        layout.addWidget(content)
         self.destination = DestinationEvidenceWidget(self)
-        destination_scroll = QScrollArea(self)
-        destination_scroll.setWidgetResizable(True)
-        destination_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        destination_scroll.setMaximumHeight(240)
-        destination_scroll.setWidget(self.destination)
-        layout.addWidget(destination_scroll)
+        layout.addWidget(self.destination)
         signer_group = QGroupBox("Local executable signature", self)
         signer_layout = QVBoxLayout(signer_group)
         self.signer_button = QPushButton("Check disk file signature", signer_group)
@@ -104,12 +97,12 @@ class ConnectionDetailsWidget(QGroupBox):
         signer_layout.addWidget(self.signer_text)
         layout.addWidget(signer_group)
         self.baseline = BaselineDetailWidget(baseline_queries, self, preference_commands=preference_commands)
-        self.tabs = QTabWidget(self)
+        self.tabs = FlowTabWidget(self)
         self.tabs.setAccessibleName("Selected connection detail sections")
         self.tabs.setAccessibleDescription("Connection context and observed behavior baseline")
         self.tabs.addTab(connection_content, "Connection")
         self.tabs.addTab(self.baseline, "Behavior baseline")
-        self.risk = RiskExplanationWidget(risk_queries, self)
+        self.risk = RiskExplanationWidget(risk_queries, self, page_flow=True)
         self.tabs.addTab(self.risk, "Risk explanation")
         self.threat_intel = threat_intel or ThreatIntelLookupWidget(parent=self)
         self.tabs.addTab(self.threat_intel, "External reputation")

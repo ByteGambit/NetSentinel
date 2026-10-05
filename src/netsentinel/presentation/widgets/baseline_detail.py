@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QGroupBox, QLabel, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QGroupBox, QLabel, QMessageBox, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from netsentinel.application.services.baseline_detail import BaselineDetail, BaselineDetailRequest
 from netsentinel.application.services.behavior_baseline import BaselineResetResult, BaselineResetSubmission
@@ -33,12 +33,7 @@ class BaselineDetailWidget(QGroupBox):
         self.text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
         self.text.setWordWrap(True)
         self.text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        scroll = QScrollArea(self)
-        scroll.setAccessibleName("Scrollable observed baseline explanation")
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.text)
-        scroll.setMinimumHeight(100)
-        layout.addWidget(scroll, 1)
+        layout.addWidget(self.text)
         self.status = QLabel(self)
         self.status.setTextFormat(Qt.TextFormat.PlainText)
         self.status.setWordWrap(True)
@@ -53,11 +48,7 @@ class BaselineDetailWidget(QGroupBox):
         for widget in (self.status, self.refresh_button, self.reset_button):
             layout.addWidget(widget)
         self.preferences = MarkNormalWidget(preference_commands, self)
-        preferences_scroll = QScrollArea(self)
-        preferences_scroll.setWidgetResizable(True)
-        preferences_scroll.setWidget(self.preferences)
-        preferences_scroll.setMinimumHeight(160)
-        layout.addWidget(preferences_scroll, 1)
+        layout.addWidget(self.preferences)
         QWidget.setTabOrder(self.text, self.refresh_button)
         QWidget.setTabOrder(self.refresh_button, self.reset_button)
         self.refresh_button.clicked.connect(self.refresh)

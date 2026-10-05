@@ -4,10 +4,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from typing import cast
+from PyQt6.QtCore import QAbstractItemModel
+from PyQt6.QtCore import QItemSelectionModel
+from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtCore import QSortFilterProxyModel, Qt, pyqtSignal
 from PyQt6.QtWidgets import (QAbstractItemView, QComboBox, QFormLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableView, QVBoxLayout, QWidget)
 
+from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
 from netsentinel.application.services.device_inventory import DeviceInventoryProblem, DeviceInventorySnapshot
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.device_profile import DeviceProfileCoordinator
@@ -31,7 +36,7 @@ class DevicesFilterProxyModel(QSortFilterProxyModel):
     def filterAcceptsRow(self, source_row: int, source_parent) -> bool:  # noqa: N802
         if not self._term:
             return True
-        source = self.sourceModel()
+        source = cast(QAbstractItemModel, self.sourceModel())
         values = source.data(source.index(source_row, 0, source_parent), SEARCH_ROLE)
         return any(self._term in value.casefold() for value in values)
 
@@ -93,9 +98,9 @@ class DevicesView(QWidget):
         self._profile_load_error = False
 
         title = QLabel("Devices", self)
-        title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
+        title.setStyleSheet(PAGE_TITLE)
         subtitle = QLabel("Passive observations on the selected local network.", self)
-        subtitle.setStyleSheet("color: #627d98;")
+        subtitle.setStyleSheet(SECONDARY_TEXT)
         self.network_selector = QComboBox(self)
         self.network_selector.setAccessibleName("Devices network selector")
         self.search_edit = QLineEdit(self)
@@ -125,7 +130,7 @@ class DevicesView(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().hide()
+        cast(QHeaderView, self.table.verticalHeader()).hide()
         for column, width in enumerate((165, 165, 175, 175, 250)):
             self.table.setColumnWidth(column, width)
         self.details = DeviceDetailsWidget(self)
@@ -177,7 +182,7 @@ class DevicesView(QWidget):
         layout.addWidget(self.event_label)
         layout.addWidget(splitter, 1)
         self.search_edit.textChanged.connect(self._search_changed)
-        self.table.selectionModel().currentChanged.connect(self._selection_changed)
+        cast(QItemSelectionModel, self.table.selectionModel()).currentChanged.connect(self._selection_changed)
         self.network_selector.currentIndexChanged.connect(self._network_changed)
         self.refresh_button.clicked.connect(lambda: self._request("refresh"))
         self.capture_button.clicked.connect(self._toggle_capture)

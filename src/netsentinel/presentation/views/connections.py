@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from typing import cast
+from PyQt6.QtCore import QItemSelectionModel
+from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtCore import (
     QModelIndex,
-    QItemSelectionModel,
     QSignalBlocker,
     QTimer,
     Qt,
@@ -17,13 +19,9 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QFrame,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QPushButton,
-    QSizePolicy,
-    QSplitter,
-    QTableView,
     QVBoxLayout,
     QWidget,
 )
@@ -51,6 +49,8 @@ from netsentinel.presentation.viewmodels import ConnectionRowId
 from netsentinel.presentation.widgets.connection_details import (
     ConnectionDetailsWidget,
 )
+from netsentinel.presentation.widgets.page_flow import EndpointTableView, MonitoringPageScroll
+from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
 from netsentinel.shared.diagnostics import CapabilityStatus, EngineState
 from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget
 
@@ -98,14 +98,12 @@ class ConnectionsView(QWidget):
 
         self.title_label = QLabel("Connections", self)
         self.title_label.setObjectName("pageTitle")
-        self.title_label.setStyleSheet(
-            "font-size: 24px; font-weight: 700; color: #102a43;"
-        )
+        self.title_label.setStyleSheet(PAGE_TITLE)
         self.subtitle_label = QLabel(
             "Active TCP and UDP connections observed by NetSentinel.", self
         )
         self.subtitle_label.setObjectName("pageDescription")
-        self.subtitle_label.setStyleSheet("color: #627d98;")
+        self.subtitle_label.setStyleSheet(SECONDARY_TEXT)
 
         self.health_label = QLabel("Waiting for monitoring status…", self)
         self.health_label.setObjectName("connectionsHealth")
@@ -151,7 +149,7 @@ class ConnectionsView(QWidget):
         self.pause_notice.setStyleSheet("color: #8d5b00;")
         self.pause_notice.hide()
 
-        self.table = QTableView(self)
+        self.table = EndpointTableView(self)
         self.table.setObjectName("connectionsTable")
         self.table.setAccessibleName("Active connections")
         self.table.setModel(self.proxy_model)
@@ -170,22 +168,11 @@ class ConnectionsView(QWidget):
         )
         self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
-        self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(
+        cast(QHeaderView, self.table.verticalHeader()).setVisible(False)
+        cast(QHeaderView, self.table.verticalHeader()).setDefaultSectionSize(
             max(28, self.table.fontMetrics().height() + 10)
         )
-        header = self.table.horizontalHeader()
-        header.setSectionsClickable(True)
-        header.setSectionsMovable(False)
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setMinimumSectionSize(54)
-        header.setStretchLastSection(False)
-        for column, width in enumerate((150, 72, 86, 190, 190, 112, 96)):
-            self.table.setColumnWidth(column, width)
-        self.table.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
+        self.table.configure_columns((14, 6, 8, 24, 24, 12, 9), (1, 2, 5, 6))
 
         self.empty_label = QLabel("No active connections.", self)
         self.empty_label.setObjectName("connectionsEmptyState")
@@ -204,15 +191,6 @@ class ConnectionsView(QWidget):
         table_layout.addWidget(self.empty_label)
         table_layout.addWidget(self.table, 1)
 
-        splitter = QSplitter(Qt.Orientation.Vertical, self)
-        splitter.setObjectName("connectionsSplitter")
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(table_frame)
-        splitter.addWidget(self.details)
-        splitter.setStretchFactor(0, 4)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([430, 190])
-
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
         toolbar.addWidget(self.search_edit, 1)
@@ -220,21 +198,22 @@ class ConnectionsView(QWidget):
         toolbar.addWidget(self.state_filter)
         toolbar.addWidget(self.pause_button)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(10)
+        self.page_scroll = MonitoringPageScroll(self.table, self)
+        layout = self.page_scroll.page_layout
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
         layout.addWidget(self.health_label)
         layout.addLayout(toolbar)
         layout.addWidget(self.pause_notice)
-        layout.addWidget(splitter, 1)
+        layout.addWidget(table_frame)
+        layout.addWidget(self.details)
+        layout.addStretch(1)
 
         self.search_edit.textChanged.connect(self._set_search_filter)
         self.protocol_filter.currentIndexChanged.connect(self._set_protocol_filter)
         self.state_filter.currentIndexChanged.connect(self._set_state_filter)
         self.pause_button.toggled.connect(self.set_paused)
-        self.table.selectionModel().currentRowChanged.connect(
+        cast(QItemSelectionModel, self.table.selectionModel()).currentRowChanged.connect(
             self._on_current_row_changed
         )
         self.proxy_model.dataChanged.connect(self._on_proxy_data_changed)
@@ -335,10 +314,10 @@ class ConnectionsView(QWidget):
         self.protocol_filter.setEnabled(not paused)
         self.state_filter.setEnabled(not paused)
         self.table.setEnabled(not paused)
-        self.table.viewport().setUpdatesEnabled(not paused)
+        cast(QWidget, self.table.viewport()).setUpdatesEnabled(not paused)
         if not paused:
             self._restore_selected_row()
-            self.table.viewport().update()
+            cast(QWidget, self.table.viewport()).update()
 
     def clear_filters(self) -> None:
         """Restore all connection rows without mutating the source model."""
@@ -456,7 +435,7 @@ class ConnectionsView(QWidget):
             self._selected_row_removing = False
             self._selection_syncing = False
             self._selected_row_id = None
-            self.table.selectionModel().clear()
+            cast(QItemSelectionModel, self.table.selectionModel()).clear()
             self.details.clear()
             self._destination_generation = None
             self._update_empty_state()
@@ -485,7 +464,7 @@ class ConnectionsView(QWidget):
 
     def _restore_selected_row(self) -> None:
         if self._selected_row_id is None:
-            self.table.selectionModel().clearSelection()
+            cast(QItemSelectionModel, self.table.selectionModel()).clearSelection()
             self.details.clear()
             self._destination_generation = None
             return
@@ -494,7 +473,7 @@ class ConnectionsView(QWidget):
         if row is None:
             self._selection_syncing = True
             try:
-                self.table.selectionModel().clear()
+                cast(QItemSelectionModel, self.table.selectionModel()).clear()
             finally:
                 self._selection_syncing = False
             self._selected_row_id = None
@@ -505,7 +484,7 @@ class ConnectionsView(QWidget):
         index = self.proxy_model.index(row, 0)
         self._selection_syncing = True
         try:
-            self.table.selectionModel().setCurrentIndex(
+            cast(QItemSelectionModel, self.table.selectionModel()).setCurrentIndex(
                 index,
                 QItemSelectionModel.SelectionFlag.ClearAndSelect
                 | QItemSelectionModel.SelectionFlag.Rows,

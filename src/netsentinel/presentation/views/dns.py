@@ -6,11 +6,15 @@ from datetime import UTC, datetime
 from ipaddress import ip_address
 from uuid import UUID
 
+from typing import cast
+from PyQt6.QtCore import QItemSelectionModel
+from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtCore import QDateTime, QModelIndex, QTimer, Qt, pyqtSignal
 from PyQt6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDateTimeEdit,
     QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QSplitter, QTableView, QTextEdit, QVBoxLayout, QWidget)
 
+from netsentinel.presentation.theme import PAGE_TITLE
 from netsentinel.application.ports import DnsHistoryQuery
 from netsentinel.application.services.dns_history_query import DnsHistoryPage
 from netsentinel.domain.dns import DnsHistoryRecord, DnsRecordType
@@ -107,7 +111,7 @@ class DnsView(QWidget):
         self._writer_available = True
 
         title = QLabel("DNS", self)
-        title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
+        title.setStyleSheet(PAGE_TITLE)
         description = QLabel("Locally saved classic DNS metadata. Raw DNS packets and payloads are not stored.", self)
         description.setWordWrap(True)
         self.capability_label = QLabel("Classic UDP/TCP DNS on port 53 only. Encrypted DoH/DoT content is not visible; mDNS is not included.", self)
@@ -163,8 +167,8 @@ class DnsView(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setStretchLastSection(True)
+        cast(QHeaderView, self.table.verticalHeader()).setVisible(False)
+        cast(QHeaderView, self.table.horizontalHeader()).setStretchLastSection(True)
         for column, width in enumerate((190, 145, 190, 65, 155, 155, 90, 100, 95)):
             self.table.setColumnWidth(column, width)
         self.previous_button = QPushButton("Previous", self)
@@ -175,6 +179,7 @@ class DnsView(QWidget):
         self.page_label.setAccessibleName("DNS page number")
         self.details = DnsDetailsWidget(self)
 
+        control: QWidget
         filters = QHBoxLayout()
         for control in (self.qname_filter, self.type_filter, self.server_filter,
                         self.status_filter):
@@ -223,7 +228,7 @@ class DnsView(QWidget):
         self.alert_button.clicked.connect(self.config_alert_requested)
         self.previous_button.clicked.connect(self.previous_page)
         self.next_button.clicked.connect(self.next_page)
-        self.table.selectionModel().currentRowChanged.connect(self._selection_changed)
+        cast(QItemSelectionModel, self.table.selectionModel()).currentRowChanged.connect(self._selection_changed)
         if coordinator is not None:
             coordinator.page_ready.connect(self._page_ready)
             coordinator.query_failed.connect(self._query_failed)

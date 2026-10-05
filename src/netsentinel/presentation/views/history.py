@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from typing import cast
+from PyQt6.QtCore import QItemSelectionModel
+from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtCore import QDateTime, QModelIndex, QTimer, Qt
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -15,14 +18,9 @@ from PyQt6.QtWidgets import (
     QFrame,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QPushButton,
-    QSizePolicy,
-    QScrollArea,
-    QSplitter,
-    QTableView,
     QVBoxLayout,
     QWidget,
 )
@@ -39,6 +37,8 @@ from netsentinel.presentation.process_context import (
     PROCESS_CONTEXT_FIELDS,
     process_context_text,
 )
+from netsentinel.presentation.widgets.page_flow import EndpointTableView, MonitoringPageScroll
+from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 
 
@@ -84,18 +84,9 @@ class HistoryDetailsWidget(QGroupBox):
             form.addRow(f"{title}:", label)
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidget(content)
-        layout.addWidget(scroll)
+        layout.addWidget(content)
         self.destination = DestinationEvidenceWidget(self)
-        destination_scroll = QScrollArea(self)
-        destination_scroll.setWidgetResizable(True)
-        destination_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        destination_scroll.setMaximumHeight(240)
-        destination_scroll.setWidget(self.destination)
-        layout.addWidget(destination_scroll)
+        layout.addWidget(self.destination)
         self.clear()
 
     def clear(self) -> None:
@@ -150,11 +141,11 @@ class HistoryView(QWidget):
 
         title = QLabel("History", self)
         title.setObjectName("historyTitle")
-        title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
+        title.setStyleSheet(PAGE_TITLE)
         subtitle = QLabel(
             "Review bounded pages of locally stored connection metadata.", self
         )
-        subtitle.setStyleSheet("color: #627d98;")
+        subtitle.setStyleSheet(SECONDARY_TEXT)
 
         self.process_filter = QLineEdit(self)
         self.process_filter.setPlaceholderText("Process name (exact)")
@@ -210,9 +201,9 @@ class HistoryView(QWidget):
         self.state_label = QLabel("No history records found.", self)
         self.state_label.setObjectName("historyState")
         self.state_label.setAccessibleName("History loading and result status")
-        self.state_label.setStyleSheet("color: #627d98; padding: 5px;")
+        self.state_label.setStyleSheet(SECONDARY_TEXT + " padding: 5px;")
 
-        self.table = QTableView(self)
+        self.table = EndpointTableView(self)
         self.table.setObjectName("historyTable")
         self.table.setAccessibleName("Connection history records")
         self.table.setModel(self.model)
@@ -221,13 +212,11 @@ class HistoryView(QWidget):
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(30)
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((145, 65, 75, 175, 175, 100, 205, 205, 205, 85)):
-            self.table.setColumnWidth(column, width)
-        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        cast(QHeaderView, self.table.verticalHeader()).setVisible(False)
+        cast(QHeaderView, self.table.verticalHeader()).setDefaultSectionSize(30)
+        self.table.setWordWrap(False)
+        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.table.configure_columns((14, 6, 8, 24, 24, 12, 25, 25, 25, 9), (1, 2, 5, 6, 7, 8, 9))
 
         self.previous_button = QPushButton("Previous", self)
         self.previous_button.setAccessibleName("Previous history page")
@@ -249,22 +238,16 @@ class HistoryView(QWidget):
         table_layout.addWidget(self.state_label)
         table_layout.addWidget(self.table, 1)
         table_layout.addLayout(pagination)
-        splitter = QSplitter(Qt.Orientation.Vertical, self)
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(table_frame)
-        splitter.addWidget(self.details)
-        splitter.setStretchFactor(0, 4)
-        splitter.setStretchFactor(1, 1)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(9)
+        self.page_scroll = MonitoringPageScroll(self.table, self)
+        layout = self.page_scroll.page_layout
         layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addLayout(first_filters)
         layout.addLayout(time_filters)
         layout.addWidget(self.validation_label)
-        layout.addWidget(splitter, 1)
+        layout.addWidget(table_frame)
+        layout.addWidget(self.details)
+        layout.addStretch(1)
 
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
@@ -280,7 +263,7 @@ class HistoryView(QWidget):
         self.refresh_button.clicked.connect(self.refresh)
         self.previous_button.clicked.connect(self.previous_page)
         self.next_button.clicked.connect(self.next_page)
-        self.table.selectionModel().currentRowChanged.connect(self._selection_changed)
+        cast(QItemSelectionModel, self.table.selectionModel()).currentRowChanged.connect(self._selection_changed)
         if coordinator is not None:
             coordinator.page_ready.connect(self._page_ready)
             coordinator.query_failed.connect(self._query_failed)
@@ -363,7 +346,7 @@ class HistoryView(QWidget):
         self.validation_label.hide()
         current = (
             self.model.row_at(self.table.currentIndex().row())
-            if self.table.selectionModel().hasSelection()
+            if cast(QItemSelectionModel, self.table.selectionModel()).hasSelection()
             else None
         )
         self._restore_record_id = current.record_id if current is not None else None
@@ -482,7 +465,7 @@ class HistoryView(QWidget):
         from netsentinel.application.services.destination_evidence import DestinationEvidenceResult
 
         if generation == self._destination_generation and isinstance(result, DestinationEvidenceResult):
-            if self.table.selectionModel().hasSelection():
+            if cast(QItemSelectionModel, self.table.selectionModel()).hasSelection():
                 self.details.destination.set_result(result)
 
     def _destination_failed(self, generation: int) -> None:

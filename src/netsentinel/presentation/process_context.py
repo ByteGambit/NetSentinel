@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from netsentinel.domain.connections import (
     ParentProcessStatus,
@@ -35,6 +35,22 @@ def _missing(status: ProcessInfoStatus | None) -> str:
     }.get(status, "Not available")
 
 
+def format_process_created(value: datetime | None, status: ProcessInfoStatus | None = None) -> str:
+    """Normalize missing/epoch sentinels only for process creation presentation.
+
+    Zero Unix time (and older OS sentinels such as 1601) is not meaningful
+    Windows process creation evidence. Identity and persisted values stay intact.
+    """
+    if value is None:
+        return _missing(status)
+    try:
+        if value.tzinfo is None or value.utcoffset() is None or value <= datetime(1970, 1, 1, tzinfo=UTC):
+            return "Not available"
+        return _timestamp(value)
+    except (ValueError, OverflowError, OSError):
+        return "Not available"
+
+
 def process_context_text(process: ProcessInfo) -> dict[str, str]:
     """Map each independent availability state without claiming parent lineage."""
 
@@ -44,9 +60,7 @@ def process_context_text(process: ProcessInfo) -> dict[str, str]:
     values = {
         "process": process.name if process.name is not None else _missing(process.name_status),
         "pid": str(identity.pid) if identity is not None else "Not available",
-        "process_create_time": (
-            _timestamp(created) if created is not None else _missing(process.create_time_status)
-        ),
+        "process_create_time": format_process_created(created, process.create_time_status),
         "executable": (
             process.executable_path
             if process.executable_path is not None
@@ -81,11 +95,7 @@ def process_context_text(process: ProcessInfo) -> dict[str, str]:
             parent.name if parent.name is not None else _missing(parent.name_status)
         )
         parent_created = parent.identity.create_time if parent.identity is not None else None
-        values["parent_create_time"] = (
-            _timestamp(parent_created)
-            if parent_created is not None
-            else _missing(parent.create_time_status)
-        )
+        values["parent_create_time"] = format_process_created(parent_created, parent.create_time_status)
     if parent.parent_pid is not None:
         values["parent_pid"] = str(parent.parent_pid)
     elif parent.status is not ParentProcessStatus.ABSENT:

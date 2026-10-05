@@ -9,13 +9,15 @@ from netsentinel.application.services.risk_explanation import (
     RiskExplanationRequest, RiskExplanationViewModel, bounded,
 )
 from netsentinel.domain.risk_assessment import AssessmentReadStatus
+from netsentinel.presentation.widgets.page_flow import FlowTabWidget, FlowTextEdit
 from netsentinel.presentation.risk_query import RiskQueryCoordinator
 
 
 class RiskExplanationWidget(QWidget):
     def __init__(self, coordinator: RiskQueryCoordinator | None = None,
-                 parent: QWidget | None = None) -> None:
+                 parent: QWidget | None = None, *, page_flow: bool = False) -> None:
         super().__init__(parent)
+        self._page_flow = page_flow
         self.coordinator = coordinator
         self._request: RiskExplanationRequest | None = None
         self._generation: int | None = None
@@ -28,7 +30,7 @@ class RiskExplanationWidget(QWidget):
         self.status.setAccessibleName("Risk explanation status")
         self.refresh_button = QPushButton("Refresh risk details", self)
         self.refresh_button.setAccessibleName("Refresh selected risk explanation")
-        self.tabs = QTabWidget(self)
+        self.tabs = FlowTabWidget(self) if page_flow else QTabWidget(self)
         self.tabs.setAccessibleName("Risk explanation sections")
         self.values: dict[str, QLabel] = {}
         self.section_texts: dict[str, QTextEdit] = {}
@@ -125,12 +127,15 @@ class RiskExplanationWidget(QWidget):
             value.setAccessibleName("Risk " + title)
             self.values[title] = value
             form.addRow(title + ":", value)
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(summary)
-        self.tabs.addTab(scroll, "Summary")
+        if self._page_flow:
+            self.tabs.addTab(summary, "Summary")
+        else:
+            scroll = QScrollArea(self)
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(summary)
+            self.tabs.addTab(scroll, "Summary")
         for section in model.sections[:8]:
-            section_text = QTextEdit(self)
+            section_text = FlowTextEdit(self) if self._page_flow else QTextEdit(self)
             section_text.setReadOnly(True)
             section_text.setAccessibleName("Risk " + section.title)
             lines = [bounded(line) for line in section.lines[:1536]]

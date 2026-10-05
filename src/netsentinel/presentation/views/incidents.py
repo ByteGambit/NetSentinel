@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QTableView, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
 )
 
+from netsentinel.presentation.theme import PAGE_TITLE
 from netsentinel.application.services.incident_timeline import (
     MAX_LOADED_ROWS, PAGE_SIZE, TimelineCursor, TimelinePage, TimelineRequest, TimelineStatus, SOURCE_TEXT,
 )
@@ -44,7 +45,7 @@ class IncidentsView(QWidget):
         self._append = False
 
         self.title = QLabel("Incidents", self)
-        self.title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
+        self.title.setStyleSheet(PAGE_TITLE)
         self.help = QLabel("Timeline order shows recorded times and does not prove causality. Local application history is not a tamper-proof forensic record.", self)
         self.help.setWordWrap(True)
         self.help.setTextFormat(Qt.TextFormat.PlainText)

@@ -7,8 +7,9 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
-from PyQt6.QtWidgets import QComboBox, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QComboBox, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from netsentinel.presentation.widgets.page_flow import FlowTextEdit
 from netsentinel.application.services.risk_alerts import RiskAlertResult, RiskAlertStatus
 from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
 from netsentinel.application.services.threat_intel_scheduler import (
@@ -62,7 +63,7 @@ class ThreatIntelLookupWidget(QWidget):
         self.disclaimer = QLabel(TI_DISCLAIMER, self)
         self.disclaimer.setTextFormat(Qt.TextFormat.PlainText)
         self.disclaimer.setWordWrap(True)
-        self.result = QTextEdit(self)
+        self.result = FlowTextEdit(self)
         self.result.setReadOnly(True)
         self.result.setAccessibleName("External reputation context and provenance")
         layout = QVBoxLayout(self)

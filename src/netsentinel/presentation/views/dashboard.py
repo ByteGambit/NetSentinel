@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT, CARD_TITLE, METRIC_VALUE, card_style
 from netsentinel.application.services.statistics import StatisticsService
 from netsentinel.presentation.models.connections import ConnectionsTableModel
 from netsentinel.presentation.models.dashboard import (
@@ -38,9 +39,7 @@ class DashboardView(QWidget):
         super().__init__(parent)
         self.setObjectName("dashboardPage")
         self.setAccessibleName("Dashboard")
-        self.setStyleSheet(
-            "QWidget#dashboardPage { background: #ffffff; color: #243b53; }"
-        )
+
 
         self.connections_model = (
             ConnectionsTableModel(self) if model is None else model
@@ -53,14 +52,12 @@ class DashboardView(QWidget):
 
         self.title_label = QLabel("Dashboard", self)
         self.title_label.setObjectName("pageTitle")
-        self.title_label.setStyleSheet(
-            "font-size: 24px; font-weight: 700; color: #102a43;"
-        )
+        self.title_label.setStyleSheet(PAGE_TITLE)
         self.subtitle_label = QLabel(
             "Live connection counts and monitoring health.", self
         )
         self.subtitle_label.setObjectName("pageDescription")
-        self.subtitle_label.setStyleSheet("color: #627d98;")
+        self.subtitle_label.setStyleSheet(SECONDARY_TEXT)
 
         metrics_grid = QGridLayout()
         metrics_grid.setHorizontalSpacing(10)
@@ -90,14 +87,11 @@ class DashboardView(QWidget):
         traffic_frame = QFrame(self)
         traffic_frame.setObjectName("dashboardTrafficCard")
         traffic_frame.setAccessibleName("Broadcast and ARP monitoring summary")
-        traffic_frame.setStyleSheet(
-            "QFrame#dashboardTrafficCard { background: #f8fafc; "
-            "border: 1px solid #d9e2ec; border-radius: 6px; }"
-        )
+        traffic_frame.setStyleSheet(card_style("dashboardTrafficCard"))
         traffic_layout = QGridLayout(traffic_frame)
         traffic_layout.setContentsMargins(16, 12, 16, 12)
         traffic_title = QLabel("Broadcast and ARP", traffic_frame)
-        traffic_title.setStyleSheet("font-size: 16px; font-weight: 600; color: #102a43;")
+        traffic_title.setStyleSheet(CARD_TITLE)
         traffic_layout.addWidget(traffic_title, 0, 0, 1, 2)
         self.broadcast_rate_label = self._add_traffic_row(traffic_layout, 1, "Broadcast rate", "dashboardBroadcastRate")
         self.arp_rate_label = self._add_traffic_row(traffic_layout, 2, "ARP rate", "dashboardArpRate")
@@ -115,14 +109,11 @@ class DashboardView(QWidget):
         vlan_frame = QFrame(self)
         vlan_frame.setObjectName("dashboardVlanCard")
         vlan_frame.setAccessibleName("Selected network VLAN observations")
-        vlan_frame.setStyleSheet(
-            "QFrame#dashboardVlanCard { background: #f8fafc; "
-            "border: 1px solid #d9e2ec; border-radius: 6px; }"
-        )
+        vlan_frame.setStyleSheet(card_style("dashboardVlanCard"))
         vlan_layout = QVBoxLayout(vlan_frame)
         vlan_layout.setContentsMargins(16, 12, 16, 12)
         vlan_title = QLabel("VLAN observations", vlan_frame)
-        vlan_title.setStyleSheet("font-size: 16px; font-weight: 600; color: #102a43;")
+        vlan_title.setStyleSheet(CARD_TITLE)
         vlan_layout.addWidget(vlan_title)
         self.vlan_labels = {}
         for key, name in (("scope", "VLAN scope"), ("status", "VLAN observation status"),
@@ -150,50 +141,47 @@ class DashboardView(QWidget):
         health_frame.setObjectName("dashboardHealthCard")
         health_frame.setAccessibleName("Monitoring health summary")
         health_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        health_frame.setStyleSheet(
-            "QFrame#dashboardHealthCard { background: #f8fafc; "
-            "border: 1px solid #d9e2ec; border-radius: 6px; }"
-        )
+        health_frame.setStyleSheet(card_style("dashboardHealthCard"))
         health_title = QLabel("Monitoring Status", health_frame)
         health_title.setStyleSheet(
-            "font-size: 16px; font-weight: 600; color: #102a43;"
+            CARD_TITLE
         )
         self.status_label = QLabel("● Waiting", health_frame)
         self.status_label.setObjectName("dashboardMonitoringStatus")
         self.status_label.setAccessibleName("Monitoring status")
-        self.status_label.setStyleSheet("font-weight: 600; color: #627d98;")
+        self.status_label.setStyleSheet("font-weight: 600; " + SECONDARY_TEXT)
         self.health_detail_label = QLabel(
             "Waiting for monitoring status.", health_frame
         )
         self.health_detail_label.setObjectName("dashboardHealthDetail")
         self.health_detail_label.setAccessibleName("Monitoring health detail")
-        self.health_detail_label.setStyleSheet("color: #243b53;")
+        self.health_detail_label.setStyleSheet(SECONDARY_TEXT)
         self.capability_label = QLabel(
             "Capability status is not available yet.", health_frame
         )
         self.capability_label.setObjectName("dashboardCapability")
         self.capability_label.setAccessibleName("Monitoring capability")
-        self.capability_label.setStyleSheet("color: #334e68;")
+        self.capability_label.setStyleSheet(SECONDARY_TEXT)
         self.diagnostic_label = QLabel(
             "No monitoring status has been received.", health_frame
         )
         self.diagnostic_label.setObjectName("dashboardDiagnostic")
         self.diagnostic_label.setAccessibleName("Monitoring diagnostic")
         self.diagnostic_label.setWordWrap(True)
-        self.diagnostic_label.setStyleSheet("color: #334e68;")
+        self.diagnostic_label.setStyleSheet(SECONDARY_TEXT)
 
         poll_caption = QLabel("Last successful poll", health_frame)
-        poll_caption.setStyleSheet("color: #627d98;")
+        poll_caption.setStyleSheet(SECONDARY_TEXT)
         self.last_poll_label = QLabel("—", health_frame)
         self.last_poll_label.setObjectName("dashboardLastSuccessfulPoll")
         self.last_poll_label.setAccessibleName("Last successful poll")
-        self.last_poll_label.setStyleSheet("color: #243b53;")
+        self.last_poll_label.setStyleSheet(SECONDARY_TEXT)
         dropped_caption = QLabel("Dropped UI events", health_frame)
-        dropped_caption.setStyleSheet("color: #627d98;")
+        dropped_caption.setStyleSheet(SECONDARY_TEXT)
         self.dropped_events_label = QLabel("0", health_frame)
         self.dropped_events_label.setObjectName("dashboardDroppedEvents")
         self.dropped_events_label.setAccessibleName("Dropped UI events")
-        self.dropped_events_label.setStyleSheet("color: #243b53;")
+        self.dropped_events_label.setStyleSheet(SECONDARY_TEXT)
 
         facts = QGridLayout()
         facts.addWidget(poll_caption, 0, 0)
@@ -285,16 +273,8 @@ class DashboardView(QWidget):
 
     @pyqtSlot(DashboardHealthState)
     def set_health(self, health: DashboardHealthState) -> None:
-        colors = {
-            "healthy": "#276749",
-            "warning": "#8d5b00",
-            "error": "#9b2c2c",
-            "neutral": "#627d98",
-        }
         self.status_label.setText(f"● {health.status}")
-        self.status_label.setStyleSheet(
-            f"font-weight: 600; color: {colors[health.tone]};"
-        )
+        self.status_label.setStyleSheet("font-weight: 600; " + SECONDARY_TEXT)
         self.health_detail_label.setText(health.detail)
         self.capability_label.setText(health.capability)
         self.diagnostic_label.setText(health.diagnostic)
@@ -311,19 +291,15 @@ class DashboardView(QWidget):
     ) -> QLabel:
         card = QFrame(self)
         card.setFrameShape(QFrame.Shape.StyledPanel)
-        card.setStyleSheet(
-            "QFrame { background: white; border: 1px solid #d9e2ec; "
-            "border-radius: 6px; } QLabel { border: 0; }"
-        )
+        card.setObjectName("dashboardMetricCard")
+        card.setStyleSheet(card_style("dashboardMetricCard"))
         caption = QLabel(title, card)
-        caption.setStyleSheet("color: #627d98;")
+        caption.setStyleSheet(SECONDARY_TEXT)
         value = QLabel("0", card)
         value.setObjectName(object_name)
         value.setAccessibleName(title)
         value.setAlignment(Qt.AlignmentFlag.AlignRight)
-        value.setStyleSheet(
-            "font-size: 25px; font-weight: 700; color: #102a43;"
-        )
+        value.setStyleSheet(METRIC_VALUE)
         card_layout = QHBoxLayout(card)
         card_layout.setContentsMargins(14, 12, 14, 12)
         card_layout.addWidget(caption)

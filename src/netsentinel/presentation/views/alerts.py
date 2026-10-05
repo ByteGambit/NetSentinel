@@ -3,12 +3,16 @@
 from __future__ import annotations
 from uuid import UUID
 
+from typing import cast
+from PyQt6.QtCore import QItemSelectionModel
+from PyQt6.QtWidgets import QHeaderView, QLayout
 from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtWidgets import (QAbstractItemView, QComboBox, QFormLayout, QGroupBox,
-    QHBoxLayout, QHeaderView, QLabel, QPushButton, QSplitter, QTableView,
+    QHBoxLayout, QLabel, QPushButton, QSplitter, QTableView,
     QTextEdit, QVBoxLayout, QWidget, QTabWidget, QScrollArea)
 from PyQt6.QtCore import QSignalBlocker
 
+from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
 from netsentinel.application.ports import AlertQuery
 from netsentinel.application.services.alert_query import AlertPage
 from netsentinel.domain.alerts import Alert, AlertStatus
@@ -153,9 +157,9 @@ class AlertsView(QWidget):
         self._linked_profile: tuple[str, str] | None = None
 
         title = QLabel("Alerts", self)
-        title.setStyleSheet("font-size: 24px; font-weight: 700; color: #102a43;")
+        title.setStyleSheet(PAGE_TITLE)
         subtitle = QLabel("Review locally stored security observations and their supporting evidence.", self)
-        subtitle.setStyleSheet("color: #627d98;")
+        subtitle.setStyleSheet(SECONDARY_TEXT)
         self.status_filter = QComboBox(self)
         self.status_filter.setAccessibleName("Alert status filter")
         self.status_filter.addItem("All statuses", None)
@@ -185,6 +189,7 @@ class AlertsView(QWidget):
         self.clear_profile_button.setAccessibleName("Clear related profile alert scope")
         self.clear_profile_button.hide()
         filters = QHBoxLayout()
+        control: QWidget
         for control in (self.status_filter, self.severity_filter, self.confidence_filter, self.rule_filter, self.refresh_button):
             filters.addWidget(control)
 
@@ -197,8 +202,8 @@ class AlertsView(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        cast(QHeaderView, self.table.verticalHeader()).setVisible(False)
+        cast(QHeaderView, self.table.horizontalHeader()).setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.previous_button = QPushButton("Previous", self)
         self.previous_button.setAccessibleName("Previous alert page")
         self.next_button = QPushButton("Next", self)
@@ -213,7 +218,7 @@ class AlertsView(QWidget):
         self.details = AlertDetailsWidget(self, risk_queries=risk_queries)
         self.acknowledge_button = QPushButton("Acknowledge", self)
         self.acknowledge_button.setAccessibleName("Acknowledge selected alert")
-        self.details.layout().addWidget(self.acknowledge_button)
+        cast(QLayout, self.details.layout()).addWidget(self.acknowledge_button)
         table_panel = QWidget(self)
         table_layout = QVBoxLayout(table_panel)
         table_layout.setContentsMargins(0, 0, 0, 0)
@@ -243,7 +248,7 @@ class AlertsView(QWidget):
         self.previous_button.clicked.connect(self.previous_page)
         self.next_button.clicked.connect(self.next_page)
         self.acknowledge_button.clicked.connect(self.acknowledge_selected)
-        self.table.selectionModel().currentRowChanged.connect(self._selection_changed)
+        cast(QItemSelectionModel, self.table.selectionModel()).currentRowChanged.connect(self._selection_changed)
         if coordinator is not None:
             coordinator.page_ready.connect(self._page_ready)
             coordinator.query_failed.connect(self._query_failed)
@@ -350,7 +355,7 @@ class AlertsView(QWidget):
         self._has_next = page.has_next
         previous_id = self._selected_id
         # Reset selection signals must not discard a pending identical risk read.
-        blocker = QSignalBlocker(self.table.selectionModel())
+        blocker = QSignalBlocker(cast(QItemSelectionModel, self.table.selectionModel()))
         self.model.replace_alerts(page.alerts)
         row = self.model.row_for_id(previous_id) if previous_id is not None else None
         if row is not None:

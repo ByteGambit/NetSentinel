@@ -21,6 +21,7 @@ from netsentinel.presentation.viewmodels import (
     format_endpoint,
     format_state,
 )
+from netsentinel.presentation.process_context import format_process_created
 
 
 class HistoryColumn(IntEnum):
@@ -108,10 +109,9 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
             else "Unknown (monitoring gap)" if record.observation_gap else MISSING_VALUE
         ),
         duration_display=format_duration(duration),
-        process_create_time_display=(
-            format_local_timestamp(identity.create_time)
-            if identity is not None and identity.create_time is not None
-            else MISSING_VALUE
+        process_create_time_display=format_process_created(
+            identity.create_time if identity is not None else None,
+            snapshot.process.create_time_status,
         ),
         close_reason_display=observation_status,
         process_info=snapshot.process,
