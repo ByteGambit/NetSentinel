@@ -10,9 +10,10 @@ from PyQt6.QtCore import QItemSelectionModel
 from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtCore import QSortFilterProxyModel, Qt, pyqtSignal
 from PyQt6.QtWidgets import (QAbstractItemView, QComboBox, QFormLayout, QGroupBox,
-    QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableView, QVBoxLayout, QWidget)
+    QHBoxLayout, QLabel, QLineEdit, QPushButton, QSizePolicy, QTableView, QVBoxLayout, QWidget)
 
 from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
+from netsentinel.presentation.widgets.page_flow import MonitoringPageScroll
 from netsentinel.application.services.device_inventory import DeviceInventoryProblem, DeviceInventorySnapshot
 from netsentinel.presentation.device_inventory import DeviceInventoryCoordinator
 from netsentinel.presentation.device_profile import DeviceProfileCoordinator
@@ -45,6 +46,7 @@ class DeviceDetailsWidget(QGroupBox):
     def __init__(self, parent=None) -> None:
         super().__init__("Selected device", parent)
         self.setAccessibleName("Device details")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         self.values: dict[str, QLabel] = {}
         layout = QFormLayout(self)
         for key, title in (("mac", "MAC"), ("ip", "Last observed IPv4"),
@@ -55,7 +57,7 @@ class DeviceDetailsWidget(QGroupBox):
             label.setTextFormat(Qt.TextFormat.PlainText)
             label.setAccessibleName("IP-MAC binding history" if key == "bindings" else title)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            if key == "bindings":
+            if key in ("bindings", "interface"):
                 label.setWordWrap(True)
             self.values[key] = label
             layout.addRow(f"{title}:", label)
@@ -130,12 +132,22 @@ class DevicesView(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
+        self.table.setWordWrap(False)
+        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         cast(QHeaderView, self.table.verticalHeader()).hide()
-        for column, width in enumerate((165, 165, 175, 175, 250)):
-            self.table.setColumnWidth(column, width)
+        header = cast(QHeaderView, self.table.horizontalHeader())
+        for column in range(4):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Interactive)
+        # Stretch the last section while retaining a readable initial width;
+        # Qt can then use table horizontal scrolling when all columns do not fit.
+        self.table.setColumnWidth(4, self.table.fontMetrics().horizontalAdvance("Ethernet · 255.255.255.255/32") + 24)
+        header.setStretchLastSection(True)
         self.details = DeviceDetailsWidget(self)
         self.profile_panel = QGroupBox("User-saved profile", self)
         self.profile_panel.setAccessibleName("Device profile details")
+        self.profile_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         profile_layout = QVBoxLayout(self.profile_panel)
         self.profile_status = QLabel("Select an observed device to view its profile.", self.profile_panel)
         self.profile_status.setTextFormat(Qt.TextFormat.PlainText)
@@ -169,18 +181,17 @@ class DevicesView(QWidget):
         profile_actions.addStretch()
         profile_layout.addLayout(profile_actions)
         self._profile_controls()
-        splitter = QSplitter(Qt.Orientation.Vertical, self)
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(self.table)
-        splitter.addWidget(self.details)
-        splitter.addWidget(self.profile_panel)
-        layout = QVBoxLayout(self)
+        self.page_scroll = MonitoringPageScroll(self.table, self)
+        layout = self.page_scroll.page_layout
         layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addLayout(controls)
         layout.addWidget(self.status_label)
         layout.addWidget(self.event_label)
-        layout.addWidget(splitter, 1)
+        layout.addWidget(self.table)
+        layout.addWidget(self.details)
+        layout.addWidget(self.profile_panel)
+        layout.addStretch(1)
         self.search_edit.textChanged.connect(self._search_changed)
         cast(QItemSelectionModel, self.table.selectionModel()).currentChanged.connect(self._selection_changed)
         self.network_selector.currentIndexChanged.connect(self._network_changed)
