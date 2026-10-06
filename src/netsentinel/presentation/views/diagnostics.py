@@ -124,6 +124,11 @@ class DiagnosticsView(QWidget):
             f"Storage: local; scheduled retention {'enabled' if config.storage_retention_enabled else 'disabled by user'}."
         )
 
+    def set_storage_preferences(self, enabled: bool, history_days: int, security_days: int) -> None:
+        self.set_preferences(replace(self._config, storage_retention_enabled=enabled,
+                                     storage_history_days=history_days, storage_security_days=security_days),
+                             credential_available=self._credential_available)
+
     def set_notification_diagnostics(self, snapshot: NotificationDiagnostics, *, enabled: bool) -> None:
         if self._active:
             self.set_preferences(replace(self._config, desktop_notifications_enabled=enabled),

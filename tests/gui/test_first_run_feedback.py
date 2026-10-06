@@ -238,6 +238,47 @@ def test_all_limitation_wording_is_available_later():
         assert wording in text
 
 
+@pytest.mark.parametrize("initial_enabled", [False, True])
+def test_saved_retention_updates_composed_diagnostics_without_reopening(qtbot, tmp_path, monkeypatch, initial_enabled):
+    """Native NS-099 found stale privacy status after a successful worker save."""
+    path = tmp_path / "config.json"
+    config = AppConfig(onboarding_completed_version=1, desktop_notifications_enabled=True,
+                       storage_retention_enabled=initial_enabled)
+    save_config_file(path, config)
+    worker = create_storage_maintenance_worker(database_path=tmp_path / "storage.db", config=config, config_path=path)
+    worker.start()
+    shell = create_application(FakeEngine(), config=config, config_path=path, storage_maintenance=worker)
+    qtbot.addWidget(shell.window)
+    shell.window.show()
+    view = shell.window.page_widget(PageId.DIAGNOSTICS)
+    assert isinstance(view, DiagnosticsView)
+
+    def exercise(dialog):
+        qtbot.addWidget(dialog)
+        dialog.show()
+        qtbot.waitUntil(lambda: dialog._future is None)
+        dialog.enabled.setChecked(not initial_enabled)
+        dialog.history_days.setValue(45)
+        dialog.save_settings.click()
+        qtbot.waitUntil(lambda: dialog._future is None)
+        assert load_config_file(path).config.storage_retention_enabled is not initial_enabled
+        assert load_config_file(path).config.storage_history_days == 45
+        assert "scheduled retention enabled" in view.preferences.text() if not initial_enabled else "scheduled retention disabled by user" in view.preferences.text()
+        # The notification refresh must retain the freshly saved storage status.
+        shell.notifications.drain()
+        assert view._config.storage_retention_enabled is not initial_enabled
+        assert "Notifications: Enabled" in view.preferences.text()
+        assert "Threat intelligence (AbuseIPDB): Disabled by user" in view.preferences.text()
+        dialog.reject()
+        return 0
+
+    monkeypatch.setattr(StoragePrivacyDialog, "exec", exercise)
+    try:
+        shell.window.storage_privacy_action.trigger()
+    finally:
+        shell.lifecycle.shutdown()
+
+
 def test_feedback_uses_existing_worker_full_preview_atomic_save_and_explicit_browser(qtbot, tmp_path, monkeypatch):
     from netsentinel.infrastructure.sqlite.database import SQLiteDatabase
     from netsentinel.infrastructure.sqlite.storage_maintenance import SQLiteStorageMaintenanceRepository

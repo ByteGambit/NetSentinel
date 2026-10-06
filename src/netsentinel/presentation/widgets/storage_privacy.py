@@ -3,7 +3,7 @@
 from concurrent.futures import Future
 from pathlib import Path
 
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
@@ -22,6 +22,8 @@ from netsentinel.domain.storage_privacy import (
 
 
 class StoragePrivacyDialog(QDialog):
+    retention_settings_saved = pyqtSignal(bool, int, int)
+
     def __init__(self, worker: StorageMaintenanceWorker, parent: QWidget | None = None, *, feedback: bool = False) -> None:
         super().__init__(parent)
         self.worker = worker
@@ -224,6 +226,7 @@ class StoragePrivacyDialog(QDialog):
             self.export_save.setEnabled(True)
             self.status.setText(f"Sanitized preview ready: {result.record_count} records, {len(result.content)} bytes. Save writes these exact previewed export bytes locally.")
         elif isinstance(result, StorageSettings):
+            self.retention_settings_saved.emit(result.enabled, result.policy.history_days, result.policy.security_days)
             self.status.setText("Retention settings saved. Unrelated consent, notification and user preferences are unchanged.")
             self._export = None
             self.export_save.setEnabled(False)

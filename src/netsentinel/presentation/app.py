@@ -359,12 +359,21 @@ def create_application(
     )
     lifecycle.notifications = notifications
     if storage_maintenance is not None:
+        def show_storage_privacy(*, feedback: bool = False) -> None:
+            assert storage_maintenance is not None
+            dialog = StoragePrivacyDialog(storage_maintenance, window, feedback=feedback)
+            diagnostics = window.page_widget(PageId.DIAGNOSTICS)
+            if isinstance(diagnostics, DiagnosticsView):
+                dialog.retention_settings_saved.connect(diagnostics.set_storage_preferences)
+            dialog.exec()
+            dialog.deleteLater()
+
         assert window.storage_privacy_action is not None
         window.storage_privacy_action.setEnabled(True)
-        window.storage_privacy_action.triggered.connect(lambda: StoragePrivacyDialog(storage_maintenance, window).exec())
+        window.storage_privacy_action.triggered.connect(lambda: show_storage_privacy())
         assert window.feedback_action is not None
         window.feedback_action.setEnabled(True)
-        window.feedback_action.triggered.connect(lambda: StoragePrivacyDialog(storage_maintenance, window, feedback=True).exec())
+        window.feedback_action.triggered.connect(lambda: show_storage_privacy(feedback=True))
 
     def current_settings() -> AppConfig:
         return load_config_file(config_path).config if config_path is not None else (config or AppConfig())
