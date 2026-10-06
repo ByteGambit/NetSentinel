@@ -1,5 +1,25 @@
 # NS-051 — Release readiness checklist
 
+## NS-099 current candidate gate (2026-10-06)
+
+Final 0.1.0 installer uses clean committed runtime
+`ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4`; unsigned, 37,556,108
+bytes, SHA256 `14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538`.
+The source commit fully identifies its runtime. Historical hashes/native evidence
+remain separate. Version/schema/dependencies/packaging/network unchanged.
+[Identity](PUBLIC_BETA_CANDIDATE.json), [protocol](BETA_PROTOCOL.md),
+[client checklist](PUBLIC_BETA_CHECKLIST.md), [release checklist](RELEASE_CHECKLIST.md),
+[decision/evidence](PUBLIC_BETA_ACCEPTANCE.md), [97-field report](PUBLIC_BETA_REPORT.md).
+New Windows11 Home x64 build26200.9457 VM: standard/Unicode install, repair,
+browser/updater, restart, sanitized export and KEEP checks passed. Safe VPN,
+meaningful native sleep, effective OS-disabled policy remain open; human layout criterion FAIL, other7 PASS.
+Closure native fixture toast/privacy/click/restart and tray context Quit passed
+in their recorded scope; pre-closure scenario hashes remain historical.
+NS-099 INCOMPLETE; M17 IN PROGRESS; limited pilot NO_GO, broad public NO_GO,
+M18 DEFER. Runtime fix committed/pushed; no tag/release/upload/signing purchase/updater or NS-100.
+
+The following dated NS-098/097/096 records describe their earlier state.
+
 ## NS-098 first-run/feedback preparation (2026-10-06)
 
 Version remains 0.1.0; source changes have not rebuilt the NS-096 installer.
@@ -8,7 +28,7 @@ capture/TI consent, full sanitized local feedback preview and explicit project
 navigation are documented in [FIRST_RUN_FEEDBACK.md](FIRST_RUN_FEEDBACK.md).
 [Pilot notes](RELEASE_NOTES.md) and five synthetic Qt screenshot assets/checklist
 are prepared; [validation](FIRST_RUN_FEEDBACK_ACCEPTANCE.md) records exact gates.
-M17 stays IN PROGRESS; NS-099 stays NOT STARTED. Missing owner-defined feedback/
+At NS-098 delivery NS-099 was not started; current status is above. Missing owner-defined feedback/
 private-security endpoint is disclosed, not invented. Public signer/licensing,
 audience/channel and later beta acceptance remain distribution prerequisites.
 
@@ -16,7 +36,7 @@ audience/channel and later beta acceptance remain distribution prerequisites.
 
 [Frozen decision, sources and commands](SIGNING_UPDATE_DISTRIBUTION.md),
 [dry-run/tamper evidence](SIGNING_UPDATE_ACCEPTANCE.md). NS-097 spike COMPLETE;
-M17 IN PROGRESS; NS-098 preparation is described above, NS-099 not started. This is not a release/tag approval.
+At NS-097 delivery later NS-098/099 work had not started; current status is above. This is not a release/tag approval.
 Current 0.1.0 installer remains unsigned and unchanged; 0.1.1 is only NS-096 fixture.
 
 - [x] Limited unsigned pilot policy, key ownership/custody/CI boundary,

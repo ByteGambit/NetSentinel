@@ -1,0 +1,91 @@
+{
+  "record_format": "netsentinel-unpublished-candidate-v1",
+  "product": "NetSentinel",
+  "version": "0.1.0",
+  "pe_file_version": "0.1.0",
+  "pe_product_version": "0.1.0",
+  "runtime_source_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
+  "runtime_tree_modified": false,
+  "acceptance_changes": "Committed retention/Diagnostics fix and regression; rebuilt from clean main == origin/main. Acceptance docs/tests are separate.",
+  "filename": "NetSentinel-0.1.0-Setup.exe",
+  "artifact_path": "dist/NetSentinel-0.1.0-Setup.exe",
+  "sha256": "14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538",
+  "size_bytes": 37556108,
+  "appid": "{62E3BFC6-ACAD-4FC3-94D8-46927D015096}",
+  "signing_state": "unsigned",
+  "authenticode_observation": "NotSigned",
+  "timestamp_signature": "absent",
+  "build_completed_at_utc": "2026-10-06T19:52:18Z",
+  "schema": 19,
+  "channel": "limited-unsigned-pilot-candidate",
+  "update_model": "manual",
+  "intended_distribution": "canonical project GitHub Releases, unpublished",
+  "published": false,
+  "tag_created": false,
+  "compiler": "Inno Setup 6.7.3",
+  "payload_files": 1119,
+  "prior_ns096_sha256": "f9c253eea2b605436fc685cdf2334c4d52233a3bb5ac01d6a358b633fae419a7",
+  "prior_ns099_pre_pause_sha256": "1a04cd65c232fba76d8a8d4c241926cdd7a64dc890821fc1a60e61a8248a308b",
+  "source_commit_is_complete_runtime_identity": true,
+  "runtime_changed_files": [
+    {
+      "path": "src/netsentinel/presentation/app.py",
+      "sha256": "7915bd8c4262ddae32b0bba08a4e3229240a6fe8417f1f509a657520f1176803"
+    },
+    {
+      "path": "src/netsentinel/presentation/views/diagnostics.py",
+      "sha256": "45074f967d7a82da82ddf586c787c8b195d8da970468aa66545dffd63f0aaeec"
+    },
+    {
+      "path": "src/netsentinel/presentation/widgets/storage_privacy.py",
+      "sha256": "a1cbc1a2d474601c0ee51ef2bfd5e7d4446d453524617c3f69173c66259ff361"
+    }
+  ],
+  "superseded_clean_head_candidate_sha256": "42b996d4eb7ad29cd4f667ff0aaa2eeb8275744a7fd80c46e1dba938c473edf9",
+  "acceptance_status": "INCOMPLETE",
+  "limited_unsigned_pilot_decision": "NO_GO",
+  "broad_public_release_decision": "NO_GO",
+  "historical_uncommitted_candidate": {
+    "sha256": "339da4135a630f085ba640200e464017ab1d724419842caf63a6ffb97f9cdbed",
+    "size_bytes": 37545567,
+    "base_commit": "1d053721733139ab66e0078737fbd19c38e4c679",
+    "runtime_patch_sha256": "bd3bf030bbb02196e86a08ad4cad730ea1837a454cd5c1d27a1216527bd44d19",
+    "runtime_patch_local_path": "build/ns099-runtime-fix.patch",
+    "status": "historical only"
+  },
+  "installed_exe_sha256": "daee77e62c48fd639dc903e5918f325762265f3c0449c416cdd14b494afaa62b",
+  "installed_payload_files_checked": 1119,
+  "installed_payload_hash_mismatches": 0,
+  "runtime_fix_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
+  "installer_build_working_tree_clean": true,
+  "human_ux": {
+    "overall": "FAIL",
+    "passed": 7,
+    "failed": 1,
+    "finding": "Incidents/DNS upper list area too small; History right columns cramped/overflowing"
+  },
+  "closure_gates": {
+    "vpn": "NOT RUN",
+    "meaningful_native_sleep": "NOT RUN",
+    "native_toast_privacy_fixture": "PASS",
+    "native_click_fixture": "PASS",
+    "native_duplicate_source_cooldown_restart_fixture": "PASS",
+    "effective_os_disabled_policy": "BLOCKED",
+    "tray_context_quit": "PASS",
+    "human_ux": "FAIL"
+  },
+  "closure_quality": {
+    "targeted_passed": 200,
+    "targeted_seconds": 67.4,
+    "full_passed": 3785,
+    "full_deselected": 8,
+    "full_warnings": 1,
+    "coverage_percent": 91.08,
+    "full_seconds": 505.82,
+    "ruff": "PASS",
+    "configured_mypy_files": 36,
+    "direct_mypy_files": 12,
+    "schema_transition": "019->019",
+    "migration": false
+  }
+}

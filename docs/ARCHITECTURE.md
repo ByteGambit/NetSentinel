@@ -1,5 +1,13 @@
 # Mimari
 
+NS-099 native kabulde retention Save sonrası Diagnostics'in eski preference
+göstermesi düzeltildi. StoragePrivacyDialog, yalnız successful worker sonucu için
+Qt signal yayınlar; composition bunu Diagnostics'in cached immutable config'ini
+yenilemesine bağlar. Dialog kapanışında deleteLater kullanılır. Domain, repository,
+storage worker, network ve schema değişmez; GUI thread'ine DB/file işi taşınmaz.
+Committed runtime fix, temiz build provenance ve native OFF/ON retest
+[kabul raporunda](PUBLIC_BETA_ACCEPTANCE.md).
+
 NS-098 onboarding acknowledgement config'tedir: bounded completed/dismissed
 version, legacy bool compatibility, atomic save ve current-settings reload.
 Presentation yalnız informational pages, existing capability coordinator,

@@ -1,5 +1,18 @@
 # NetSentinel
 
+NS-099 — Public beta acceptance gate **IN PROGRESS**: NS-098 içeren güncel
+0.1.0 unsigned installer, commit edilmiş ae08d7e retention/Diagnostics düzeltmesinden
+yeniden derlendi; hash/provenance ve önceden dondurulmuş ölçüm eşikleri kayıtlıdır.
+Yeni Windows 11 VM'de standart/Unicode install, repair, browser/updater, restart,
+sanitized export ve KEEP uninstall tarihsel kapsamlarında doğrulandı. Yeni adayda
+native fixture toast/privacy/click/restart ve tray-context Quit geçti; VPN,
+meaningful sleep, etkili OS-disabled policy ve insanın bildirdiği layout FAIL kapıları açık. Limited pilot
+ve broad public release şu an **NO_GO**, M17 IN PROGRESS, M18 DEFER.
+[Güncel kabul raporu](docs/PUBLIC_BETA_ACCEPTANCE.md),
+[VM kontrol listesi](docs/PUBLIC_BETA_CHECKLIST.md),
+[pilot destek](docs/BETA_SUPPORT.md), [gizlilik özeti](docs/BETA_PRIVACY.md).
+Aşağıdaki önceki task teslimat kayıtları tarihseldir; release/tag oluşturulmadı.
+
 NS-098 — First-run/feedback polish **COMPLETE**: altı sayfalı sürümlü rehber,
 eski kullanıcıya nonmodal bilgilendirme, Help'ten güncel ayarlarla yeniden açma,
 okunabilir Diagnostics ve NS-095 motoruyla full sanitized feedback preview/local
@@ -8,7 +21,8 @@ Targeted 269; full offline **3781 passed/8 deselected**; Ruff/mypy/diff/privacy 
 Schema **019→019**, migration yok. [Rehber, UI görüntüleri ve policy](docs/FIRST_RUN_FEEDBACK.md),
 [80 maddelik kabul raporu](docs/FIRST_RUN_FEEDBACK_ACCEPTANCE.md),
 [0.1.0 pilot hazırlık notları](docs/RELEASE_NOTES.md).
-M17 **IN PROGRESS**, NS-099 **NOT STARTED**; bu değişiklik tag/release veya installer rebuild değildir.
+NS-098 teslimatında installer rebuild/tag/release yoktu. Güncel M17 **IN PROGRESS**,
+NS-099 **INCOMPLETE**; yukarıdaki NS-099 raporu yeni installer/native sonuçları içerir.
 
 NS-096 — Installer/upgrade/uninstall **COMPLETE**: Inno Setup 6.7.3
 derleme/payload/SHA256 ve mevcut Windows VM'deki yeni standart kullanıcı
@@ -27,7 +41,7 @@ M1–M16 tamamlandı, M17 devam ediyor; NS-097 signing/update spike tamamlandı.
 Limited unsigned pilot conditional GO, broad distribution public signer ve M17
 kapıları olmadan NO-GO; güncellemeler manuel, automatic update request yoktur.
 [Dağıtım kararı ve doğrulama](docs/SIGNING_UPDATE_DISTRIBUTION.md),
-[kabul kanıtı](docs/SIGNING_UPDATE_ACCEPTANCE.md). NS-098 tamamlandı; NS-099 başlatılmadı. Aşağıdaki eski teslimat
+[kabul kanıtı](docs/SIGNING_UPDATE_ACCEPTANCE.md). NS-098 tamamlandı; NS-099 güncel durumu yukarıdadır. Aşağıdaki eski teslimat
 özetleri tarihsel kayıttır; güncel durum TASKS/ROADMAP içindedir.
 
 NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağlayan ancak ağ güvenliği sinyallerine odaklanan öğretici bir masaüstü uygulaması olarak tasarlanmıştır.
@@ -71,7 +85,7 @@ Planlanan dilimler richer process context, belirsizliği açık gösteren destin
 | [Ürün tanımı](docs/PRODUCT.md) | Amaç, kullanıcı senaryoları, özellikler ve kapsam dışı konular |
 | [Mimari](docs/ARCHITECTURE.md) | Katmanlar, modüller, veri akışı, concurrency ve klasör planı |
 | [Güvenlik](docs/SECURITY.md) | Yetkiler, packet capture riskleri, veri güvenliği ve güvenli kullanım |
-| [Yol haritası](docs/ROADMAP.md) | Tamamlanmış M1–M13, planlanan M14–M17 ve conditional M18 |
+| [Yol haritası](docs/ROADMAP.md) | Tamamlanmış M1–M16, devam eden M17 ve conditional M18 |
 | [Task listesi](docs/TASKS.md) | NS-001'den başlayan uygulanabilir işler, bağımlılıklar ve test yöntemleri |
 | [Release readiness](docs/RELEASING.md) | NS-051 PR kalite kapıları, 1.0 kapsam karşılaştırması ve release checklist |
 

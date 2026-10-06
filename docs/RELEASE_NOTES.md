@@ -1,10 +1,18 @@
-# NetSentinel 0.1.0 — pilot preparation notes
+# NetSentinel 0.1.0 — unpublished pilot candidate notes
 
-Prepared 2026-10-06 through NS-098. This is source/build preparation, not a tag,
-published release, public beta acceptance or distribution authorization. M1–M16
-are complete; M17 is IN PROGRESS; NS-099 is NOT STARTED. Existing NS-096 binaries
-have not been rebuilt with NS-098. The 0.1.1 installer upgrade fixture still has
-0.1.0 application payload and is never a release candidate.
+Prepared 2026-10-06 through NS-099 acceptance, using clean committed runtime
+`ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4`, including the narrow
+retention-Diagnostics GUI fix. A new 0.1.0 unsigned installer
+includes NS-098; [identity/hash](PUBLIC_BETA_CANDIDATE.json),
+[current gate](PUBLIC_BETA_ACCEPTANCE.md). This is not a tag, published release,
+passed native beta acceptance or distribution authorization. M1–M16 are complete;
+M17 IN PROGRESS; NS-099 INCOMPLETE pending required VPN, full native sleep/gap,
+effective OS-disabled policy and human layout FAIL. Other7 human UX criteria PASS. Closure native fixture
+toast/privacy/click/restart and real tray context Quit passed in recorded scope.
+Historical standard/Unicode install, repair,
+browser/updater, restart, sanitized export and KEEP passed in the new Windows 11 VM.
+The 0.1.1 installer upgrade
+fixture still has 0.1.0 application payload and is never a release candidate.
 
 - Process/connection metadata and retained local connection history provide
   visibility; selected process and destination context explains what is known.
@@ -20,6 +28,8 @@ have not been rebuilt with NS-098. The 0.1.1 installer upgrade fixture still has
 - Tray behavior is explicit; desktop notifications are opt-in and privacy-aware.
 - Storage & Privacy offers bounded opt-in retention, confirmed local purge and
   allowlist support-export-v1 preview/atomic local Save, with no automatic upload.
+- Diagnostics now reflects retention settings immediately after successful Save;
+  the native-discovered stale display was fixed and OFF/ON retested in the final build.
 - Per-user offline installer supports repair, compatible upgrade and KEEP-default
   uninstall; DELETE requires separate confirmation. Program and data roots differ.
 - Six-page versioned guide can be skipped or reopened from Help without enabling
@@ -36,11 +46,14 @@ malware. Concern score is review priority, not probability. Incident ordering is
 not causality or forensic completeness; retained source details can expire.
 No automatic blocking or antivirus replacement is promised.
 
-Distribution remains a limited, explicitly **unsigned pilot**, conditional on
-owner audience/licensing/channel approval and remaining M17 gates. Windows may
+Distribution policy remains a limited, explicitly **unsigned pilot**, conditional on
+owner audience/licensing/channel approval and remaining M17 gates. Current NS-099
+readiness decision is **NO_GO** until required native scenarios are evidenced.
+Windows may
 warn or block these builds; never bypass security. Updates are **manual** through
 the canonical project Releases channel; no automatic update request or client.
 Broad public beta/production remains NO-GO without the signer and remaining gates.
 See [distribution policy](SIGNING_UPDATE_DISTRIBUTION.md),
 [installer acceptance](INSTALLER_ACCEPTANCE.md),
-[guide/feedback policy](FIRST_RUN_FEEDBACK.md).
+[guide/feedback policy](FIRST_RUN_FEEDBACK.md), [pilot support](BETA_SUPPORT.md),
+[privacy summary](BETA_PRIVACY.md). M18 is DEFERRED; NS-100 has not started.

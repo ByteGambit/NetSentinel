@@ -1120,7 +1120,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-099 — Public beta acceptance gate
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** 🔄 IN PROGRESS / INCOMPLETE (2026-10-07). Dar retention/Diagnostics production fix `ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4` ayrı commit edildi ve normal main push tamamlandı. Temiz committed runtime’dan unsigned0.1.0 installer yeniden derlendi; source/hash/boyut/AppId/schema019→019 kayıtlı ve yeni Windows11 VM’de1119 installed payload hash eşleşti. Native fixture gerçek toast/privacy/click/duplicate/source cooldown/restart ve real tray-context Quit PASS. Safe VPN ve meaningful S3/Modern Standby sleep NOT RUN; etkili OS-disabled notification policy BLOCKED. İnsan UX:7 PASS/1 FAIL; Incidents/DNS üst listeleri küçük, History sağ kolonları sıkışıyor/taşıyor. Tarihsel42min benign alert/incident0 korunur; yeni aday canlı snapshot alert/incident/occurrence0. Exact acceptance tamamlanmadığından limited pilot NO_GO, broad public NO_GO, M17 IN PROGRESS, M18 DEFER. Hedefli closure200 PASS; son full offline/statik/diff/privacy sonuçları [raporda](PUBLIC_BETA_REPORT.md). [Kabul/provenance](PUBLIC_BETA_ACCEPTANCE.md), [native checklist](PUBLIC_BETA_CHECKLIST.md), [frozen protokol](BETA_PROTOCOL.md). Acceptance kriteri gevşetilmedi; schema/network/dependency/packaging değişikliği, tag/release/upload/NS-100 yok. Geçerli incomplete kanıtı production fix’ten ayrı commit edilir.
 - **Amaç:** Gerçek kullanıcı koşullarında release ve response öncesi kaliteyi değerlendirmek.
 - **Yapılacaklar:** Client Windows VM, offline kalite ve manuel beta senaryo/FP/notification burden checklist'i çalıştır.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** tests/, docs/RELEASING.md, docs/PRODUCT.md, docs/SECURITY.md.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-098 COMPLETE, NS-099 NOT STARTED |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-098 COMPLETE, NS-099 INCOMPLETE — required VPN/meaningful sleep NOT RUN, effective OS-policy BLOCKED/human layout FAIL |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

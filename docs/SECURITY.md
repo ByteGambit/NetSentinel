@@ -1,5 +1,22 @@
 # Güvenlik ve güvenli kullanım
 
+## NS-099 candidate acceptance (2026-10-06)
+
+Current source'dan rebuilt 0.1.0 candidate unsigned/NotSigned, schema 019;
+frozen kimlik ve hash [aday kaydı](PUBLIC_BETA_CANDIDATE.json). Hash publisher
+authentication değildir. Yeni VM'de standard/Unicode install, repair/restart,
+sanitized local export ve KEEP uninstall doğrulandı; retention/Diagnostics
+durum tutarlılığı düzeltildi. Yeni aday native fixture toast/privacy/click/restart
+ve tray-context Quit PASS; zorunlu VPN/meaningful sleep NOT RUN, effective
+OS-policy BLOCKED ve insan layout kriteri FAIL. Limited pilot ve broad public
+şimdilik NO_GO, M18 DEFER. Security bypass, automatic upload/capture/TI/update/
+response/elevation veya yeni driver yoktur. Support/privacy/release blocker
+kuralları [protokol](BETA_PROTOCOL.md), [destek](BETA_SUPPORT.md),
+[gizlilik](BETA_PRIVACY.md) ve [kabul](PUBLIC_BETA_ACCEPTANCE.md) içindedir.
+Önceki NS-096 host Application Control 4551 engeli dağıtım sınırı olarak korunur;
+VM test sonucu başka Windows policy'sinde çalışmayı garanti etmez.
+Aşağıdaki eski task teslimat kayıtları tarihseldir.
+
 ## NS-098 first-run/feedback (2026-10-06)
 
 Rehber Finish/Skip hiçbir capture/TI/notification izni vermez. Capture mevcut

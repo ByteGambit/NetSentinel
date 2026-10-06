@@ -1,12 +1,24 @@
 # Ürün tanımı
 
+NS-099 beta gate IN PROGRESS / INCOMPLETE: committed ae08d7e retention/Diagnostics
+GUI düzeltmesinden 0.1.0 unsigned aday yeniden derlendi; source/hash/payload ve frozen benign FP/notification review
+bütçeleri [kabul raporu](PUBLIC_BETA_ACCEPTANCE.md) ve
+[protokolde](BETA_PROTOCOL.md). Yeni Windows 11 VM'de standard/Unicode install,
+repair, browser/updater, restart, sanitized export ve KEEP uninstall tarihsel kapsamında doğrulandı.
+Yeni aday native fixture toast/privacy/click/restart ve tray-context Quit PASS;
+zorunlu VPN ve meaningful sleep NOT RUN, effective OS-policy BLOCKED ve insan layout kriteri FAIL.
+Offline kanıt native PASS değildir. Limited unsigned pilot şimdilik NO_GO, broad public NO_GO;
+M17 IN PROGRESS, M18 DEFER. [Kullanıcı desteği](BETA_SUPPORT.md),
+[privacy özeti](BETA_PRIVACY.md). Aşağıdaki teslimat kayıtları tarihseldir.
+
 NS-098 altı sayfalı sürümlü ilk açılış/Privacy rehberi, Help'ten yeniden açma,
 eski kullanıcıya nonmodal bilgilendirme ve NS-095 motorunu kullanan Feedback &
 Support görünümü ekler. Finish/Skip izin vermez; capture, AbuseIPDB ve notification
 ayarları ayrı kalır. Feedback full sanitized preview sonrası yerel Save'dir;
 proje sayfası yalnız explicit click ile açılır, ayrı feedback/security adresi
 tanımlı değildir. [Davranış ve sınırlar](FIRST_RUN_FEEDBACK.md),
-[0.1.0 pilot hazırlık notları](RELEASE_NOTES.md). M17 devam eder; NS-099 başlatılmaz.
+[0.1.0 pilot hazırlık notları](RELEASE_NOTES.md). NS-098 teslimat kaydı tarihseldir;
+güncel M17 devam eder, NS-099 INCOMPLETE; M18 başlatılmaz.
 
 NS-097 signing/update dağıtım spike'ı tamamlandı: sınırlı ve açıkça unsigned
 pilot için conditional GO, broad public beta/production için public signer ve
