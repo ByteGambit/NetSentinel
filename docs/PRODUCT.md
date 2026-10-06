@@ -1,5 +1,14 @@
 # Ürün tanımı
 
+NS-097 signing/update dağıtım spike'ı tamamlandı: sınırlı ve açıkça unsigned
+pilot için conditional GO, broad public beta/production için public signer ve
+kalan M17 kabul kapıları zorunludur. Tek canonical kanal GitHub Releases; ilk
+beta manual update, sıfır automatic update-network request. Automatic updater,
+certificate satın alma veya GUI/network/schema değişikliği yoktur. Mevcut 0.1.0
+installer unsigned ve değişmedi; 0.1.1 lifecycle fixture release değildir.
+[Frozen karar](SIGNING_UPDATE_DISTRIBUTION.md), [kanıt](SIGNING_UPDATE_ACCEPTANCE.md).
+M17 IN PROGRESS; NS-098/099 başlamadı. Aşağıdaki teslimat kayıtları tarihseldir.
+
 NS-096 installer kaynak implementasyonu mevcut portable PyInstaller paketini
 offline, per-user kurulumla sarar. Program: `%LOCALAPPDATA%\Programs\NetSentinel`;
 yerel veri: `%LOCALAPPDATA%\NetSentinel`. Uninstall varsayılan KEEP, DELETE ayrı

@@ -1098,7 +1098,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-097 — Signing/update distribution spike
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-06), research/security-design spike. Limited explicit unsigned pilot + canonical GitHub Releases/manual update conditional GO; broad distribution signer/licensing/kalan M17 gate olmadan NO-GO. 23 current official source; Artifact Signing eligibility/cost/HSM, conditional OV fallback, EV/self-signed/Store kararları, key ownership/CI approval/rotation/revocation, inner/Inno-generated/outer signing order, final-hash-after-signing, timestamp, network disclosure ve downgrade/rollback frozen. Küçük offline integrity/manifest/PE-version verifier signature trust iddia etmez; signed manifest ayrı Authenticode gate ister. Actual 0.1.0 hash/version PASS, NotSigned; copy-only one-byte tamper/wrong hash/version/missing/malformed fail-closed; canonical installer değişmedi. Public signed run yapılmadı; pilot alternative exact acceptance'ı karşılar. 47 yeni test; targeted 105 passed; full offline 3730 passed/8 deselected (279.94 s), Ruff/configured mypy (36)/direct mypy (2)/diff/secret scan PASS. Schema 019→019, migration/runtime network/updater/certificate purchase/release/tag yok. [Frozen policy ve sources](SIGNING_UPDATE_DISTRIBUTION.md), [dry-run ve 64-item teslim raporu](SIGNING_UPDATE_ACCEPTANCE.md). M17 IN PROGRESS; NS-098/099 NOT STARTED.
 - **Amaç:** Beta artefact trust ve update politikasını karara bağlamak.
 - **Yapılacaklar:** Certificate/key/cost/channel, manual update ve verification/downgrade/rollback matrisi üret.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging/, docs/RELEASING.md, docs/SECURITY.md, tests/integration/.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-096 COMPLETE, NS-097–NS-099 NOT STARTED |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-097 COMPLETE, NS-098–NS-099 NOT STARTED |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

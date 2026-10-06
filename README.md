@@ -13,7 +13,11 @@ onay ister. Npcap/elevation/autostart/updater yok; pilot unsigned.
 [Build ve lifecycle policy](docs/INSTALLER_UPGRADE_UNINSTALL.md),
 [native VM checklist](docs/INSTALLER_WINDOWS_SMOKE.md),
 [NS-096 kanıt raporu](docs/INSTALLER_ACCEPTANCE.md).
-M1–M16 tamamlandı, M17 devam ediyor; NS-097 başlatılmadı. Aşağıdaki eski teslimat
+M1–M16 tamamlandı, M17 devam ediyor; NS-097 signing/update spike tamamlandı.
+Limited unsigned pilot conditional GO, broad distribution public signer ve M17
+kapıları olmadan NO-GO; güncellemeler manuel, automatic update request yoktur.
+[Dağıtım kararı ve doğrulama](docs/SIGNING_UPDATE_DISTRIBUTION.md),
+[kabul kanıtı](docs/SIGNING_UPDATE_ACCEPTANCE.md). NS-098 başlatılmadı. Aşağıdaki eski teslimat
 özetleri tarihsel kayıttır; güncel durum TASKS/ROADMAP içindedir.
 
 NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağlayan ancak ağ güvenliği sinyallerine odaklanan öğretici bir masaüstü uygulaması olarak tasarlanmıştır.

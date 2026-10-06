@@ -1,5 +1,14 @@
 # Mimari
 
+NS-097 yalnız packaging/release security design ve standalone offline
+`packaging/verify_release.py` ekler; `src/` katmanlarına import/call/network hook
+eklemez. Streaming SHA256, strict bounded final-release manifest validation ve
+optional bounded Windows PE-version subprocess vardır. Integrity ve signature
+trust ayrıdır: script signature NOT_CHECKED, signed assertion ayrı verification
+gerektirir. Build/sign/publish separation, generated Inno program signing ve
+final-hash-after-signing future release target'tır; current builder unsigned kalır.
+Schema 019→019, migration yok. [Dağıtım sözleşmesi](SIGNING_UPDATE_DISTRIBUTION.md).
+
 NS-096 ortak `shared.paths.user_data_paths` SQLite/config/log için mevcut
 per-user AppData politikasını merkezileştirir. Resource lookup package API'lerinde
 kalır; dev/portable/installed aynı veri kökünü kullanır. Packaging entry Windows

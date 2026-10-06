@@ -1,5 +1,48 @@
 # Güvenlik ve güvenli kullanım
 
+## NS-097 dağıtım ve güncelleme güveni (2026-10-06)
+
+[Signing/update policy](SIGNING_UPDATE_DISTRIBUTION.md) sınırlı unsigned pilot,
+tek canonical GitHub Releases kanalı ve manual update modelini dondurur.
+Broad public beta/production, public signer ve kalan M17 kapıları olmadan NO-GO.
+Pilot hash/manifest publisher authentication değildir; kanal ele geçirilirse
+binary ve hash birlikte değiştirilebilir. Self-signed public distribution yoktur.
+SmartScreen/App Control engeli imzayla kesin kalkmaz; güvenlik bypass edilmez.
+
+Signing identity validated publisher adına proje sahibinindir; legal ad/entity/
+ülke/bütçe ve named backup custodian henüz kararlaştırılmamıştır. Uygun yayıncı
+için Azure Artifact Signing Public Trust, aksi halde uygun CA OV + managed HSM
+önerilir. Türkiye mevcut Artifact Signing Public Trust uygunluk listesinde yoktur;
+owner'ın legal domicile'ı timezone'dan varsayılmaz. Private key Git/.env/PFX/base64
+CI secret/installer/ZIP'e konmaz. Normal PR CI credentialsiz kalır; gelecekte
+build/sign/publish ayrı yetkiler, explicit protected release approval ve scoped
+OIDC signing identity gerekir. Untrusted PR/fork çıktısı production imzalanmaz.
+
+Owned inner EXE ve Inno-generated uninstaller/self-copy dahil required imzalar,
+SHA256 file digest + RFC3161/SHA256 timestamp ve approved publisher/trust-chain
+doğrulaması production önkoşuludur. Final hash signing/timestamp SONRASI alınır;
+sign/timestamp/verify/hash failure release'i durdurur. Vendor DLL imzaları korunur.
+Offline verifier yalnız integrity sonucu verir; signature_state NOT_CHECKED'dır.
+Explicit Windows trust checks OS chain/revocation ağ erişimi yapabilir; offline
+local trust sonucu current public trust/revocation onayı yerine kullanılmaz.
+
+Key compromise'ta signing/publishing durur; owner erişimi disable eder, provider/
+CA ile affected certificate revocation yapar, canonical incident notice yayımlar,
+affected artefact/audit evidence'ı korur ve credentials/profile transition'ı
+yeniden doğrular. Profile deletion revocation değildir. Renewal/rotation audit
+gerektirir; immutable leaf thumbprint pinlenmez. Timestamp safety verdict değildir.
+
+Installer'ın gerekli ağ isteği yoktur. NetSentinel **sıfır automatic update request**
+yapar; kullanıcı browser'dan GitHub/CDN'e manuel gider (source IP/timing/browser
+metadata görünür). Windows security networking uygulamadan ayrıdır; TI consent
+update consent değildir. Gelecekte bir check ayrı disclosure/opt-in/disable policy
+gerektirir. Automatic downgrade/schema downgrade/data restore yoktur; eski binary
+yalnız exact schema compatibility doğrulanırsa kullanılır. Yeni DB reset/silme
+yapılmaz; bad release withdrawn notice + compatible fix ve manuel backup kılavuzu
+gerektirir. Support export DB backup değildir. Schema 019 değişmedi.
+
+Aşağıdaki NS-096 ve önceki teslimat kayıtları tarihseldir.
+
 NS-096 per-user installer normal kullanıcı yetkileriyle çalışır; app manifest
 asInvoker kalır. Program dosyaları ile yerel history/config/log ayrı köklerdedir.
 Uninstall KEEP default (silent da KEEP); DELETE iki explicit confirmation ve

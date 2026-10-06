@@ -1,5 +1,35 @@
 # NS-051 — Release readiness checklist
 
+## NS-097 signing/manual update gate (2026-10-06)
+
+[Frozen decision, sources and commands](SIGNING_UPDATE_DISTRIBUTION.md),
+[dry-run/tamper evidence](SIGNING_UPDATE_ACCEPTANCE.md). NS-097 spike COMPLETE;
+M17 IN PROGRESS, NS-098/099 not started. This is not a release/tag approval.
+Current 0.1.0 installer remains unsigned and unchanged; 0.1.1 is only NS-096 fixture.
+
+- [x] Limited unsigned pilot policy, key ownership/custody/CI boundary,
+  verification, cost/eligibility, network disclosure and rollback decisions frozen.
+- [x] Canonical 0.1.0 hash/PE version and explicit UNSIGNED state observed;
+  copy-only one-byte tamper, wrong hash/version, missing file/malformed manifest reject.
+- [ ] Owner audience/license/channel availability and remaining M17 acceptance.
+- [ ] Public signer legal identity/eligibility/custody/budget and actual signing run.
+- [ ] Protected explicit release build/sign/publish with no PR/fork credentials;
+  owned inner PE and generated Inno uninstaller/self-copy signatures verified.
+- [ ] Mandatory SHA256/RFC3161 SHA256 timestamp/trust/revocation/publisher checks;
+  final installer/portable hashes and small release manifest after signing.
+- [ ] Canonical GitHub Releases prerelease/notes/final hashes assembled and approved;
+  immutable assets/tag settings confirmed. No unsigned promotion to broad release.
+
+Existing `build_installer.py` remains an unsigned developer/pilot builder; its
+payload `.manifest.json` is not final release metadata. New offline
+`packaging/verify_release.py` returns integrity only, signature NOT_CHECKED;
+signed manifest assertions fail with AUTHENTICODE_REQUIRED. Built-in Windows
+trust commands may have OS network retrieval; disclose explicitly. Manual
+updates only, no application update requests. No automatic downgrade/schema/data
+rollback; preserve closed backup and use only verified compatible recovery.
+
+The NS-096 records below are historical and do not authorize a signed release.
+
 ## NS-096 installer gate (2026-10-06)
 
 Task COMPLETE. Per-user Inno Setup 6.3+ compiler prerequisite; build:

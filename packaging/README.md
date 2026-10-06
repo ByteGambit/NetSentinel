@@ -1,5 +1,15 @@
 # NS-050 Windows paket doğrulaması
 
+NS-097 [signing/manual update kararı](../docs/SIGNING_UPDATE_DISTRIBUTION.md)
+ve [kabul kanıtı](../docs/SIGNING_UPDATE_ACCEPTANCE.md): limited unsigned pilot
+conditional GO, broad public distribution signer/M17 gate olmadan NO-GO.
+`verify_release.py <installer> --sha256 <canonical-release-hash>` offline integrity
+kontrolüdür; `--expected-version X.Y.Z` yerel Windows PE sürümünü kontrol eder,
+`--manifest <release.json>` küçük release schema'sını doğrular. Signature state
+NOT_CHECKED kalır; signed metadata publisher trust sağlamaz ve ayrı gate ister.
+0.1.0 canonical installer değişmedi. Mevcut build unsigned kalır; final signed
+hash signing/timestamp sonrası alınır, payload manifest release manifest değildir.
+
 NS-096 güncel installer build/policy: [Installer/upgrade/uninstall](../docs/INSTALLER_UPGRADE_UNINSTALL.md).
 Inno Setup 6.7.3 ile mevcut PyInstaller onedir sarıldı; gerçek build/payload/PE/
 SHA256 PASS. NS-096 COMPLETE: mevcut Windows VM'deki yeni standart profillerle
