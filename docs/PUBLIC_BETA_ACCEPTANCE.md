@@ -4,8 +4,8 @@
 
 The focused [layout closure](NS099_LAYOUT_CLOSURE.md) changes Incidents/DNS/History
 presentation only. The ae08d7e/14934a52 installer and all closure observations
-below are historical after that runtime change. Its replacement is identified in
-the layout closure record after a clean committed rebuild. The original human
+below are historical after that runtime change. Its replacement is source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
+SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes; see the clean rebuild/native layout record. The original human
 layout FAIL awaits a focused recheck; seven other human PASS results are preserved.
 VPN/sleep NOT RUN and OS-policy BLOCKED remain unchanged; NS-099 INCOMPLETE,
 M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER. NS-100 NOT STARTED.
@@ -17,7 +17,7 @@ TASKS requires all criteria; recording this decision does not complete the task.
 Runtime fix committed/pushed; no tag/release/publication. [97-field report](PUBLIC_BETA_REPORT.md),
 [scenario checklist](PUBLIC_BETA_CHECKLIST.md), [frozen protocol](BETA_PROTOCOL.md).
 
-## Closure pass — authoritative current candidate
+## Previous closure pass — historical candidate
 
 Runtime fix **`ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4`** (`fix: refresh retention diagnostics state`) committed
 and pushed normally to main. Review was limited to three presentation files plus

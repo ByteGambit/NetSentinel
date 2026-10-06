@@ -1,5 +1,16 @@
 # Mimari
 
+NS-099 layout follow-up (2026-10-07): current runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
+unsigned0.1.0 candidate SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes, schema019→019.
+Incidents/DNS/History layout fixed; fresh Windows11 native layout test-build
+captures prepared. Focused human layout recheck **PENDING**; previous7 PASS/1 FAIL
+retained until the response. Prior functional/native measurements below keep
+their original ae08d7e/14934a52 candidate scope. VPN NOT RUN, native sleep NOT RUN,
+effective OS-disabled policy BLOCKED; NS-099 INCOMPLETE, M17 IN PROGRESS,
+pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED. [Layout record](NS099_LAYOUT_CLOSURE.md).
+
+The earlier closure summary below retains its historical candidate scope.
+
 NS-099 native kabulde retention Save sonrası Diagnostics'in eski preference
 göstermesi düzeltildi. StoragePrivacyDialog, yalnız successful worker sonucu için
 Qt signal yayınlar; composition bunu Diagnostics'in cached immutable config'ini

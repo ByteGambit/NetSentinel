@@ -14,8 +14,6 @@ from uuid import UUID
 from PyQt6.QtCore import QPoint, QTimer
 from PyQt6.QtWidgets import QApplication
 
-from netsentinel.application.services.incidents import IncidentCorrelator
-from netsentinel.application.services.incident_persistence import IncidentPersistenceService
 from netsentinel.application.services.incident_timeline import IncidentTimelineQueryService, TimelinePage, TimelineRequest
 from netsentinel.domain.connections import (
     ConnectionClosureReason, ConnectionHistoryRecord, ConnectionSnapshot,
@@ -26,10 +24,14 @@ from netsentinel.domain.dns import (
     DnsAnswer, DnsHistoryRecord, DnsQuestion, DnsRecordType, DnsTransaction,
     DnsTransactionStatus, DnsTransport,
 )
-from netsentinel.domain.incident_persistence import IncidentResult, IncidentStatus
+from netsentinel.domain.incident_persistence import (
+    IncidentAction, IncidentOrigin, IncidentRecord, IncidentResult, IncidentState,
+    IncidentStatus, stable_incident_id,
+)
 from netsentinel.domain.incidents import (
     IncidentConnectionRef, IncidentDestination, IncidentDestinationKind,
-    IncidentInput, IncidentObservationKind, IncidentObservationRef, IncidentProcessRef,
+    CorrelatedIncident, IncidentObservationKind, IncidentObservationRef, IncidentProcessRef,
+    IncidentRelation, IncidentRelationReason,
 )
 from netsentinel.domain.risk_evidence import EvidenceScope, EvidenceScopeKind
 from netsentinel.infrastructure.sqlite.database import SQLiteDatabase
@@ -65,16 +67,20 @@ def synthetic_rows(root: Path) -> tuple[tuple[ConnectionHistoryRecord, ...], tup
                 f"2001:db8::{j + 1}", 3600) for j in range(16)), retry_count=0)
         dns_records.append(DnsHistoryRecord(UUID(int=200 + i), transaction))
     db = SQLiteDatabase(root / "synthetic.sqlite3")
-    writer = IncidentPersistenceService(SQLiteIncidentRepository(db))
+    repository = SQLiteIncidentRepository(db)
+    policy = repository.policy.correlation
     connection = IncidentConnectionRef(session, UUID(int=1))
     observation = IncidentObservationRef(IncidentObservationKind.CONNECTION_OBSERVED, connection, at)
-    item = IncidentInput(observation,
-        EvidenceScope(EvidenceScopeKind.NETWORK, NetworkScopeStatus.RESOLVED, "a" * 64),
-        IncidentProcessRef(session, identity), connection,
-        IncidentDestination(IncidentDestinationKind.IPV4, "192.0.2.99", 443, TransportProtocol.TCP))
-    correlated = IncidentCorrelator().correlate(item).incident
-    assert correlated is not None
-    record = writer.create_or_get(correlated, now=at + timedelta(seconds=1)).record
+    # Use only existing production-PYZ modules; no extra correlator/writer service.
+    correlated = CorrelatedIncident(UUID(int=300), policy.cohort(at), at, at,
+        processes=(IncidentProcessRef(session, identity),), connections=(connection,),
+        destinations=(IncidentDestination(IncidentDestinationKind.IPV4, "192.0.2.99", 443, TransportProtocol.TCP),),
+        scopes=(EvidenceScope(EvidenceScopeKind.NETWORK, NetworkScopeStatus.RESOLVED, "a" * 64),),
+        relations=(IncidentRelation(observation, IncidentRelationReason.FIRST_OBSERVATION),))
+    correlated = replace(correlated, incident_id=stable_incident_id(correlated, policy))
+    synthetic = IncidentRecord(correlated, 1, IncidentState.OPEN, at + timedelta(seconds=1),
+        at + timedelta(seconds=1), IncidentAction.CREATED, IncidentOrigin.SYSTEM_CORRELATION, correlation_policy=policy)
+    record = repository.update(correlated.incident_id, lambda current: current or synthetic).record
     assert record is not None
     incidents = tuple(IncidentResult(IncidentStatus.FOUND,
         record if i == 0 else replace(record, snapshot=replace(record.snapshot, incident_id=UUID(int=300 + i)))) for i in range(12))

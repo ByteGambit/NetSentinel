@@ -1,22 +1,22 @@
 {
   "record_format": "netsentinel-unpublished-candidate-v1",
   "product": "NetSentinel",
-  "candidate_state": "historical after NS-099 layout changes; replacement identity pending committed rebuild",
+  "candidate_state": "current unpublished committed layout candidate",
   "version": "0.1.0",
   "pe_file_version": "0.1.0",
   "pe_product_version": "0.1.0",
-  "runtime_source_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
+  "runtime_source_commit": "bfe531d960aaabd6b61c1701cf7179f7214c5097",
   "runtime_tree_modified": false,
-  "acceptance_changes": "Committed retention/Diagnostics fix and regression; rebuilt from clean main == origin/main. Acceptance docs/tests are separate.",
+  "acceptance_changes": "Committed focused Incidents/DNS/History layout fix and regressions; rebuilt from clean main == origin/main. Prior native gates retain their original candidate scope.",
   "filename": "NetSentinel-0.1.0-Setup.exe",
   "artifact_path": "dist/NetSentinel-0.1.0-Setup.exe",
-  "sha256": "14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538",
-  "size_bytes": 37556108,
+  "sha256": "74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2",
+  "size_bytes": 37543802,
   "appid": "{62E3BFC6-ACAD-4FC3-94D8-46927D015096}",
   "signing_state": "unsigned",
   "authenticode_observation": "NotSigned",
   "timestamp_signature": "absent",
-  "build_completed_at_utc": "2026-10-06T19:52:18Z",
+  "build_completed_at_utc": "2026-10-06T22:12:50.747605+00:00",
   "schema": 19,
   "channel": "limited-unsigned-pilot-candidate",
   "update_model": "manual",
@@ -30,16 +30,16 @@
   "source_commit_is_complete_runtime_identity": true,
   "runtime_changed_files": [
     {
-      "path": "src/netsentinel/presentation/app.py",
-      "sha256": "7915bd8c4262ddae32b0bba08a4e3229240a6fe8417f1f509a657520f1176803"
+      "path": "src/netsentinel/presentation/views/incidents.py",
+      "sha256": "c2911ef10af79310b21c4ba519eeabd949ff45b5ae22e0afe88d190241d10d2d"
     },
     {
-      "path": "src/netsentinel/presentation/views/diagnostics.py",
-      "sha256": "45074f967d7a82da82ddf586c787c8b195d8da970468aa66545dffd63f0aaeec"
+      "path": "src/netsentinel/presentation/views/dns.py",
+      "sha256": "e5a7d832fda71b473c0a3296b9086cab91e6b00c5258fdd617b23173a5d4b299"
     },
     {
-      "path": "src/netsentinel/presentation/widgets/storage_privacy.py",
-      "sha256": "a1cbc1a2d474601c0ee51ef2bfd5e7d4446d453524617c3f69173c66259ff361"
+      "path": "src/netsentinel/presentation/views/history.py",
+      "sha256": "63cf032c4fcdac3170b798aa4dc8b3ece8ba8f139fa05a2065c10423a5d1e7c4"
     }
   ],
   "superseded_clean_head_candidate_sha256": "42b996d4eb7ad29cd4f667ff0aaa2eeb8275744a7fd80c46e1dba938c473edf9",
@@ -54,7 +54,7 @@
     "runtime_patch_local_path": "build/ns099-runtime-fix.patch",
     "status": "historical only"
   },
-  "installed_exe_sha256": "daee77e62c48fd639dc903e5918f325762265f3c0449c416cdd14b494afaa62b",
+  "installed_exe_sha256": "316019a0e20811bd6231f9ceb5a99c184db9b5b28a2fbbdde3ba2881bca70a32",
   "installed_payload_files_checked": 1119,
   "installed_payload_hash_mismatches": 0,
   "runtime_fix_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
@@ -63,7 +63,9 @@
     "overall": "FAIL",
     "passed": 7,
     "failed": 1,
-    "finding": "Incidents/DNS upper list area too small; History right columns cramped/overflowing"
+    "finding": "Incidents/DNS upper list area too small; History right columns cramped/overflowing",
+    "layout_code_fixed": true,
+    "focused_recheck": "PENDING"
   },
   "closure_gates": {
     "vpn": "NOT RUN",
@@ -73,20 +75,57 @@
     "native_duplicate_source_cooldown_restart_fixture": "PASS",
     "effective_os_disabled_policy": "BLOCKED",
     "tray_context_quit": "PASS",
-    "human_ux": "FAIL"
+    "human_ux": "FAIL, focused layout recheck PENDING"
   },
   "closure_quality": {
-    "targeted_passed": 200,
-    "targeted_seconds": 67.4,
-    "full_passed": 3785,
+    "targeted_passed": 133,
+    "targeted_seconds": 36.55,
+    "full_passed": 3794,
     "full_deselected": 8,
     "full_warnings": 1,
-    "coverage_percent": 91.08,
-    "full_seconds": 505.82,
+    "full_seconds": 488.91,
+    "coverage_percent": 91.1,
     "ruff": "PASS",
     "configured_mypy_files": 36,
-    "direct_mypy_files": 12,
+    "direct_mypy_files": 4,
     "schema_transition": "019->019",
     "migration": false
-  }
+  },
+  "historical_pre_layout_candidate": {
+    "runtime_source_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
+    "sha256": "14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538",
+    "size_bytes": 37556108,
+    "installed_exe_sha256": "daee77e62c48fd639dc903e5918f325762265f3c0449c416cdd14b494afaa62b",
+    "closure_quality": {
+      "targeted_passed": 200,
+      "targeted_seconds": 67.4,
+      "full_passed": 3785,
+      "full_deselected": 8,
+      "full_warnings": 1,
+      "coverage_percent": 91.08,
+      "full_seconds": 505.82,
+      "ruff": "PASS",
+      "configured_mypy_files": 36,
+      "direct_mypy_files": 12,
+      "schema_transition": "019->019",
+      "migration": false
+    },
+    "human_ux": {
+      "overall": "FAIL",
+      "passed": 7,
+      "failed": 1,
+      "finding": "Incidents/DNS upper list area too small; History right columns cramped/overflowing"
+    }
+  },
+  "layout_fix_commit": "bfe531d960aaabd6b61c1701cf7179f7214c5097",
+  "prior_native_closure_source_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
+  "layout_native_preview_cases": 15,
+  "layout_install": {
+    "installer_exit": 0,
+    "milliseconds": 29650,
+    "admin_token": false,
+    "payload_files_checked": 1119,
+    "payload_mismatches": 0
+  },
+  "prior_native_gate_scope": "PASS fixture toast/click/dedup/restart and tray results retain ae08d7e/14934a52 candidate scope; not rerun for this layout-only candidate"
 }

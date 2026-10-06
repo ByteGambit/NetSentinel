@@ -58,8 +58,7 @@ scroll and table scroll. Existing semantic/pagination/worker tests remain in sco
 
 The prior runtime ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4 and installer
 14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538 are historical
-after this production change. New installer identity must be recorded only after
-the layout fix is committed and rebuilt from a clean committed HEAD.
+after this production change. The committed replacement identity and native receipt are recorded below.
 
 Native probe: [isolated layout entrypoint](../tests/fixtures/beta_layout_probe.py),
 using the exact candidate production PYZ in Windows11. It supplies only synthetic
@@ -74,8 +73,8 @@ The preceding seven UX PASS results are preserved. The original layout FAIL is
 historical evidence; it remains unresolved until the human evaluates fresh native
 images. Automation alone does not promote human UX to PASS.
 
-Current new candidate/native/quality results are recorded in this section after
-the committed rebuild; no tag/release or NS-100 work is implied.
+The new candidate/native/quality results below come from the committed rebuild;
+no tag/release or NS-100 work is implied.
 
 ## Quality before runtime freeze
 
@@ -87,3 +86,60 @@ Staged diff check and bounded secret/local-identity scan PASS. Schema019→019.
 The initial full run identified obsolete History endpoint-stretch assumptions;
 those expectations were replaced with content-width/horizontal-access checks.
 Connections checks and production code were preserved. The final full run passed.
+
+## Committed candidate/native result
+
+Runtime layout/source commit `bfe531d960aaabd6b61c1701cf7179f7214c5097`, version0.1.0, unsigned/NotSigned,
+installer NetSentinel-0.1.0-Setup.exe, **37,543,802 bytes**, schema019→019.
+SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`. Clean committed rebuild; no tag/release.
+
+Installer transferred through VMware MCP; Limited-token install and all payload
+hashes verified. Native test-build PYZ matches the installed candidate production
+PYZ byte-for-byte. Raw source/installer/payload hashes and receipts stay ignored.
+
+The VM desktop was locked. Fresh **native guest Qt window captures** are used,
+not presented as visible/unlocked desktop screenshots. This evaluates layout,
+not physical click delivery or any unrelated acceptance scenario.
+
+| Native window case | Full list rows |
+|---|---:|
+|incidents-1280-empty (1280×720)|13|
+|incidents-1280-rows (1280×720)|13|
+|incidents-1280-selected (1280×720)|5|
+|dns-1280-empty (1280×720)|10|
+|dns-1280-rows (1280×720)|10|
+|dns-1280-selected (1280×720)|6|
+|history-1280-empty (1280×720)|8|
+|history-1280-rows (1280×720)|8|
+|history-1280-selected (1280×720)|8|
+|incidents-1366-selected (1366×768)|6|
+|dns-1366-selected (1366×768)|6|
+|history-1366-selected (1366×768)|9|
+|history-1280-right (1280×720)|8|
+|dns-1280-questions (1280×720)|6|
+|dns-1280-answers (1280×720)|6|
+
+Native Windows measurements: 96 logical DPI/1.0 device ratio, 1668×878 screen.
+At 1280×720 selected lists show Incidents5/DNS6/History8 full rows; at
+1366×768 they show6/6/9. Native1920×1080 physical fit is NOT RUN (screen limit);
+1920 offscreen checks passed. Resize preserves the existing selected splitter
+position, so native1366 counts differ slightly from freshly initialized offscreen
+cases. Fifteen native cases include empty/rows/selection, History rightward
+overflow and DNS Questions/Answers scrolling.
+
+Human focused recheck requested; **PENDING**. Original layout FAIL remains open
+until the response; seven other PASS observations are preserved. No automatic
+human PASS and no VPN/sleep/policy gate waiver.
+
+Native cleanup: probe process0; all three temporary layout/install/wake tasks
+removed; newly installed candidate preserved. No credential requested or created.
+The installer source is the runtime commit above; this later evidence commit
+changes only documentation and the isolated probe entrypoint to use modules
+already present in the candidate production PYZ. Runtime/packaging remain equal
+to the installer source. No additional production build is implied by that
+standalone test-harness adjustment.
+
+Final Ruff and direct mypy4 files were repeated after that probe-only adjustment,
+both PASS; the adapted fixture also repeated all27 offscreen cases successfully.
+The full suite preceded runtime freeze; production/tests under pytest did not
+change afterward, so that3794-case result remains applicable.

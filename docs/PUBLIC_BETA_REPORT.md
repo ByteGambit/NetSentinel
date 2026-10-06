@@ -1,5 +1,35 @@
 # NS-099 — Final delivery record
 
+NS-099 layout follow-up (2026-10-07): current runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
+unsigned0.1.0 candidate SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes, schema019→019.
+Incidents/DNS/History layout fixed; fresh Windows11 native layout test-build
+captures prepared. Focused human layout recheck **PENDING**; previous7 PASS/1 FAIL
+retained until the response. Prior functional/native measurements below keep
+their original ae08d7e/14934a52 candidate scope. VPN NOT RUN, native sleep NOT RUN,
+effective OS-disabled policy BLOCKED; NS-099 INCOMPLETE, M17 IN PROGRESS,
+pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED. [Layout record](NS099_LAYOUT_CLOSURE.md).
+
+| Current layout candidate field | Result |
+|---|---|
+| Source | `bfe531d960aaabd6b61c1701cf7179f7214c5097` |
+| File | NetSentinel-0.1.0-Setup.exe, 37,543,802 bytes |
+| SHA256 | `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2` |
+| Signature / AppId / schema | NotSigned / {62E3BFC6-ACAD-4FC3-94D8-46927D015096} / 019→019 |
+| Install | Limited token, exit0, 29.650s;1119 hashes checked/0 mismatches; not a Users-only account claim |
+| Native layout |15 isolated test-build cases; production PYZ byte-identical;1280 selected rows5/6/8;1366 rows6/6/9;96DPI/1.0 ratio |
+| Physical1920 viewport | NOT RUN, VM screen1668×878; offscreen1920 PASS |
+| Targeted / full |133 passed/36.55s;3794 passed/8 deselected/1 Scapy warning;91.10% coverage/488.91s |
+| Ruff / configured / direct mypy | PASS /36 files PASS /4 files PASS |
+| Human | Focused layout recheck PENDING; previous7 PASS/1 FAIL remains open |
+| Commit | Runtime `bfe531d960aaabd6b61c1701cf7179f7214c5097` — fix: improve beta list and history layouts; normal main push succeeded |
+| Final evidence Git state | Document-bearing evidence commit/push/HEAD state in operator report and ignored Git receipt |
+| Decisions | NS-099 INCOMPLETE; M17 IN PROGRESS; pilot/broad NO_GO; M18 DEFER; no tag/release/NS-100 |
+
+## Previous 97-field closure report — historical ae08d7e/14934a52 candidate
+
+All native/FP/notification/tray numbers in the following historical table retain
+their original candidate scope; they were not repeated for the layout candidate.
+
 2026-10-06. These 97 fields accompany the [acceptance evidence](PUBLIC_BETA_ACCEPTANCE.md)
 and [native checklist](PUBLIC_BETA_CHECKLIST.md). **Required pending evidence keeps
 NS-099 INCOMPLETE/M17 IN PROGRESS; no release approval is inferred.**
@@ -121,3 +151,12 @@ experiment still displayed a popup; effective OS-disabled gate remains BLOCKED.
 New candidate live benign alerts0/incidents0/occurrences0, schema19/quick_checkOK.
 Forced fixture alerts are separate from observed benign FP/notification burden.
 Human UX: **FAIL**, seven other criteria PASS; Incidents/DNS upper lists too small, History right columns cramped/overflowing. Human feedback recorded, no layout waiver.
+
+## Focused layout follow-up (2026-10-07)
+
+New runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`, installer SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes,
+unsigned/NotSigned, schema019→019. Prior native measurements above retain their
+original source/candidate scope. [Layout closure](NS099_LAYOUT_CLOSURE.md).
+Human layout recheck PENDING, previous FAIL open; other7 PASS preserved. VPN
+NOT RUN, native sleep NOT RUN, OS-policy BLOCKED unchanged. NS-099 INCOMPLETE,
+M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED.

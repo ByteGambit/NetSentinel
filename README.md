@@ -1,17 +1,17 @@
 # NetSentinel
 
-NS-099 — Public beta acceptance gate **IN PROGRESS**: NS-098 içeren güncel
-0.1.0 unsigned installer, commit edilmiş ae08d7e retention/Diagnostics düzeltmesinden
-yeniden derlendi; hash/provenance ve önceden dondurulmuş ölçüm eşikleri kayıtlıdır.
-Yeni Windows 11 VM'de standart/Unicode install, repair, browser/updater, restart,
-sanitized export ve KEEP uninstall tarihsel kapsamlarında doğrulandı. Yeni adayda
-native fixture toast/privacy/click/restart ve tray-context Quit geçti; VPN,
-meaningful sleep, etkili OS-disabled policy ve insanın bildirdiği layout FAIL kapıları açık. Limited pilot
-ve broad public release şu an **NO_GO**, M17 IN PROGRESS, M18 DEFER.
-[Güncel kabul raporu](docs/PUBLIC_BETA_ACCEPTANCE.md),
-[VM kontrol listesi](docs/PUBLIC_BETA_CHECKLIST.md),
-[pilot destek](docs/BETA_SUPPORT.md), [gizlilik özeti](docs/BETA_PRIVACY.md).
-Aşağıdaki önceki task teslimat kayıtları tarihseldir; release/tag oluşturulmadı.
+NS-099 — Public beta acceptance gate **INCOMPLETE**, M17 **IN PROGRESS**.
+Incidents/DNS/History yerleşimi dar kapsamda düzeltildi; güncel unsigned0.1.0
+installer committed `bfe531d` runtime'dan yeniden derlendi.
+VM kurulu1119 dosya hash eşleşmesi ve yeni native layout görüntüleri hazır.
+İnsanın yalnız yerleşim recheck'i **PENDING**; diğer7 UX PASS korunuyor.
+VPN/native sleep **NOT RUN**, etkili OS-disabled notification policy **BLOCKED**.
+Limited pilot/broad release **NO_GO**, M18 **DEFER**, NS-100 **NOT STARTED**.
+[Yerleşim/native/recheck kaydı](docs/NS099_LAYOUT_CLOSURE.md),
+[aday kimliği](docs/PUBLIC_BETA_CANDIDATE.json),
+[kabul raporu](docs/PUBLIC_BETA_ACCEPTANCE.md).
+Önceki native senaryolar ae08d7e/14934a52 adayının tarihsel kanıtıdır;
+yerleşim adayında tekrarlanmış sayılmaz. Tag/release oluşturulmadı.
 
 NS-098 — First-run/feedback polish **COMPLETE**: altı sayfalı sürümlü rehber,
 eski kullanıcıya nonmodal bilgilendirme, Help'ten güncel ayarlarla yeniden açma,

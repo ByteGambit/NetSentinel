@@ -1,10 +1,14 @@
 # NS-099 — Native candidate checklist
 
-2026-10-06. Current candidate: unsigned0.1.0,37,556,108 bytes, SHA256
+Historical closure checklist candidate (superseded by the layout fix): unsigned0.1.0,37,556,108 bytes, SHA256
 `14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538`, clean committed runtime `ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4`.
 [Identity](PUBLIC_BETA_CANDIDATE.json), [closure gate table](PUBLIC_BETA_ACCEPTANCE.md).
 The scenario table below preserves pre-closure42b996/A0 and339da4 evidence;
 its historic install/browser/updater/KEEP rows are not new-candidate repetitions.
+
+Current layout candidate: source `bfe531d960aaabd6b61c1701cf7179f7214c5097`, SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes.
+[Layout/native/human recheck](NS099_LAYOUT_CLOSURE.md). Human layout recheck PENDING;
+other seven human PASS results preserved; required VPN/sleep/policy gates unchanged.
 
 ## Environment
 
