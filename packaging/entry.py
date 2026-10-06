@@ -28,7 +28,7 @@ def _self_test(report: Path) -> int:
         result["version"] = __version__
         migrations = builtin_migrations()
         result["migrations"] = len(migrations)
-        if [item.version for item in migrations] != list(range(1, 10)):
+        if [item.version for item in migrations] != list(range(1, 20)):
             raise RuntimeError("migration_manifest")
         with tempfile.TemporaryDirectory(prefix="netsentinel-db-") as directory:
             database = SQLiteDatabase(Path(directory) / "smoke.sqlite3")
@@ -36,7 +36,7 @@ def _self_test(report: Path) -> int:
                 result["sqlite"] = connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal" and connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
                 result["schema_version"] = connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
             old = Path(directory) / "upgrade.sqlite3"
-            with SQLiteDatabase(old, migration_runner=MigrationRunner(migrations[:8])).connection() as connection:
+            with SQLiteDatabase(old, migration_runner=MigrationRunner(migrations[:18])).connection() as connection:
                 result["old_schema_version"] = connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
             with SQLiteDatabase(old).connection() as connection:
                 result["upgraded_schema_version"] = connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
@@ -55,7 +55,7 @@ def _self_test(report: Path) -> int:
         result["gui_exit"] = run_application(argv=[])
         result["icon"] = not app.windowIcon().isNull()
         result["onboarding_saved"] = load_config_file(runtime_config_path()).config.onboarding_completed
-        result["ok"] = all((result["sqlite"], result["qt"], result["icon"], result["schema_version"] == 9, result["old_schema_version"] == 8, result["upgraded_schema_version"] == 9, result.get("onboarding_visible") == expected_onboarding, result["onboarding_saved"], result["gui_exit"] == 0))
+        result["ok"] = all((result["sqlite"], result["qt"], result["icon"], result["schema_version"] == 19, result["old_schema_version"] == 18, result["upgraded_schema_version"] == 19, result.get("onboarding_visible") == expected_onboarding, result["onboarding_saved"], result["gui_exit"] == 0))
     except Exception:
         result["ok"] = False
         result["error"] = "self_test_failed"
@@ -64,6 +64,18 @@ def _self_test(report: Path) -> int:
 
 
 def main() -> int:
+    if sys.argv[1:] == ["--uninstall-delete-local-data-confirmed"]:
+        from netsentinel.infrastructure.uninstall_data import uninstall_local_data
+
+        return uninstall_local_data()
+    if len(sys.argv) > 1 and not (len(sys.argv) == 3 and sys.argv[1] == "--self-test"):
+        return 2
+    try:
+        from netsentinel.infrastructure.windows_installer import mark_desktop_running
+
+        mark_desktop_running()
+    except Exception:
+        return 1  # Fail closed before startup or any DB/config/log writer.
     if len(sys.argv) == 3 and sys.argv[1] == "--self-test":
         return _self_test(Path(sys.argv[2]))
     try:

@@ -1,5 +1,34 @@
 # NS-051 — Release readiness checklist
 
+## NS-096 installer gate (2026-10-06)
+
+Task COMPLETE. Per-user Inno Setup 6.3+ compiler prerequisite; build:
+`.\.venv\Scripts\python.exe packaging\build_installer.py --iscc <ISCC.exe>`.
+Fresh PyInstaller payload/private-data/license/019 validation precedes compiler;
+ignored `dist/NetSentinel-<version>-Setup.exe`, SHA256 and manifest outputs.
+ISCC 6.7.3 build and actual payload/PE/SHA256 checks passed; unsigned pilot
+`dist/NetSentinel-0.1.0-Setup.exe` produced. Local wizard blocked by Application
+Control 4551; isolated portable smoke passed. Exact TASKS native gate passed in
+fresh standard-user profiles on an existing Windows VM; no pristine OS snapshot.
+0.1.1 installer fixture retains application payload 0.1.0. Final targeted 121,
+installer-only 57, full offline 3683 passed/8 deselected; Ruff/mypy/diff PASS.
+No signing/update distribution decision or release/tag/NS-097 work.
+
+- [x] Compiler succeeds; actual compiler input/payload inventory, PE and sidecar hashes verified.
+- [x] Exact TASKS VM lifecycle acceptance: standard user/no UAC, no Python/Npcap,
+  fresh install/data separation, repair, two-version installer-fixture upgrade,
+  single registration/path, KEEP/DELETE/reinstall/Cancel and Unicode install/delete.
+- [x] Record native evidence separately from offline/source/offscreen tests.
+- [x] Repair/upgrade preserves observed config/DB; app owns schema migrations.
+- [x] Static source/payload confirms no driver/elevation/autostart/service/firewall/updater/upload hook.
+- [ ] Broader unreported [checklist recipes](INSTALLER_WINDOWS_SMOKE.md), including
+  silent flows, running/hidden tray wizard, failure/rollback, native schema
+  fixtures, custom spaced/long paths and reparse/inventory-tamper scenarios.
+  These are not claimed as native PASS or substituted into exact TASKS acceptance.
+
+[Installer contract](INSTALLER_UPGRADE_UNINSTALL.md), [evidence report](INSTALLER_ACCEPTANCE.md).
+The NS-051 records below are historical and do not pass the NS-096 gate.
+
 Bu liste bir release veya tag oluşturmaz. NS-051 kabul ölçütleri geçti ve M10
 tamamlandı. Mevcut uygulama sürümü `0.1.0`; ROADMAP'teki `1.0` belgeli kapsam
 hedefidir, bu belgenin oluşturulması bir 1.0 yayını değildir.
@@ -54,7 +83,7 @@ uv audit --locked --python-version 3.12 --python-platform windows
 ## Migration ve paket
 
 - [ ] SQLite migration manifestinin ardışık ve append-only olduğunu kontrol
-  edin. Mevcut manifest 001–009'dur; fresh DB ve 008→009 yükseltmesini aynı
+  edin. Mevcut manifest 001–019'dur; fresh DB ve 018→019 yükseltmesini aynı
   release candidate artifact'ının `--self-test`/smoke raporuyla doğrulayın.
 - [ ] Windows x64 `onedir` artifact'ını üretin; farklı cwd, boşluk/Türkçe
   karakterli çıkarma yolu, Qt, SQLite, icon, onboarding ve kapanışı

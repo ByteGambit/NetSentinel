@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 from importlib import metadata
 import os
@@ -15,6 +16,25 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "build"
 DIST = ROOT / "dist"
+
+
+def pyinstaller_command(*, use_project_packages: bool = False) -> list[str]:
+    """Keep native runtime from the invoking interpreter; optionally use repo deps.
+
+    The fixed venv package directory supplies dependencies, never a replacement
+    Python stdlib/runtime. PYTHONPATH remains removed from the native build child.
+    """
+    arguments = ["--noconfirm", "--clean", "--workpath", str(BUILD / "pyinstaller"),
+        "--distpath", str(DIST), str(ROOT / "packaging/NetSentinel.spec")]
+    if not use_project_packages:
+        return [sys.executable, "-m", "PyInstaller", *arguments]
+    packages = ROOT / ".venv/Lib/site-packages"
+    if not (packages / "PyInstaller/__init__.py").is_file():
+        raise FileNotFoundError("Install locked packaging dependencies in the project venv first")
+    # Also used by the parent for license metadata; no runtime files are copied/changed.
+    sys.path.insert(0, str(packages))
+    bootstrap = "import runpy, sys; sys.path.insert(0, sys.argv.pop(1)); runpy.run_module('PyInstaller', run_name='__main__')"
+    return [sys.executable, "-c", bootstrap, str(packages), *arguments]
 
 
 def _version_file(path: Path, version: str) -> None:
@@ -49,7 +69,7 @@ def _notices(bundle: Path) -> None:
         rows.append(f"| {name} | {dist.version} | {label} |")
         for item in dist.files or ():
             if item.name.upper().startswith(("LICENSE", "COPYING", "NOTICE")):
-                source = Path(dist.locate_file(item))
+                source = Path(str(dist.locate_file(item)))
                 if source.is_file():
                     target = bundle / "licenses" / name / item.name
                     target.parent.mkdir(parents=True, exist_ok=True)
@@ -64,6 +84,9 @@ def _notices(bundle: Path) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--use-project-packages", action="store_true")
+    args = parser.parse_args()
     if os.name != "nt":
         raise SystemExit("Build on Windows")
     version = runpy.run_path(str(ROOT / "src" / "netsentinel" / "version.py"))["__version__"]
@@ -76,9 +99,13 @@ def main() -> int:
     environment["PATH"] = os.pathsep.join((str(Path(sys.executable).parent), str(windows / "System32"), str(windows)))
     environment.pop("PYTHONPATH", None)
     environment["PYINSTALLER_CONFIG_DIR"] = str(BUILD / "pyinstaller-cache")
-    subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--workpath", str(BUILD / "pyinstaller"), "--distpath", str(DIST), str(ROOT / "packaging" / "NetSentinel.spec")], cwd=ROOT, env=environment, check=True)
+    subprocess.run(pyinstaller_command(use_project_packages=args.use_project_packages), cwd=ROOT, env=environment, check=True)
     bundle = DIST / "NetSentinel"
     _notices(bundle)
+    shutil.copyfile(ROOT / "packaging/INSTALLER_POLICY.md", bundle / "INSTALLER_POLICY.md")
+    from installer_payload import payload_files
+
+    payload_files(bundle)  # Mandatory private-data/driver exclusion gate for both formats.
     archive = shutil.make_archive(str(DIST / f"NetSentinel-{version}-windows-x64"), "zip", root_dir=DIST, base_dir="NetSentinel")
     with open(archive, "rb") as source:
         digest = hashlib.file_digest(source, "sha256").hexdigest()

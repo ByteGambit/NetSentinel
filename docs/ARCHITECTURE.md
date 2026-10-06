@@ -1,5 +1,18 @@
 # Mimari
 
+NS-096 ortak `shared.paths.user_data_paths` SQLite/config/log için mevcut
+per-user AppData politikasını merkezileştirir. Resource lookup package API'lerinde
+kalır; dev/portable/installed aynı veri kökünü kullanır. Packaging entry Windows
+mutex adapter'ını writer'lardan önce başlatır; maintenance-only uninstall helper
+Qt/domain/SQLite başlatmaz. Inno offline/per-user program deploy ve owned-file
+inventory prune yapar; schema/consent/config yazmaz. DELETE trusted Windows user
+folder + canonical root + reparse preflight ve stopped-desktop gate gerektirir.
+Schema 019→019. ISCC 6.7.3 gerçek build/payload/PE/SHA256 doğrulaması geçti;
+native per-user lifecycle/Unicode VM kabulü ve son kalite kapıları PASS, task COMPLETE.
+Mevcut VM'de yeni standart profiller kullanıldı; pristine OS snapshot yoktu.
+0.1.1 installer fixture payload'ı 0.1.0 kaldı. Host wizard App Control 4551 ile blocked;
+[sözleşme ve sınırlar](INSTALLER_UPGRADE_UNINSTALL.md).
+
 NS-095 typed StorageRetentionPolicy/StoreRetentionRule → blocking
 StoragePrivacyService → StorageMaintenanceRepository → SQLite adapter sınırını
 ekler. Tek portable worker, bir pending veya active komut, coarse opt-in timer,

@@ -1,5 +1,21 @@
 # Güvenlik ve güvenli kullanım
 
+NS-096 per-user installer normal kullanıcı yetkileriyle çalışır; app manifest
+asInvoker kalır. Program dosyaları ile yerel history/config/log ayrı köklerdedir.
+Uninstall KEEP default (silent da KEEP); DELETE iki explicit confirmation ve
+Windows trusted user-folder/canonical-root/reparse kontrolleri gerektirir.
+Running/tray app kapanmadan veri silinmez; external exports/parent AppData/Npcap
+korunur. Local deletion secure erasure değildir; I/O failure partial deletion
+bırakabilir, hostile concurrent filesystem replacement'a atomik garanti yoktur.
+Installer Npcap download/install/removal, firewall cleanup/rules, service/autostart,
+updater, Defender exclusion, telemetry veya upload yapmaz. Pilot unsigned'dır;
+SmartScreen/Application Control engelleri bypass edilmez. ISCC 6.7.3 build/payload/
+PE/SHA256 PASS; host wizard App Control 4551 ile blocked. Mevcut Windows VM'de
+yeni standart kullanıcı profilleriyle normal install/no-UAC, no-Python/no-Npcap,
+repair/installer-upgrade, KEEP/DELETE/reinstall/Cancel ve Unicode kabulü PASS;
+pristine OS snapshot yoktu. NS-096 COMPLETE; son kalite kapıları PASS.
+0.1.1 fixture uygulama payload'ı 0.1.0'dır; [policy ve kanıt](INSTALLER_UPGRADE_UNINSTALL.md).
+
 NS-095 yerel veri yaşam döngüsü kullanıcı kontrolündedir. IP/DNS/process/path,
 MAC, davranış zamanı, evidence, label/note/trust ve suppression hassas metadata
 olabilir. Retention default kapalı; kullanıcı Save ile açarsa 60s deferred ve

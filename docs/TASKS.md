@@ -1087,7 +1087,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-096 — Installer/upgrade/uninstall
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-06). Inno Setup 6.7.3 per-user/offline installer, ortak AppData path service, KEEP-default/confirmed DELETE helper, running/tray mutex coordination, payload inventory/checksum ve 001–019 packaging düzeltmesi tamamlandı. Native VM: standard-user/no-UAC, no-Python/no-Npcap, fresh install/data separation, repair, direct 0.1.0→0.1.1 installer-fixture upgrade/config-DB preservation/single HKCU entry, KEEP/DELETE/reinstall/Cancel ve Unicode install/launch/delete PASS. Mevcut VM'de yeni standart kullanıcı profilleri kullanıldı; pristine OS snapshot yoktu. Exact task pristine OS baseline'ını zorunlu tanımlamadığından temiz per-user profile lifecycle kabulü yeterlidir. Fixture app payload'ı 0.1.0 kaldı; app code-version upgrade iddiası yok. Host wizard App Control 4551 ile blocked, kabul VM'de yapıldı. Son targeted 121, installer-only 57; full offline 3683 passed/8 deselected (450.13 s); Ruff/configured mypy (36)/direct mypy (8)/diff PASS. Schema 019→019, migration yok; 001/008/018→019, current/future compatibility PASS. [Final kabul ve sınırlar](INSTALLER_ACCEPTANCE.md), [lifecycle policy](INSTALLER_UPGRADE_UNINSTALL.md), [native sonuçlar/checklist](INSTALLER_WINDOWS_SMOKE.md). M17 IN PROGRESS; NS-097 NOT STARTED.
 - **Amaç:** Portable paketi kontrollü dağıtım akışına taşımak.
 - **Yapılacaklar:** Installer build, data-path/preserve/delete kararı ve clean upgrade/uninstall kılavuzu ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging/, docs/RELEASING.md, README.md, tests/integration/.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | Devam ediyor; NS-093/NS-094/NS-095 COMPLETE, NS-096–NS-099 planlandı |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-096 COMPLETE, NS-097–NS-099 NOT STARTED |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

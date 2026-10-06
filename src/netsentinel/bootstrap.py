@@ -382,10 +382,12 @@ def create_device_inventory_service_factory(
 def initialize_runtime(*, config_path: str | Path | None = None, log_path: str | Path | None = None) -> ConfigLoadResult:
     """Load local settings and configure a bounded, privacy-safe log at startup."""
 
-    directory = default_database_path().parent
-    result = load_config_file(config_path or directory / "config.json")
+    from netsentinel.shared.paths import user_data_paths
+
+    paths = user_data_paths()
+    result = load_config_file(config_path or paths.config)
     try:
-        logger = configure_logging(log_path or directory / "netsentinel.log", result.config)
+        logger = configure_logging(log_path or paths.log, result.config)
     except OSError:
         logger = logging.getLogger("netsentinel")
         logger.propagate = False
@@ -453,7 +455,9 @@ def create_threat_intel_scheduler(
 def runtime_config_path() -> Path:
     """Return the user-local central config location without creating it."""
 
-    return default_database_path().parent / "config.json"
+    from netsentinel.shared.paths import user_data_paths
+
+    return user_data_paths().config
 
 
 def create_destination_context_resolver(config: AppConfig | None = None) -> DestinationContextResolver:

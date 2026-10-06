@@ -1,5 +1,21 @@
 # NetSentinel
 
+NS-096 — Installer/upgrade/uninstall **COMPLETE**: Inno Setup 6.7.3
+derleme/payload/SHA256 ve mevcut Windows VM'deki yeni standart kullanıcı
+profilleriyle install/repair/installer-upgrade/uninstall/Unicode kabulü geçti.
+Pristine OS snapshot yoktu; exact TASKS bu baseline'ı zorunlu tanımlamaz.
+0.1.1 upgrade fixture'ında uygulama payload'ı 0.1.0 kaldı. Host wizard smoke
+App Control 4551 ile engellendi; kabul VM'de yapıldı. Son full offline:
+3683 passed/8 deselected; Ruff/mypy/diff PASS.
+Per-user program dosyaları `%LOCALAPPDATA%\Programs\NetSentinel`, yerel veri
+`%LOCALAPPDATA%\NetSentinel` altındadır. Uninstall default KEEP; DELETE ayrı
+onay ister. Npcap/elevation/autostart/updater yok; pilot unsigned.
+[Build ve lifecycle policy](docs/INSTALLER_UPGRADE_UNINSTALL.md),
+[native VM checklist](docs/INSTALLER_WINDOWS_SMOKE.md),
+[NS-096 kanıt raporu](docs/INSTALLER_ACCEPTANCE.md).
+M1–M16 tamamlandı, M17 devam ediyor; NS-097 başlatılmadı. Aşağıdaki eski teslimat
+özetleri tarihsel kayıttır; güncel durum TASKS/ROADMAP içindedir.
+
 NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağlayan ancak ağ güvenliği sinyallerine odaklanan öğretici bir masaüstü uygulaması olarak tasarlanmıştır.
 
 Proje; aktif TCP/UDP bağlantılarını ve süreçlerini izlemeyi, bağlantı geçmişi tutmayı, yerel ağ cihazlarını tanımayı ve ARP, DNS, broadcast ve VLAN gözlemlerinden açıklanabilir güvenlik uyarıları üretmeyi hedefler.
@@ -73,7 +89,7 @@ değeri yanındaki `.sha256` dosyasında bulunur. Zip klasörü bütünüyle
 uygulaması geliştirme Python'u, `.venv` veya repo çalışma dizini gerektirmez.
 İlk açılışta rehber görünür; **Finish** sonrasında tercih korunur. Paket
 smoke testi gerçek ağ yakalama/aktif tarama yapmadan farklı çalışma dizini ve
-boş kullanıcı verisiyle Qt, SQLite 001–009 migration, 008→009 yükseltme,
+boş kullanıcı verisiyle Qt, SQLite 001–019 migration, 018→019 yükseltme,
 ilk/sonraki açılış ve kapanışı sınar. Gerçek temiz Windows VM kontrol adımları
 [paketleme kılavuzunda](packaging/README.md) yer alır.
 

@@ -1,10 +1,19 @@
 # NS-050 Windows paket doğrulaması
 
+NS-096 güncel installer build/policy: [Installer/upgrade/uninstall](../docs/INSTALLER_UPGRADE_UNINSTALL.md).
+Inno Setup 6.7.3 ile mevcut PyInstaller onedir sarıldı; gerçek build/payload/PE/
+SHA256 PASS. NS-096 COMPLETE: mevcut Windows VM'deki yeni standart profillerle
+install/repair/installer-upgrade/uninstall/Unicode ve son kalite kapıları PASS.
+Pristine OS snapshot yoktu; 0.1.1 fixture app payload'ı 0.1.0 kaldı. Host wizard
+App Control 4551 ile blocked; kabul VM'de yapıldı. Portable ve installed
+aynı `%LOCALAPPDATA%\NetSentinel` data policy kullanır. Aşağıdaki NS-050 VM kanıtı
+tarihseldir; güncel NS-096 installer kanıtı olarak sayılmaz.
+
 `TASKS.md` paketleyici/format belirtmez. Bu uygulama PyInstaller `onedir`
 GUI klasörü ve aktarım için zip üretir. `packaging/build_windows.py`,
 `src/netsentinel/version.py` sürümünü Windows exe metadata'sına işler,
 üçüncü taraf lisans envanteri ile lisans dosyalarını pakete ekler ve zip için
-SHA-256 üretir. `NetSentinel.spec` SQL migration 001–009'u açıkça dahil eder.
+SHA-256 üretir. `NetSentinel.spec` SQL migration 001–019'u açıkça dahil eder.
 Windows manifest `asInvoker` düzeyindedir; otomatik UAC yükseltmesi yoktur.
 Npcap/WinPcap sürücüsü ve kullanıcıya ait DB/config/log dosyaları pakette yoktur.
 
@@ -19,7 +28,7 @@ uv sync --extra dev --extra packaging
 İkinci komut zip SHA-256 değerini doğrular; paketi boş, boşluk ve Türkçe
 karakter içeren bir yola çıkarır; farklı cwd ile GUI exe'nin sınırlı
 `--self-test <report.json>` tanı modunu iki kez çalıştırır. Bu tanı modu
-Qt platform eklentisini, gerçek SQLite bağlantısında 001–009'u, 008→009
+Qt platform eklentisini, gerçek SQLite bağlantısında 001–019'u, 018→019
 yükseltmesini, ilk rehberin Finish ile kaydını, sonraki açılışta rehberin
 gösterilmemesini ve düzenli kapanışı denetler. Temp `%LOCALAPPDATA%` kullanır,
 gerçek kullanıcı verisini değiştirmez. Test yalnızca salt okunur capability
@@ -40,9 +49,9 @@ bulunmayan temiz Windows 10/11 x64 VM'de, standart kullanıcıyla yapılmalıdı
 3. **Finish** ile ana pencereyi açın. `%LOCALAPPDATA%\NetSentinel` altında
    `config.json`, `netsentinel.sqlite3` ve bounded `netsentinel.log` konumunu
    kontrol edin. Paket klasörüne yazılmamalıdır. SQLite migration ledger'ı
-   001–009 olmalıdır. Pencereyi kapatıp tekrar açın; rehber tekrarlanmamalı.
-4. Bozuk config ile güvenli fallback/yeniden rehberi, mevcut 008 DB kopyasıyla
-   009 yükseltmesini ve salt okunur kurulum diziniyle veri yolunu sınayın.
+   001–019 olmalıdır. Pencereyi kapatıp tekrar açın; rehber tekrarlanmamalı.
+4. Bozuk config ile güvenli fallback/yeniden rehberi, mevcut 018 DB kopyasıyla
+   019 yükseltmesini ve salt okunur kurulum diziniyle veri yolunu sınayın.
    Bu testleri gerçek kullanıcı profili yerine VM snapshot'ında yapın.
 5. Paket klasörünü kaldırın. Kullanıcı verisi varsayılan olarak
    `%LOCALAPPDATA%\NetSentinel` altında **korunur**; silmek ya da yedeklemek

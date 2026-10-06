@@ -16,9 +16,8 @@ import sqlite3
 from threading import Lock
 from typing import Protocol
 
+from netsentinel.shared.paths import APPLICATION_DIRECTORY_NAME, DATABASE_FILENAME, user_data_paths
 
-APPLICATION_DIRECTORY_NAME = "NetSentinel"
-DATABASE_FILENAME = "netsentinel.sqlite3"
 DEFAULT_BUSY_TIMEOUT_MS = 5_000
 _MIGRATION_LOCK = Lock()
 
@@ -63,16 +62,7 @@ def default_database_path(
     directory.
     """
 
-    if local_app_data is None:
-        configured_root = os.environ.get("LOCALAPPDATA")
-        root = (
-            Path(configured_root)
-            if configured_root
-            else Path.home() / "AppData" / "Local"
-        )
-    else:
-        root = Path(local_app_data)
-    return root.expanduser().resolve() / APPLICATION_DIRECTORY_NAME / DATABASE_FILENAME
+    return user_data_paths(local_app_data=local_app_data).database
 
 
 @dataclass(frozen=True, slots=True)

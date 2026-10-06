@@ -1,5 +1,20 @@
 # Ürün tanımı
 
+NS-096 installer kaynak implementasyonu mevcut portable PyInstaller paketini
+offline, per-user kurulumla sarar. Program: `%LOCALAPPDATA%\Programs\NetSentinel`;
+yerel veri: `%LOCALAPPDATA%\NetSentinel`. Uninstall varsayılan KEEP, DELETE ayrı
+seçim ve destructive confirmation gerektirir; external export korunur, secure
+erase garantisi yoktur. Capture/TI/notification/storage defaults değişmez;
+Npcap, elevation, service/autostart, updater veya upload eklenmez. ISCC 6.7.3 ile
+unsigned pilot installer artefact'ı derlendi ve doğrulandı; mevcut Windows VM'deki
+yeni standart kullanıcı profilleriyle lifecycle/Unicode kabulü PASS: NS-096 COMPLETE.
+Pristine OS snapshot yoktu; exact TASKS bu baseline'ı zorunlu tanımlamaz.
+0.1.1 fixture installer lifecycle'ını sınadı; uygulama payload'ı 0.1.0 kaldı.
+Host wizard smoke App Control 4551 ile blocked; kabul VM'de yapıldı. Son full
+offline 3683 passed/8 deselected, Ruff/mypy/diff PASS. M17 devam ediyor; NS-097 başlamadı.
+[Installer policy ve native checklist](INSTALLER_UPGRADE_UNINSTALL.md).
+Aşağıdaki teslimat kayıtları tarihseldir.
+
 NS-095 Settings → Storage & Privacy yerel store sayıları/approximate DB-WAL
 boyutu, opt-in retention, scope önizlemeli/onaylı purge ve sanitized support JSON
 önizleme/Save sağlar. Retention varsayılan kapalıdır; Save ile açılırsa ilk kontrol
@@ -119,7 +134,7 @@ Ana kullanıcı sorusu: **“Bilgisayarım şu anda kimlerle konuşuyor, bunu ha
 
 Öncelik sırası **visibility → context → explainable detection**. Yeni faz; process/connection correlation, yerel destination context, bounded deterministic behavioral baseline, evidence ile açıklanan risk, incident timeline ve yanlış pozitif kontrolüne odaklanır. Threat intelligence yalnızca kullanıcı tercihiyle destekleyici evidence sağlar. M18 manuel firewall response ayrı ve conditional karardır; automatic blocking erken varsayılan değildir.
 
-**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution, installer ve firewall bugün uygulanmış değildir; desktop notification NS-094 ile eklenmiştir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
+**Mevcut ile planı ayırma:** M1–M10'da TCP/UDP polling görünürlüğü, erişilebilen PID/process adı/create-time, connection history, pasif LAN/DNS/VLAN gözlemleri, özel detector'lar, kanıtlı alert'ler, device trust ve portable Windows paketleme vardır. NS-052 ile executable path, NS-053 ile mevcut snapshot'ta erişilebilen best-effort parent context process metadata olarak okunur; NS-054 bu context'i connection history snapshot'ında yerel olarak saklar. NS-055 Connections ve History detaylarında bu alanları ve eksiklik nedenlerini gösterir; parent bilgisi yalnız gözlenen bağlamdır. NS-064 Connections ve History'de DNS association kanıtını kesin hostname iddiası olmadan, local ASN/country context'inden ayrı gösterir. NS-069–075 observed baseline ve detail/reset UI uygulanmıştır. NS-076–079 generic evidence, pure scoring, versioned assessment ve mevcut alert lifecycle entegrasyonu yerel backend olarak uygulanmıştır. Kesin domain–connection attribution ve firewall bugün uygulanmış değildir; desktop notification NS-094, per-user installer NS-096 ile eklenmiştir. Polling “opened/closed” gerçek TCP connect/FIN zamanını garanti etmez; per-flow upload/download yoktur.
 
 Ürün ilkeleri:
 
