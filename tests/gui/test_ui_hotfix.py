@@ -75,10 +75,10 @@ def test_monitoring_page_table_and_details_share_page_flow(qtbot, size, page):
     assert not view.details.findChildren(QScrollArea)
     assert view.page_scroll.verticalScrollBar().maximum() > 0
     assert view.page_scroll.horizontalScrollBar().maximum() == 0
-    assert view.table.columnWidth(4) >= view.table.fontMetrics().horizontalAdvance("255.255.255.255:65535")
-    # Remote precedes wide date fields and remains visible without horizontal scrolling.
-    assert view.table.columnViewportPosition(4) + view.table.fontMetrics().horizontalAdvance("198.51.100.20") <= view.table.viewport().width()
     if isinstance(view, ConnectionsView):
+        assert view.table.columnWidth(4) >= view.table.fontMetrics().horizontalAdvance("255.255.255.255:65535")
+        # Live connections retain their endpoint-spare-width policy.
+        assert view.table.columnViewportPosition(4) + view.table.fontMetrics().horizontalAdvance("198.51.100.20") <= view.table.viewport().width()
         bottom = view.details.signer_button
         assert_reachable(view.page_scroll, bottom, qtbot)
         view.page_scroll.verticalScrollBar().setValue(0)
@@ -89,6 +89,12 @@ def test_monitoring_page_table_and_details_share_page_flow(qtbot, size, page):
         assert view.page_scroll.verticalScrollBar().value() > before
         assert view.details.value_text("remote_address") == _snapshot().remote_endpoint.address
     else:
+        # NS-099 History preserves content widths and permits horizontal overflow.
+        endpoint = view.model.index(0, 4)
+        assert view.table.columnWidth(4) >= view.table.fontMetrics().horizontalAdvance(endpoint.data()) + 4
+        view.table.scrollTo(endpoint)
+        settle(qtbot)
+        assert view.table.visualRect(endpoint).right() < view.table.viewport().width()
         assert_reachable(view.page_scroll, view.details.destination.context_details, qtbot)
         view.table.selectRow(1)
         assert view.details.values["local"].text().endswith(":40001")
@@ -131,17 +137,23 @@ def test_connection_tabs_expand_async_text_and_reach_controls(qtbot, size):
             assert text.mapTo(view.page_scroll.viewport(), text.rect().bottomLeft()).y() <= view.page_scroll.viewport().height()
 
 
-def test_endpoint_columns_share_extra_width_and_font_sized_rows(qtbot):
+def test_monitoring_endpoint_sizing_and_font_sized_rows(qtbot):
     for view in (ConnectionsView(), HistoryView()):
         qtbot.addWidget(view)
+        if isinstance(view, HistoryView):
+            view.model.replace_records((record(local="2001:db8::10", remote="2001:db8:1234:5678:abcd:ef90:1234:5678"),))
         view.resize(1280, 720)
         view.show()
         settle(qtbot)
         local, remote = view.table.columnWidth(3), view.table.columnWidth(4)
         view.resize(1920, 1080)
         settle(qtbot)
-        assert view.table.columnWidth(3) > local
-        assert view.table.columnWidth(4) > remote
+        if isinstance(view, ConnectionsView):
+            assert view.table.columnWidth(3) > local
+            assert view.table.columnWidth(4) > remote
+        else:
+            assert view.table.columnWidth(3) == local
+            assert view.table.columnWidth(4) == remote
         assert view.table.columnWidth(1) < view.table.columnWidth(4)
         assert view.table.columnWidth(2) < view.table.columnWidth(4)
         font = view.font()

@@ -5,7 +5,7 @@ from uuid import UUID
 from PyQt6.QtCore import QModelIndex, QSignalBlocker, Qt
 from PyQt6.QtWidgets import (
     QAbstractItemView, QHBoxLayout, QLabel, QPushButton, QSplitter,
-    QTableView, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
+    QSizePolicy, QTableView, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
 )
 
 from netsentinel.presentation.theme import PAGE_TITLE
@@ -80,29 +80,44 @@ class IncidentsView(QWidget):
         list_panel = QWidget(self)
         list_layout = QVBoxLayout(list_panel)
         list_layout.addWidget(self.state)
-        list_layout.addWidget(self.table)
+        list_layout.addWidget(self.table, 1)
         list_layout.addLayout(pagination)
-        detail_panel = QWidget(self)
-        detail_layout = QVBoxLayout(detail_panel)
+        self.detail_panel = QWidget(self)
+        detail_layout = QVBoxLayout(self.detail_panel)
         detail_layout.addWidget(self.detail_state)
         detail_layout.addWidget(self.timeline, 2)
         detail_controls = QHBoxLayout()
         detail_controls.addWidget(self.more_button)
         detail_controls.addWidget(self.detail_refresh_button)
         detail_controls.addStretch()
-        detail_layout.addLayout(detail_controls)
+        self.detail_controls = QWidget(self.detail_panel)
+        self.detail_controls.setLayout(detail_controls)
+        detail_layout.addWidget(self.detail_controls)
         detail_layout.addWidget(self.tabs, 1)
+        # Hidden risk tabs must not impose their full form height on the list.
+        self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        tab_bar = self.tabs.tabBar()
+        assert tab_bar is not None
+        self.tabs.setMinimumHeight(tab_bar.sizeHint().height() + self.fontMetrics().height() * 4)
+        row_height = max(self.table.verticalHeader().defaultSectionSize(), self.fontMetrics().height() + 10)
+        self.table.verticalHeader().setDefaultSectionSize(row_height)
+        self.table.setMinimumHeight(row_height * 5 + self.table.horizontalHeader().sizeHint().height()
+                                    + self.table.horizontalScrollBar().sizeHint().height() + 2 * self.table.frameWidth())
+        self.timeline.setMinimumHeight(row_height * 2 + self.timeline.horizontalHeader().sizeHint().height()
+                                       + self.timeline.horizontalScrollBar().sizeHint().height())
         self.splitter = QSplitter(Qt.Orientation.Vertical, self)
         self.splitter.addWidget(list_panel)
-        self.splitter.addWidget(detail_panel)
-        self.splitter.setStretchFactor(0, 1)
-        self.splitter.setStretchFactor(1, 3)
+        self.splitter.addWidget(self.detail_panel)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
+        self._show_detail(False)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.addWidget(self.title)
         layout.addWidget(self.help)
         layout.addLayout(controls)
-        layout.addWidget(self.splitter)
+        layout.addWidget(self.splitter, 1)
         self.table.selectionModel().currentRowChanged.connect(self._selected)
         self.timeline.selectionModel().currentRowChanged.connect(self._row_selected)
         if queries:
@@ -115,6 +130,15 @@ class IncidentsView(QWidget):
         else:
             self.state.setText("Incident queries unavailable. Try Refresh.")
         self._controls()
+
+    def _show_detail(self, selected: bool) -> None:
+        was_empty = self.timeline.isHidden()
+        for widget in (self.timeline, self.detail_controls, self.tabs):
+            widget.setVisible(selected)
+        self.detail_panel.setMaximumHeight(16777215 if selected else self.detail_panel.sizeHint().height())
+        if selected and was_empty:
+            height = self.splitter.height()
+            self.splitter.setSizes([height * 3 // 5, height * 2 // 5])
 
     def _label(self, text, name):
         label = QLabel(text, self)
@@ -260,6 +284,7 @@ class IncidentsView(QWidget):
         self.refresh_detail()
 
     def refresh_detail(self):
+        self._show_detail(self._selected_id is not None)
         if self.queries:
             self.queries[1].invalidate()
         self._detail_generation = None

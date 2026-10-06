@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
@@ -37,7 +38,7 @@ from netsentinel.presentation.process_context import (
     PROCESS_CONTEXT_FIELDS,
     process_context_text,
 )
-from netsentinel.presentation.widgets.page_flow import EndpointTableView, MonitoringPageScroll
+from netsentinel.presentation.widgets.page_flow import MonitoringPageScroll
 from netsentinel.presentation.theme import PAGE_TITLE, SECONDARY_TEXT
 from netsentinel.presentation.viewmodels import MISSING_VALUE
 
@@ -203,7 +204,7 @@ class HistoryView(QWidget):
         self.state_label.setAccessibleName("History loading and result status")
         self.state_label.setStyleSheet(SECONDARY_TEXT + " padding: 5px;")
 
-        self.table = EndpointTableView(self)
+        self.table = QTableView(self)
         self.table.setObjectName("historyTable")
         self.table.setAccessibleName("Connection history records")
         self.table.setModel(self.model)
@@ -216,7 +217,12 @@ class HistoryView(QWidget):
         cast(QHeaderView, self.table.verticalHeader()).setDefaultSectionSize(30)
         self.table.setWordWrap(False)
         self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
-        self.table.configure_columns((14, 6, 8, 24, 24, 12, 25, 25, 25, 9), (1, 2, 5, 6, 7, 8, 9))
+        header = cast(QHeaderView, self.table.horizontalHeader())
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setResizeContentsPrecision(HISTORY_PAGE_SIZE)
+        self.table.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         self.previous_button = QPushButton("Previous", self)
         self.previous_button.setAccessibleName("Previous history page")

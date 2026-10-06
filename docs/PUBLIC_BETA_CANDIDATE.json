@@ -1,6 +1,7 @@
 {
   "record_format": "netsentinel-unpublished-candidate-v1",
   "product": "NetSentinel",
+  "candidate_state": "historical after NS-099 layout changes; replacement identity pending committed rebuild",
   "version": "0.1.0",
   "pe_file_version": "0.1.0",
   "pe_product_version": "0.1.0",

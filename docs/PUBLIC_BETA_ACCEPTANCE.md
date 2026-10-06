@@ -1,5 +1,15 @@
 # NS-099 — Public beta acceptance gate
 
+## Layout follow-up (2026-10-07)
+
+The focused [layout closure](NS099_LAYOUT_CLOSURE.md) changes Incidents/DNS/History
+presentation only. The ae08d7e/14934a52 installer and all closure observations
+below are historical after that runtime change. Its replacement is identified in
+the layout closure record after a clean committed rebuild. The original human
+layout FAIL awaits a focused recheck; seven other human PASS results are preserved.
+VPN/sleep NOT RUN and OS-policy BLOCKED remain unchanged; NS-099 INCOMPLETE,
+M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER. NS-100 NOT STARTED.
+
 2026-10-07 closure (native work2026-10-06 UTC). **INCOMPLETE; M17 IN PROGRESS. Limited unsigned pilot NO_GO;
 broad public release NO_GO; M18 DEFER; NS-100 NOT STARTED.** Safe native VPN,
 meaningful native sleep, effective OS-disabled policy and human layout FAIL remain open.

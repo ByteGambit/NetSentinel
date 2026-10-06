@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtCore import QDateTime, QModelIndex, QTimer, Qt, pyqtSignal
 from PyQt6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDateTimeEdit,
     QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QSplitter, QTableView, QTextEdit, QVBoxLayout, QWidget)
+    QFrame, QScrollArea, QSplitter, QTableView, QVBoxLayout, QWidget)
 
 from netsentinel.presentation.theme import PAGE_TITLE
 from netsentinel.application.ports import DnsHistoryQuery
@@ -22,6 +22,7 @@ from netsentinel.presentation.dns_query import DnsQueryCoordinator
 from netsentinel.presentation.models.dns import (DnsTableModel, MISSING, STATUS_TEXT,
     answer_lines, event_time, format_dns_endpoint, format_latency, format_rcode, format_record_type)
 from netsentinel.presentation.models.history import format_local_timestamp
+from netsentinel.presentation.widgets.page_flow import FlowTextEdit
 
 PAGE_SIZE = 50
 
@@ -39,6 +40,7 @@ class DnsDetailsWidget(QGroupBox):
         self.setAccessibleName("DNS record details")
         self.status_label = QLabel("No DNS record selected.", self)
         self.values: dict[str, QLabel] = {}
+        content = QWidget(self)
         form = QFormLayout()
         for key, label in self.FIELDS:
             value = QLabel(MISSING, self)
@@ -46,26 +48,37 @@ class DnsDetailsWidget(QGroupBox):
             value.setAccessibleName(f"DNS {label.lower()}")
             value.setTextFormat(Qt.TextFormat.PlainText)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            value.setWordWrap(True)
             self.values[key] = value
             form.addRow(f"{label}:", value)
-        self.questions = QTextEdit(self)
+        self.questions = FlowTextEdit(self)
         self.questions.setAccessibleName("DNS questions")
         self.questions.setReadOnly(True)
-        self.questions.setMaximumHeight(85)
-        self.answers = QTextEdit(self)
+        self.answers = FlowTextEdit(self)
         self.answers.setAccessibleName("DNS answers")
         self.answers.setReadOnly(True)
-        self.answers.setMaximumHeight(100)
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
-        layout.addLayout(form)
-        layout.addWidget(QLabel("Questions", self))
-        layout.addWidget(self.questions)
-        layout.addWidget(QLabel("Answers (up to 16 supported records)", self))
-        layout.addWidget(self.answers)
+        content_layout = QVBoxLayout(content)
+        content_layout.addLayout(form)
+        content_layout.addWidget(QLabel("Questions", self))
+        content_layout.addWidget(self.questions)
+        content_layout.addWidget(QLabel("Answers (up to 16 supported records)", self))
+        content_layout.addWidget(self.answers)
+        self.detail_scroll = QScrollArea(self)
+        self.detail_scroll.setAccessibleName("Selected DNS record content")
+        self.detail_scroll.setWidgetResizable(True)
+        self.detail_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.detail_scroll.setWidget(content)
+        self.detail_scroll.setMinimumHeight(self.fontMetrics().height() * 5)
+        layout.addWidget(self.detail_scroll)
+        self.clear()
 
     def clear(self) -> None:
         self.status_label.show()
+        self.detail_scroll.hide()
+        self.setMaximumHeight(self.sizeHint().height())
         for value in self.values.values():
             value.setText(MISSING)
         self.questions.clear()
@@ -73,7 +86,10 @@ class DnsDetailsWidget(QGroupBox):
 
     def set_record(self, record: DnsHistoryRecord, network_label: str | None = None) -> None:
         tx = record.transaction
+        was_empty = self.detail_scroll.isHidden()
         self.status_label.hide()
+        self.setMaximumHeight(16777215)
+        self.detail_scroll.show()
         values = {"id": str(record.id), "time": format_local_timestamp(event_time(record)),
                   "network": network_label or "Previously observed network",
                   "status": STATUS_TEXT[tx.status],
@@ -89,6 +105,10 @@ class DnsDetailsWidget(QGroupBox):
         self.questions.setPlainText("\n".join(f"{q.name} {format_record_type(q.record_type)}"
                                               for q in tx.questions[:4]) or MISSING)
         self.answers.setPlainText("\n".join(answer_lines(record)) or MISSING)
+        splitter = self.parentWidget()
+        if was_empty and isinstance(splitter, QSplitter):
+            height = splitter.height()
+            splitter.setSizes([height * 3 // 5, height * 2 // 5])
 
 
 class DnsView(QWidget):
@@ -198,11 +218,18 @@ class DnsView(QWidget):
         table_layout.addWidget(self.state_label)
         table_layout.addWidget(self.table, 1)
         table_layout.addLayout(pagination)
-        splitter = QSplitter(Qt.Orientation.Vertical, self)
-        splitter.addWidget(table_panel)
-        splitter.addWidget(self.details)
-        splitter.setStretchFactor(0, 4)
-        splitter.setStretchFactor(1, 2)
+        vertical, horizontal, scrollbar = self.table.verticalHeader(), self.table.horizontalHeader(), self.table.horizontalScrollBar()
+        assert vertical is not None and horizontal is not None and scrollbar is not None
+        row_height = max(vertical.defaultSectionSize(), self.fontMetrics().height() + 10)
+        vertical.setDefaultSectionSize(row_height)
+        self.table.setMinimumHeight(row_height * 6 + horizontal.sizeHint().height()
+                                    + scrollbar.sizeHint().height() + 2 * self.table.frameWidth())
+        self.splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self.splitter.addWidget(table_panel)
+        self.splitter.addWidget(self.details)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         for item in (title, description, self.capability_label, self.capture_label):
@@ -210,7 +237,7 @@ class DnsView(QWidget):
         layout.addLayout(filters)
         layout.addLayout(times)
         layout.addWidget(self.validation_label)
-        layout.addWidget(splitter, 1)
+        layout.addWidget(self.splitter, 1)
 
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
