@@ -240,7 +240,7 @@ def test_invalid_onboarding_field_falls_back_without_implicit_completion():
     assert result.issues[0].field == "onboarding_completed"
 
 
-@pytest.mark.parametrize("initial", ["first", "completed", "malformed"])
+@pytest.mark.parametrize("initial", ["first", "completed", "malformed", "legacy", "skipped"])
 def test_production_startup_uses_one_application_and_one_engine(
     initial, tmp_path, monkeypatch, qapp,
 ):
@@ -250,6 +250,10 @@ def test_production_startup_uses_one_application_and_one_engine(
     path.parent.mkdir()
     if initial == "completed":
         complete_onboarding(path, AppConfig())
+    elif initial == "legacy":
+        path.write_text('{"onboarding_completed":true}', encoding="utf-8")
+    elif initial == "skipped":
+        path.write_text('{"onboarding_dismissed_version":1}', encoding="utf-8")
     elif initial == "malformed":
         path.write_text("{bad", encoding="utf-8")
     engine = FakeEngine()
@@ -271,7 +275,7 @@ def test_production_startup_uses_one_application_and_one_engine(
         assert QApplication.instance() is qapp
         dialogs = [widget for widget in QApplication.topLevelWidgets()
                    if isinstance(widget, OnboardingDialog) and widget.isVisible()]
-        if initial == "completed":
+        if initial in ("completed", "legacy", "skipped"):
             assert not dialogs
             assert engine.start_calls == 1
         else:

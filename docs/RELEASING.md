@@ -1,10 +1,22 @@
 # NS-051 — Release readiness checklist
 
+## NS-098 first-run/feedback preparation (2026-10-06)
+
+Version remains 0.1.0; source changes have not rebuilt the NS-096 installer.
+No tag/release is created. Six-page versioned informational guide, separate
+capture/TI consent, full sanitized local feedback preview and explicit project
+navigation are documented in [FIRST_RUN_FEEDBACK.md](FIRST_RUN_FEEDBACK.md).
+[Pilot notes](RELEASE_NOTES.md) and five synthetic Qt screenshot assets/checklist
+are prepared; [validation](FIRST_RUN_FEEDBACK_ACCEPTANCE.md) records exact gates.
+M17 stays IN PROGRESS; NS-099 stays NOT STARTED. Missing owner-defined feedback/
+private-security endpoint is disclosed, not invented. Public signer/licensing,
+audience/channel and later beta acceptance remain distribution prerequisites.
+
 ## NS-097 signing/manual update gate (2026-10-06)
 
 [Frozen decision, sources and commands](SIGNING_UPDATE_DISTRIBUTION.md),
 [dry-run/tamper evidence](SIGNING_UPDATE_ACCEPTANCE.md). NS-097 spike COMPLETE;
-M17 IN PROGRESS, NS-098/099 not started. This is not a release/tag approval.
+M17 IN PROGRESS; NS-098 preparation is described above, NS-099 not started. This is not a release/tag approval.
 Current 0.1.0 installer remains unsigned and unchanged; 0.1.1 is only NS-096 fixture.
 
 - [x] Limited unsigned pilot policy, key ownership/custody/CI boundary,

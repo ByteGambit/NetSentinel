@@ -155,6 +155,12 @@ class MainWindow(QMainWindow):
         self.quit_action = file_menu.addAction("Quit NetSentinel")
         assert self.quit_action is not None
         self.quit_action.setEnabled(False)
+        help_menu = menu_bar.addMenu("Help")
+        assert help_menu is not None
+        self.onboarding_action = help_menu.addAction("First-run & Privacy guide…")
+        self.feedback_action = help_menu.addAction("Feedback & Support…")
+        assert self.onboarding_action is not None and self.feedback_action is not None
+        self.feedback_action.setEnabled(False)
 
         self.navigation = QListWidget(self)
         self.navigation.setObjectName("navigation")

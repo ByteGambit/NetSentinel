@@ -4,6 +4,8 @@ from concurrent.futures import Future
 from pathlib import Path
 
 from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QUrl
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QLabel,
     QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QVBoxLayout, QWidget, QScrollArea,
@@ -20,14 +22,15 @@ from netsentinel.domain.storage_privacy import (
 
 
 class StoragePrivacyDialog(QDialog):
-    def __init__(self, worker: StorageMaintenanceWorker, parent: QWidget | None = None) -> None:
+    def __init__(self, worker: StorageMaintenanceWorker, parent: QWidget | None = None, *, feedback: bool = False) -> None:
         super().__init__(parent)
         self.worker = worker
         self._future: Future[MaintenanceValue] | None = None
         self._operation = Op.SUMMARY
         self._export: SanitizedExport | None = None
-        self.setWindowTitle("Storage & Privacy")
-        self.resize(780, 740)
+        self.setWindowTitle("Feedback & Support" if feedback else "Storage & Privacy")
+        self.setAccessibleName(self.windowTitle())
+        self.resize(780, 640)
         outer = QVBoxLayout(self)
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -38,6 +41,24 @@ class StoragePrivacyDialog(QDialog):
         local = QLabel("NetSentinel stores monitoring history locally by default. Local metadata may contain personal and activity data.", self)
         local.setWordWrap(True)
         layout.addWidget(local)
+        self.feedback_note = QLabel(
+            "Review categories → Preview → Save locally → manually share. No dedicated feedback or private vulnerability contact is defined in this checkout. "
+            "The project page is the starting point for finding a maintainer-approved channel; issue availability is not assumed. "
+            "Never post secrets, raw telemetry or vulnerability details publicly. Opening the project page reveals browser/source-IP metadata to GitHub; no support data is attached.", self)
+        self.feedback_note.setWordWrap(True)
+        self.feedback_note.setVisible(feedback)
+        layout.addWidget(self.feedback_note)
+        self.project_button = QPushButton("Open project page (browser)…", self)
+        self.project_button.setAccessibleName("Open canonical project page without attaching support data")
+        self.project_button.setToolTip("User-initiated browser navigation to GitHub. No query, attachment or upload.")
+        self.project_button.setVisible(feedback)
+        self.project_button.clicked.connect(self._open_project)
+        layout.addWidget(self.project_button)
+        main_layout = layout
+        self.storage_controls = QWidget(body)
+        layout = QVBoxLayout(self.storage_controls)
+        main_layout.addWidget(self.storage_controls)
+        self.storage_controls.setVisible(not feedback)
         self.summary = QPlainTextEdit(self)
         self.summary.setReadOnly(True)
         self.summary.setMaximumHeight(170)
@@ -74,28 +95,42 @@ class StoragePrivacyDialog(QDialog):
         deletion = QLabel("Deletion is local and irreversible from NetSentinel, but secure erasure is not guaranteed. SQLite/WAL files may not shrink immediately. DB encryption is not guaranteed.", self)
         deletion.setWordWrap(True)
         layout.addWidget(deletion)
+        layout = main_layout
+        self.categories = QLabel(
+            "Included (fixed allowlist-v1): app/schema/export version, aggregate local storage counts, retention policy, bounded sanitized alert and incident summaries. "
+            "No optional raw-data categories are offered. Excluded: raw history, IP/domain/path/MAC/hash, evidence, notes, provider responses, full config and secrets. "
+            "Counts are estimates; records are bounded. This is not anonymous or a forensic log. No automatic upload.", self)
+        self.categories.setWordWrap(True)
+        self.categories.setAccessibleName("Support export included and excluded categories and limitations")
+        layout.addWidget(self.categories)
         row = QHBoxLayout()
         self.export_preview = QPushButton("Preview sanitized support export", self)
         self.export_save = QPushButton("Save sanitized export…", self)
         self.export_save.setEnabled(False)
         row.addWidget(self.export_preview)
         row.addWidget(self.export_save)
-        layout.addLayout(row)
+        outer.addLayout(row)
         self.preview = QPlainTextEdit(self)
         self.preview.setReadOnly(True)
+        self.preview.setMinimumHeight(160)
+        self.preview.setAccessibleName("Full sanitized support export preview")
+        self.preview.setToolTip("Exact bounded bytes that Save will write; never raw telemetry.")
         layout.addWidget(self.preview)
-        export_note = QLabel("Exporting creates a file on your computer. NetSentinel does not upload it automatically. Raw IP/domain/path/MAC/hash, user notes, evidence, provider responses, config and secrets are excluded. Maximum 100 records / 64 KiB; preview samples at most 10 per category.", self)
+        export_note = QLabel("Exporting creates a file on your computer. NetSentinel does not upload it automatically. Maximum 100 records / 64 KiB. Preview shows the full sanitized export, including category counts and limitations.", self)
         export_note.setWordWrap(True)
         layout.addWidget(export_note)
         self.status = QLabel("", self)
         self.status.setWordWrap(True)
-        layout.addWidget(self.status)
+        outer.addWidget(self.status)
         row = QHBoxLayout()
         self.cancel_operation = QPushButton("Cancel current operation", self)
         self.close_button = QPushButton("Close", self)
         row.addWidget(self.cancel_operation)
         row.addWidget(self.close_button)
-        layout.addLayout(row)
+        outer.addLayout(row)
+        for button in (self.export_preview, self.export_save, self.cancel_operation, self.close_button):
+            button.setAccessibleName(button.text())
+            button.setToolTip(button.text() + " — local action; no upload.")
         self._buttons = (self.refresh, self.save_settings, self.purge_button, self.export_preview)
         self._controls = (self.enabled, self.history_days, self.security_days, self.scope)
         self.refresh.clicked.connect(lambda: self._submit(MaintenanceRequest(Op.SUMMARY)))
@@ -110,7 +145,16 @@ class StoragePrivacyDialog(QDialog):
         self.timer.setInterval(50)
         self.timer.timeout.connect(self._poll)
         self.timer.start()
-        self._submit(MaintenanceRequest(Op.SUMMARY))
+        if not feedback:
+            self._submit(MaintenanceRequest(Op.SUMMARY))
+        else:
+            self.status.setText("Review the fixed sanitized categories, then request a preview. Nothing is exported or sent on opening.")
+            self._set_busy(worker.busy)
+
+    def _open_project(self) -> None:
+        # Canonical remote, no invented issue/contact endpoint or URL prefill.
+        if not QDesktopServices.openUrl(QUrl("https://github.com/ByteGambit/NetSentinel")):
+            self.status.setText("Project page could not be opened. No data was sent by NetSentinel.")
 
     def _save_settings(self) -> None:
         settings = StorageSettings(self.enabled.isChecked(), StorageRetentionPolicy(
@@ -120,6 +164,9 @@ class StoragePrivacyDialog(QDialog):
     def _submit(self, request: MaintenanceRequest) -> None:
         if self._future is not None:
             return
+        if request.operation is Op.EXPORT_PREVIEW:
+            self._export = None
+            self.preview.clear()
         self._operation = request.operation
         self._future = self.worker.submit(request)
         self.status.setText("Working locally…")
@@ -145,7 +192,10 @@ class StoragePrivacyDialog(QDialog):
         try:
             result = future.result()
         except Exception:
-            self.status.setText("Operation cancelled, busy or unavailable. Previous committed chunks may remain; retry after monitoring writes finish.")
+            self.status.setText(
+                "Export cancelled, busy or unavailable. No new final file written; retry later."
+                if self._operation in (Op.EXPORT_PREVIEW, Op.EXPORT_SAVE) else
+                "Operation cancelled, busy or unavailable. Previous committed chunks may remain; retry after monitoring writes finish.")
             return
         if isinstance(result, StorageSummary):
             lines = [f"Approximate DB: {result.database_bytes:,} bytes; WAL: {result.wal_bytes:,} bytes; schema {result.schema_version:03d}"]
@@ -170,7 +220,7 @@ class StoragePrivacyDialog(QDialog):
             self.export_save.setEnabled(False)
         elif isinstance(result, SanitizedExport):
             self._export = result
-            self.preview.setPlainText(result.sample)
+            self.preview.setPlainText(result.content.decode("utf-8"))
             self.export_save.setEnabled(True)
             self.status.setText(f"Sanitized preview ready: {result.record_count} records, {len(result.content)} bytes. Save writes these exact previewed export bytes locally.")
         elif isinstance(result, StorageSettings):

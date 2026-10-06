@@ -12,7 +12,7 @@ import tempfile
 def _self_test(report: Path) -> int:
     """Documented, bounded offline diagnostic for an extracted Windows bundle."""
 
-    result = {"migrations": 0, "sqlite": False, "qt": False, "gui_exit": None}
+    result: dict[str, object] = {"migrations": 0, "sqlite": False, "qt": False, "gui_exit": None}
     try:
         from PyQt6.QtCore import QTimer
         from PyQt6.QtWidgets import QApplication
@@ -22,7 +22,7 @@ def _self_test(report: Path) -> int:
         from netsentinel.infrastructure.sqlite.migrations import MigrationRunner, builtin_migrations
         from netsentinel.presentation.app import run_application
         from netsentinel.presentation.widgets.onboarding import OnboardingDialog
-        from netsentinel.shared.config import load_config_file
+        from netsentinel.shared.config import load_config_file, show_onboarding_at_startup
         from netsentinel.version import __version__
 
         result["version"] = __version__
@@ -40,8 +40,9 @@ def _self_test(report: Path) -> int:
                 result["old_schema_version"] = connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
             with SQLiteDatabase(old).connection() as connection:
                 result["upgraded_schema_version"] = connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
-        expected_onboarding = not load_config_file(runtime_config_path()).config.onboarding_completed
+        expected_onboarding = show_onboarding_at_startup(load_config_file(runtime_config_path()).config)
         app = QApplication.instance() or QApplication([])
+        assert isinstance(app, QApplication)
         result["qt"] = bool(app.platformName())
 
         def inspect_ui() -> None:

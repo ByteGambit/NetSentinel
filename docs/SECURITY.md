@@ -1,5 +1,19 @@
 # Güvenlik ve güvenli kullanım
 
+## NS-098 first-run/feedback (2026-10-06)
+
+Rehber Finish/Skip hiçbir capture/TI/notification izni vermez. Capture mevcut
+Devices explicit Start; AbuseIPDB selected public IP/manual lookup ayrı consent
+ve credential gerektirir. Desktop secret backend unavailable durumu açık gösterilir;
+guide secrets okumaz, provider request yapmaz. Local history sensitivity ve
+polling/DNS/attribution/hash/signer/risk/incident sınırları erişilebilir kalır.
+Help Feedback & Support aynı NS-095 allowlist-v1/100 records/64KiB worker export'u
+kullanır; full sanitized preview olmadan Save yoktur. Raw history/config/key/not/
+evidence export yok; automatic upload/crash reporter yok. Proje sayfası yalnız
+click ile ve query/prefill/attachment olmadan açılır. Ayrı feedback/private security
+contact tanımlı olmadığından eksiklik açık yazılır; public paylaşımda gerçek
+telemetry/secrets/vulnerability ayrıntısı eklenmez. [Policy](FIRST_RUN_FEEDBACK.md).
+
 ## NS-097 dağıtım ve güncelleme güveni (2026-10-06)
 
 [Signing/update policy](SIGNING_UPDATE_DISTRIBUTION.md) sınırlı unsigned pilot,

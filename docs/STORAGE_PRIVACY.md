@@ -1,5 +1,12 @@
 # NS-095 — Storage/privacy controls
 
+**NS-098 UI update (2026-10-06):** Help → Feedback & Support reuses this same
+worker/service/allowlist export in an export-only dialog. Both entry points now
+display the full bounded immutable JSON before Save, rather than the older
+ten-per-category display sample. Engine `sample` remains bounded for compatibility;
+export content, support-export-v1/allowlist-v1, 100 records/64KiB and atomic/cancel
+semantics are unchanged. [Current guide/feedback contract](FIRST_RUN_FEEDBACK.md).
+
 Policy freeze, 2026-10-06, before implementation. TASKS.md is authoritative.
 Initial main/HEAD/origin/main: 71eb116; clean checkout; schema 019.
 No migration is needed: retention is retryable and deferred on every restart;

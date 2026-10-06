@@ -1,6 +1,7 @@
 """User-facing NS-048 capability matrix; all I/O is owned by the coordinator."""
 
 from __future__ import annotations
+from dataclasses import replace
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
@@ -9,6 +10,7 @@ from netsentinel.application.services.capabilities import CapabilityMatrix
 from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot
 from netsentinel.application.services.notifications import NotificationDiagnostics
+from netsentinel.shared.config import AppConfig
 
 
 _REASONS = {
@@ -58,23 +60,43 @@ class DiagnosticsView(QWidget):
         layout.addWidget(title)
         layout.addWidget(explanation)
         layout.addWidget(self.status)
-        layout.addWidget(self.privilege)
+        self.summary = QLabel("Current activity: Not checked", self)
+        self.summary.setWordWrap(True)
+        self.summary.setAccessibleName("Current monitoring activity summary")
+        layout.addWidget(self.summary)
+        self.preferences = QLabel(self)
+        self.preferences.setWordWrap(True)
+        self.preferences.setAccessibleName("Optional feature preferences")
+        layout.addWidget(self.preferences)
+        self.details_button = QPushButton("Show technical details", self)
+        self.details_button.setCheckable(True)
+        self.details_button.setAccessibleName("Expand technical diagnostics")
+        layout.addWidget(self.details_button)
+        self.details = QWidget(self)
+        detail_layout = QVBoxLayout(self.details)
+        detail_layout.addWidget(self.privilege)
         for name in ("Connections", "Process details", "History", "Packet capture", "Devices", "DNS", "Alerts"):
             row = QLabel(f"{name}: Not checked", self)
             row.setWordWrap(True)
             row.setTextFormat(Qt.TextFormat.PlainText)
             row.setAccessibleName(f"{name} capability")
             self.rows[name] = row
-            layout.addWidget(row)
+            detail_layout.addWidget(row)
         self.health = QLabel("Worker health: Not checked", self)
         self.health.setWordWrap(True)
         self.health.setAccessibleName("Worker and database health")
-        layout.addWidget(self.health)
+        detail_layout.addWidget(self.health)
         self.notifications = QLabel("Desktop notifications: Not checked", self)
         self.notifications.setWordWrap(True)
         self.notifications.setTextFormat(Qt.TextFormat.PlainText)
         self.notifications.setAccessibleName("Desktop notification delivery diagnostics")
-        layout.addWidget(self.notifications)
+        detail_layout.addWidget(self.notifications)
+        layout.addWidget(self.details)
+        self.details.hide()
+        self.details_button.toggled.connect(self.details.setVisible)
+        self.details_button.toggled.connect(lambda expanded: self.details_button.setText(
+            "Hide technical details" if expanded else "Show technical details"))
+        self.set_preferences(AppConfig())
         self.retry_button = QPushButton("Retry check", self)
         self.retry_button.setAccessibleName("Retry capability check")
         self.retry_button.setEnabled(coordinator is not None)
@@ -88,8 +110,24 @@ class DiagnosticsView(QWidget):
     def deactivate(self) -> None:
         self._active = False
 
+    def set_preferences(self, config: AppConfig, *, credential_available: bool | None = None) -> None:
+        self._config = config
+        self._credential_available = credential_available
+        credential = ("Unavailable (this desktop has no usable secret backend)" if credential_available is False else
+                      "Available" if credential_available is True else "Not checked here")
+        ti = ("Consent enabled; manual lookup only"
+              if config.threat_intel_consents else "Disabled by user (default: zero requests)")
+        self.preferences.setText(
+            f"Threat intelligence (AbuseIPDB): {ti}.\n"
+            f"Provider credential: {credential}.\n"
+            f"Notifications: {'Enabled; delivery capability checked separately' if config.desktop_notifications_enabled else 'Disabled by user'}.\n"
+            f"Storage: local; scheduled retention {'enabled' if config.storage_retention_enabled else 'disabled by user'}."
+        )
+
     def set_notification_diagnostics(self, snapshot: NotificationDiagnostics, *, enabled: bool) -> None:
         if self._active:
+            self.set_preferences(replace(self._config, desktop_notifications_enabled=enabled),
+                                 credential_available=self._credential_available)
             self.notifications.setText(
                 f"Desktop notifications: {'enabled' if enabled else 'disabled'}; "
                 f"submitted {snapshot.submitted_to_sink} (display unconfirmed); "
@@ -113,6 +151,7 @@ class DiagnosticsView(QWidget):
 
     def set_failure(self) -> None:
         self.status.setText("Capability check unavailable. Retry later; saved views may still work.")
+        self.summary.setText("Current activity: Unavailable for this check. Optional features and saved data are independent.")
 
     def set_matrix(self, matrix: CapabilityMatrix) -> None:
         self._last_matrix = matrix
@@ -148,6 +187,25 @@ class DiagnosticsView(QWidget):
             f"Engine: {diagnostics.engine.state.value}; "
             f"packet capture: {capture.state.value if capture else 'not checked'}; "
             f"database: {diagnostics.database.status.value}; {history}; {dns}."
+        )
+        features = {item.name: item for item in self._last_matrix.features}
+        connection = features.get("Connections")
+        capture_feature = features.get("Packet capture")
+        capture_status = (self._live_capture.capability.status.value if self._live_capture is not None else
+                          capture_feature.status.value if capture_feature else "not checked")
+        capture_activity = capture.state.value if capture else "not checked"
+        if capture_status != "available":
+            capture_activity = capture_status
+        dns_feature = features.get("DNS")
+        dns_activity = ("Unavailable" if dns_feature is not None and dns_feature.status.value == "unavailable" else
+                        "Capture running; observations only where capture sees classic DNS" if capture_activity == "running" else
+                        "Limited while capture is stopped or unavailable")
+        self.summary.setText(
+            f"Monitoring engine: {diagnostics.engine.state.value.capitalize()}\n"
+            f"Connection visibility: {connection.status.value.capitalize() if connection else 'Not checked'}\n"
+            f"Packet capture: {capture_activity.capitalize()} (capability: {capture_status})\n"
+            f"DNS observation: {dns_activity}\n"
+            f"Local storage: {diagnostics.database.status.value.capitalize()}"
         )
 
     def set_live_capture(self, capture: CaptureHealthSnapshot | None) -> None:

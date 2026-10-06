@@ -1109,7 +1109,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-098 — First-run/feedback polish
 
-- **Durum:** ⬜ Planlandı.
+- **Durum:** ✅ COMPLETE (2026-10-06). Config'te version 1 completed/dismissed state, legacy nonmodal upgrade notice, altı informational page ve Help reopen/current settings eklendi. Finish/Skip capture/TI/notification izni vermez; Cancel/Back write yoktur. Diagnostics readable activity/capability ve expandable details; production credential unavailable açık. Help Feedback & Support aynı NS-095 worker/allowlist-v1/support-export-v1/100 records/64KiB/atomic cancel yolunu kullanır; full sanitized preview → local Save, zero auto upload. Dedicated feedback/security endpoint tanımlı değil; actual project page yalnız click ile/query-prefill olmadan açılır. Evidence limitations, 0.1.0 source/pilot notes, beş actual synthetic Qt screenshot ve operator usability walkthrough PASS. 51 yeni case; targeted 269 passed; full offline 3781 passed/8 deselected (332.50s); Ruff/configured mypy (36)/direct mypy (7)/diff/privacy review PASS. Approved bundled CPython + mevcut deps, security bypass yok. Schema 019→019, migration/new dependency/network/crash client/tag/release/installer rebuild yok. [Frozen policy ve UI artifacts](FIRST_RUN_FEEDBACK.md), [80-item acceptance](FIRST_RUN_FEEDBACK_ACCEPTANCE.md), [pilot notes](RELEASE_NOTES.md). M17 IN PROGRESS; NS-099 NOT STARTED. Native DPI/screen-reader/independent novice/client beta acceptance iddiası yoktur.
 - **Amaç:** Yeni privacy/detection sınırlarını kullanıcıya anlatmak.
 - **Yapılacaklar:** Onboarding, sanitized user-controlled feedback export, detection docs, screenshot/release-note hazırlığı.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/widgets/onboarding.py, src/netsentinel/presentation/views/diagnostics.py, docs/, README.md, tests/gui/.
@@ -1203,6 +1203,6 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M14 Explainable Risk & User Feedback | NS-076–NS-083 | 8 | ✅ COMPLETE |
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
-| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-097 COMPLETE, NS-098–NS-099 NOT STARTED |
+| M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | IN PROGRESS; NS-093–NS-098 COMPLETE, NS-099 NOT STARTED |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

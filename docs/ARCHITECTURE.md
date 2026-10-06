@@ -1,5 +1,16 @@
 # Mimari
 
+NS-098 onboarding acknowledgement config'tedir: bounded completed/dismissed
+version, legacy bool compatibility, atomic save ve current-settings reload.
+Presentation yalnız informational pages, existing capability coordinator,
+stable PageId/actions ve NS-095 StoragePrivacyDialog feedback mode ekler.
+Export service/repository/allowlist/bytes aynı kalır; Qt full sanitized bytes'ı
+plain text gösterir. DB/file export ve cancellation mevcut tek worker'ındadır.
+Credential readiness composition'dan sanitized status olarak gelir; rehber
+secret/providera erişmez. Yalnız explicit project-button browser navigation vardır.
+Domain/infrastructure/dependency/migration değişmez; SQLite 019→019.
+[Sözleşme](FIRST_RUN_FEEDBACK.md).
+
 NS-097 yalnız packaging/release security design ve standalone offline
 `packaging/verify_release.py` ekler; `src/` katmanlarına import/call/network hook
 eklemez. Streaming SHA256, strict bounded final-release manifest validation ve

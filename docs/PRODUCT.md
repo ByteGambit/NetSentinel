@@ -1,5 +1,13 @@
 # Ürün tanımı
 
+NS-098 altı sayfalı sürümlü ilk açılış/Privacy rehberi, Help'ten yeniden açma,
+eski kullanıcıya nonmodal bilgilendirme ve NS-095 motorunu kullanan Feedback &
+Support görünümü ekler. Finish/Skip izin vermez; capture, AbuseIPDB ve notification
+ayarları ayrı kalır. Feedback full sanitized preview sonrası yerel Save'dir;
+proje sayfası yalnız explicit click ile açılır, ayrı feedback/security adresi
+tanımlı değildir. [Davranış ve sınırlar](FIRST_RUN_FEEDBACK.md),
+[0.1.0 pilot hazırlık notları](RELEASE_NOTES.md). M17 devam eder; NS-099 başlatılmaz.
+
 NS-097 signing/update dağıtım spike'ı tamamlandı: sınırlı ve açıkça unsigned
 pilot için conditional GO, broad public beta/production için public signer ve
 kalan M17 kabul kapıları zorunludur. Tek canonical kanal GitHub Releases; ilk

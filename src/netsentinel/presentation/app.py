@@ -30,7 +30,9 @@ from netsentinel.presentation.alert_query import AlertQueryCoordinator, AlertSer
 from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFactory
 from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.application.services.capabilities import CapabilityService
-from netsentinel.presentation.views.main_window import MainWindow
+from netsentinel.presentation.views.main_window import MainWindow, PageId
+from netsentinel.presentation.views.diagnostics import DiagnosticsView
+from netsentinel.presentation.widgets.onboarding import OnboardingDialog
 from netsentinel.application.services.threat_intelligence import ThreatIntelConsentService
 from netsentinel.application.services.threat_intel_scheduler import ThreatIntelLookupScheduler
 from netsentinel.presentation.widgets.threat_intel_lookup import ThreatIntelLookupWidget, ThreatIntelRiskSubmit
@@ -38,6 +40,10 @@ from netsentinel.version import __version__
 from netsentinel.presentation.tray import ApplicationController, QtTrayAdapter, TrayAdapter
 from netsentinel.shared.config import AppConfig, save_window_close_behavior
 from netsentinel.shared.config import save_notification_preference
+from netsentinel.shared.config import (
+    complete_onboarding, dismiss_onboarding, load_config_file, onboarding_pending,
+    show_onboarding_at_startup,
+)
 from netsentinel.application.services.notifications import DesktopNotificationSink
 from netsentinel.presentation.notifications import DesktopNotificationController, QtDesktopNotificationSink
 from netsentinel.application.services.storage_worker import StorageMaintenanceWorker
@@ -240,6 +246,7 @@ def create_application(
     threat_intel_risk_submit: ThreatIntelRiskSubmit | None = None,
     config: AppConfig | None = None,
     config_path: Path | None = None,
+    credential_available: bool | None = None,
     tray_adapter: TrayAdapter | None = None,
     notification_sink: DesktopNotificationSink | None = None,
     storage_maintenance: StorageMaintenanceWorker | None = None,
@@ -355,6 +362,54 @@ def create_application(
         assert window.storage_privacy_action is not None
         window.storage_privacy_action.setEnabled(True)
         window.storage_privacy_action.triggered.connect(lambda: StoragePrivacyDialog(storage_maintenance, window).exec())
+        assert window.feedback_action is not None
+        window.feedback_action.setEnabled(True)
+        window.feedback_action.triggered.connect(lambda: StoragePrivacyDialog(storage_maintenance, window, feedback=True).exec())
+
+    def current_settings() -> AppConfig:
+        return load_config_file(config_path).config if config_path is not None else (config or AppConfig())
+
+    status_bar = window.statusBar()
+    assert status_bar is not None
+
+    def show_guide() -> None:
+        def record(*, skipped: bool = False) -> bool:
+            if config_path is not None:
+                try:
+                    (dismiss_onboarding if skipped else complete_onboarding)(config_path, current_settings())
+                except (OSError, ValueError):
+                    return False
+            status_bar.clearMessage()
+            return True
+
+        assert window.threat_intel_consent_action is not None and window.notification_settings_action is not None
+        actions: dict[str, Callable[[], object]] = {
+            "Devices": lambda: window.navigate_to(PageId.DEVICES),
+            "TI consent": window.threat_intel_consent_action.trigger,
+            "Notifications": window.notification_settings_action.trigger,
+        }
+        if storage_maintenance is not None:
+            assert window.storage_privacy_action is not None and window.feedback_action is not None
+            actions["Storage & Privacy"] = window.storage_privacy_action.trigger
+            actions["Feedback"] = window.feedback_action.trigger
+        dialog = OnboardingDialog(capability_queries, record, window, credential_available=credential_available,
+                                  skip=lambda: record(skipped=True), config=current_settings(), actions=actions)
+        dialog.exec()
+        dialog.deleteLater()
+        diagnostics = window.page_widget(PageId.DIAGNOSTICS)
+        if isinstance(diagnostics, DiagnosticsView):
+            diagnostics.set_preferences(current_settings(), credential_available=credential_available)
+
+    assert window.onboarding_action is not None
+    window.onboarding_action.triggered.connect(show_guide)
+    diagnostics = window.page_widget(PageId.DIAGNOSTICS)
+    if isinstance(diagnostics, DiagnosticsView):
+        diagnostics.set_preferences(current_settings(), credential_available=credential_available)
+        assert window.threat_intel_consent_action is not None
+        window.threat_intel_consent_action.triggered.connect(
+            lambda: diagnostics.set_preferences(current_settings(), credential_available=credential_available))
+    if onboarding_pending(config or AppConfig()) and not show_onboarding_at_startup(config or AppConfig()):
+        status_bar.showMessage("Privacy guide updated. Help → First-run & Privacy guide explains consent and feedback.")
     return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications, storage_maintenance)
 
 
@@ -414,7 +469,7 @@ def run_application(
         except Exception:
             pass  # optional TI construction cannot prevent local monitoring
         config_issues = bool(loaded.issues)
-        first_run = not settings.onboarding_completed
+        first_run = show_onboarding_at_startup(settings)
         engine = create_desktop_engine(config=settings)
         behavior_risk = getattr(engine, "behavior_risk", None)
         threat_intel_risk_submit = behavior_risk.worker.submit_threat_intelligence if behavior_risk else None
@@ -460,20 +515,18 @@ def run_application(
         threat_intel_risk_submit=threat_intel_risk_submit,
         config=settings,
         config_path=config_path,
+        credential_available=False if config_path is not None else None,
         storage_maintenance=storage_maintenance,
     )
     assert shell.controller is not None
     onboarding = None
     if first_run:
-        from netsentinel.presentation.widgets.onboarding import OnboardingDialog
-        from netsentinel.shared.config import complete_onboarding
-
         assert shell.capability_queries is not None and config_path is not None
         shell.capability_queries.start()
 
-        def finish() -> bool:
+        def finish(*, skipped: bool = False) -> bool:
             try:
-                complete_onboarding(config_path, settings)
+                (dismiss_onboarding if skipped else complete_onboarding)(config_path, settings)
             except (OSError, ValueError):
                 return False
             try:
@@ -487,7 +540,8 @@ def run_application(
             shell.window.show()
             return True
 
-        onboarding = OnboardingDialog(shell.capability_queries, finish)
+        onboarding = OnboardingDialog(shell.capability_queries, finish, skip=lambda: finish(skipped=True),
+                                      config=settings, credential_available=False)
         if config_issues:
             onboarding.error.setText("Configuration invalid; safe defaults are being used.")
         onboarding.rejected.connect(shell.controller.request_quit)

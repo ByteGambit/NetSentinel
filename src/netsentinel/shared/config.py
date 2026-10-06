@@ -23,6 +23,7 @@ from netsentinel.domain.threat_intelligence import (
 DEFAULT_RETENTION_DAYS = 30
 DEFAULT_MAX_HISTORY_ROWS = 100_000
 DEFAULT_CLEANUP_CHUNK_SIZE = 500
+CURRENT_ONBOARDING_VERSION = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +163,8 @@ class AppConfig:
     log_max_bytes: int = 1_048_576
     log_backups: int = 3
     onboarding_completed: bool = False
+    onboarding_completed_version: int = 0
+    onboarding_dismissed_version: int = 0
     desktop_notifications_enabled: bool = False
     storage_retention_enabled: bool = False
     storage_history_days: int = 30
@@ -188,6 +191,9 @@ class AppConfig:
                 raise ValueError("destination_dataset_path must be a bounded local path")
         if type(self.onboarding_completed) is not bool:
             raise ValueError("onboarding_completed must be a boolean")
+        for value in (self.onboarding_completed_version, self.onboarding_dismissed_version):
+            if type(value) is not int or not 0 <= value <= 10_000:
+                raise ValueError("onboarding version must be between 0 and 10000")
         for name in ("polling_interval", "shutdown_timeout"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or not 0.05 <= value <= 60:
@@ -289,9 +295,29 @@ def load_config_file(path: str | Path) -> ConfigLoadResult:
 def complete_onboarding(path: str | Path, config: AppConfig) -> AppConfig:
     """Atomically persist an explicit user completion with validated settings."""
 
-    completed = replace(config, onboarding_completed=True)
+    current = load_config_file(path).config if Path(path).exists() else config
+    completed = replace(current, onboarding_completed=True,
+                        onboarding_completed_version=max(current.onboarding_completed_version, CURRENT_ONBOARDING_VERSION))
     save_config_file(path, completed)
     return completed
+
+
+def onboarding_pending(config: AppConfig) -> bool:
+    """Legacy completion grants a nonmodal upgrade notice, never eternal hiding."""
+    return max(config.onboarding_completed_version, config.onboarding_dismissed_version) < CURRENT_ONBOARDING_VERSION
+
+
+def show_onboarding_at_startup(config: AppConfig) -> bool:
+    return (onboarding_pending(config) and not config.onboarding_completed
+            and config.onboarding_completed_version == 0 and config.onboarding_dismissed_version == 0)
+
+
+def dismiss_onboarding(path: str | Path, config: AppConfig) -> AppConfig:
+    """Skip acknowledges this guide version without completing or consenting."""
+    current = load_config_file(path).config if Path(path).exists() else config
+    dismissed = replace(current, onboarding_dismissed_version=max(current.onboarding_dismissed_version, CURRENT_ONBOARDING_VERSION))
+    save_config_file(path, dismissed)
+    return dismissed
 
 
 def save_window_close_behavior(path: str | Path, behavior: WindowCloseBehavior) -> None:
@@ -366,6 +392,7 @@ def save_config_file(path: str | Path, config: AppConfig) -> None:
 
 
 __all__ = (
+    "CURRENT_ONBOARDING_VERSION", "onboarding_pending", "show_onboarding_at_startup", "dismiss_onboarding",
     "DEFAULT_CLEANUP_CHUNK_SIZE",
     "DEFAULT_MAX_HISTORY_ROWS",
     "DEFAULT_RETENTION_DAYS",

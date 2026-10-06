@@ -1,5 +1,15 @@
 # NetSentinel
 
+NS-098 — First-run/feedback polish **COMPLETE**: altı sayfalı sürümlü rehber,
+eski kullanıcıya nonmodal bilgilendirme, Help'ten güncel ayarlarla yeniden açma,
+okunabilir Diagnostics ve NS-095 motoruyla full sanitized feedback preview/local
+Save eklendi. Capture/TI/notifications ayrı ve explicit kalır; upload yoktur.
+Targeted 269; full offline **3781 passed/8 deselected**; Ruff/mypy/diff/privacy PASS.
+Schema **019→019**, migration yok. [Rehber, UI görüntüleri ve policy](docs/FIRST_RUN_FEEDBACK.md),
+[80 maddelik kabul raporu](docs/FIRST_RUN_FEEDBACK_ACCEPTANCE.md),
+[0.1.0 pilot hazırlık notları](docs/RELEASE_NOTES.md).
+M17 **IN PROGRESS**, NS-099 **NOT STARTED**; bu değişiklik tag/release veya installer rebuild değildir.
+
 NS-096 — Installer/upgrade/uninstall **COMPLETE**: Inno Setup 6.7.3
 derleme/payload/SHA256 ve mevcut Windows VM'deki yeni standart kullanıcı
 profilleriyle install/repair/installer-upgrade/uninstall/Unicode kabulü geçti.
@@ -17,7 +27,7 @@ M1–M16 tamamlandı, M17 devam ediyor; NS-097 signing/update spike tamamlandı.
 Limited unsigned pilot conditional GO, broad distribution public signer ve M17
 kapıları olmadan NO-GO; güncellemeler manuel, automatic update request yoktur.
 [Dağıtım kararı ve doğrulama](docs/SIGNING_UPDATE_DISTRIBUTION.md),
-[kabul kanıtı](docs/SIGNING_UPDATE_ACCEPTANCE.md). NS-098 başlatılmadı. Aşağıdaki eski teslimat
+[kabul kanıtı](docs/SIGNING_UPDATE_ACCEPTANCE.md). NS-098 tamamlandı; NS-099 başlatılmadı. Aşağıdaki eski teslimat
 özetleri tarihsel kayıttır; güncel durum TASKS/ROADMAP içindedir.
 
 NetSentinel, Windows üzerinde çalışan, GlassWire benzeri görünürlük sağlayan ancak ağ güvenliği sinyallerine odaklanan öğretici bir masaüstü uygulaması olarak tasarlanmıştır.
