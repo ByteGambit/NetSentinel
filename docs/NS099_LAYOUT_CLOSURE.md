@@ -70,8 +70,8 @@ native functional acceptance; real worker/pagination tests validate behavior.
 
 Human recheck is limited to **“Temel kontroller kesilmeden okunabiliyor mu?”**.
 The preceding seven UX PASS results are preserved. The original layout FAIL is
-historical evidence; it remains unresolved until the human evaluates fresh native
-images. Automation alone does not promote human UX to PASS.
+historical evidence; the human accepted fresh native images and closed it below.
+This PASS comes from the evaluator, rather than automation.
 
 The new candidate/native/quality results below come from the committed rebuild;
 no tag/release or NS-100 work is implied.
@@ -127,9 +127,9 @@ position, so native1366 counts differ slightly from freshly initialized offscree
 cases. Fifteen native cases include empty/rows/selection, History rightward
 overflow and DNS Questions/Answers scrolling.
 
-Human focused recheck requested; **PENDING**. Original layout FAIL remains open
-until the response; seven other PASS observations are preserved. No automatic
-human PASS and no VPN/sleep/policy gate waiver.
+Human focused recheck received: **PASS**. Original layout finding closed;
+seven other PASS observations preserved, overall **8 PASS / 0 FAIL**.
+No VPN/sleep/policy gate waiver.
 
 Native cleanup: probe process0; all three temporary layout/install/wake tasks
 removed; newly installed candidate preserved. No credential requested or created.
@@ -143,3 +143,31 @@ Final Ruff and direct mypy4 files were repeated after that probe-only adjustment
 both PASS; the adapted fixture also repeated all27 offscreen cases successfully.
 The full suite preceded runtime freeze; production/tests under pytest did not
 change afterward, so that3794-case result remains applicable.
+
+## Human layout recheck PASS
+
+2026-10-07 Europe/Istanbul. Evaluator response to the single focused question,
+using fresh Windows11 native test-build captures:
+
+> Temel kontroller kesilmeden okunabiliyor mu? PASS — Yeni yerleşimde Incidents ve DNS listeleri yeterli görünür alan kazanmış. History sütunları okunabilir ve gerektiğinde yatay kaydırmayla erişilebilir. Önceki yerleşim bulgusu giderildi; pilotu engelleyen bir layout sorunu görmüyorum.
+
+Incidents/DNS list space and History column readability/horizontal access are
+accepted. Only the original essential-controls/layout finding is closed;
+the earlier seven human PASS observations remain unchanged. Overall Human UX
+**PASS (8 PASS / 0 FAIL)**. This does not assert other Windows/DPI coverage.
+
+| Remaining gate / decision | Current result |
+|---|---|
+| Human UX | PASS |
+| VPN | NOT RUN |
+| Meaningful native sleep/resume | NOT RUN |
+| Effective OS-disabled notification policy | BLOCKED |
+| NS-099 | INCOMPLETE |
+| M17 | IN PROGRESS |
+| Limited pilot / broad release | NO_GO / NO_GO |
+| M18 / NS-100 | DEFER / NOT STARTED |
+
+This follow-up changes documentation only. Runtime/source, installer hash,
+size, signing state and schema stay unchanged. No rebuild/native retest or
+test rerun is needed for recording the evaluator response. Diff and bounded
+privacy/secret checks are repeated before the normal documentation push.

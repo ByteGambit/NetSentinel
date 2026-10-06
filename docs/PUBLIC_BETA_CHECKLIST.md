@@ -7,7 +7,7 @@ The scenario table below preserves pre-closure42b996/A0 and339da4 evidence;
 its historic install/browser/updater/KEEP rows are not new-candidate repetitions.
 
 Current layout candidate: source `bfe531d960aaabd6b61c1701cf7179f7214c5097`, SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes.
-[Layout/native/human recheck](NS099_LAYOUT_CLOSURE.md). Human layout recheck PENDING;
+[Layout/native/human recheck](NS099_LAYOUT_CLOSURE.md). Human layout recheck PASS, overall8 PASS/0 FAIL;
 other seven human PASS results preserved; required VPN/sleep/policy gates unchanged.
 
 ## Environment
@@ -88,12 +88,12 @@ runtime change and rerun affected native scenarios.
 | Duplicate/source cooldown/restart fixture | PASS, duplicates3; immediate source repeat produced no extra intent; replay0 |
 | Effective OS-disabled notification state | BLOCKED, desktop-user registry flag did not suppress secondary-user popup; restored |
 | Tray context Quit/default X | PASS,1357/1653ms, no remaining app processes |
-| Human UX | **FAIL**,7 PASS/1 layout FAIL; Incidents/DNS small upper lists, History right-column squeeze/overflow |
+| Human UX | **PASS**,8 PASS/0 FAIL; fresh layout images accepted by evaluator; old layout finding closed |
 | NS-099/M17 | INCOMPLETE/IN PROGRESS |
 | Pilot/broad/M18 | NO_GO/NO_GO/DEFER |
 
 Counts and fixture limitations are in the authoritative closure table. No NOT RUN is waived.
 
 Human evaluator accepted onboarding/optional-state/risk language/tray/toast/privacy/support
-and found no other obvious confusion. Layout criterion FAIL remains open; see
-[human evidence](PUBLIC_BETA_ACCEPTANCE.md#native-human-ux-result).
+and found no other obvious confusion. Focused layout recheck PASS closes the original finding; see
+[current human evidence](NS099_LAYOUT_CLOSURE.md#human-layout-recheck-pass).

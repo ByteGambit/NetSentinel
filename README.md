@@ -4,7 +4,7 @@ NS-099 — Public beta acceptance gate **INCOMPLETE**, M17 **IN PROGRESS**.
 Incidents/DNS/History yerleşimi dar kapsamda düzeltildi; güncel unsigned0.1.0
 installer committed `bfe531d` runtime'dan yeniden derlendi.
 VM kurulu1119 dosya hash eşleşmesi ve yeni native layout görüntüleri hazır.
-İnsanın yalnız yerleşim recheck'i **PENDING**; diğer7 UX PASS korunuyor.
+İnsan yerleşim recheck'i **PASS**; önceki bulgu kapandı. Human UX **8 PASS / 0 FAIL**.
 VPN/native sleep **NOT RUN**, etkili OS-disabled notification policy **BLOCKED**.
 Limited pilot/broad release **NO_GO**, M18 **DEFER**, NS-100 **NOT STARTED**.
 [Yerleşim/native/recheck kaydı](docs/NS099_LAYOUT_CLOSURE.md),

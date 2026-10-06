@@ -60,12 +60,15 @@
   "runtime_fix_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
   "installer_build_working_tree_clean": true,
   "human_ux": {
-    "overall": "FAIL",
-    "passed": 7,
-    "failed": 1,
-    "finding": "Incidents/DNS upper list area too small; History right columns cramped/overflowing",
+    "overall": "PASS",
+    "passed": 8,
+    "failed": 0,
+    "finding": "Original Incidents/DNS/History layout finding closed by human recheck",
     "layout_code_fixed": true,
-    "focused_recheck": "PENDING"
+    "focused_recheck": "PASS",
+    "finding_status": "CLOSED",
+    "evaluator_response": "Temel kontroller kesilmeden okunabiliyor mu? PASS — Yeni yerleşimde Incidents ve DNS listeleri yeterli görünür alan kazanmış. History sütunları okunabilir ve gerektiğinde yatay kaydırmayla erişilebilir. Önceki yerleşim bulgusu giderildi; pilotu engelleyen bir layout sorunu görmüyorum.",
+    "evaluated_on_local_date": "2026-10-07"
   },
   "closure_gates": {
     "vpn": "NOT RUN",
@@ -75,7 +78,7 @@
     "native_duplicate_source_cooldown_restart_fixture": "PASS",
     "effective_os_disabled_policy": "BLOCKED",
     "tray_context_quit": "PASS",
-    "human_ux": "FAIL, focused layout recheck PENDING"
+    "human_ux": "PASS, 8 PASS / 0 FAIL; focused layout recheck accepted by evaluator"
   },
   "closure_quality": {
     "targeted_passed": 133,

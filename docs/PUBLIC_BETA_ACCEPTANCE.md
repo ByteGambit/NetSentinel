@@ -5,14 +5,32 @@
 The focused [layout closure](NS099_LAYOUT_CLOSURE.md) changes Incidents/DNS/History
 presentation only. The ae08d7e/14934a52 installer and all closure observations
 below are historical after that runtime change. Its replacement is source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
-SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes; see the clean rebuild/native layout record. The original human
-layout FAIL awaits a focused recheck; seven other human PASS results are preserved.
+SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes; see the clean rebuild/native layout record. Human
+layout recheck is PASS; the original finding is closed and the other seven PASS
+observations are preserved. Overall Human UX: **8 PASS / 0 FAIL**.
 VPN/sleep NOT RUN and OS-policy BLOCKED remain unchanged; NS-099 INCOMPLETE,
 M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER. NS-100 NOT STARTED.
 
+### Current M17 exit update — human layout finding closed
+
+The evaluator accepted the new Incidents/DNS list space and History readability
+with horizontal scrolling. [Exact response and current result](NS099_LAYOUT_CLOSURE.md#human-layout-recheck-pass).
+The prior seven human PASS observations are preserved; only the layout finding
+changes. Historical FAIL tables below describe the superseded candidate.
+
+| Gate / decision | Current result |
+|---|---|
+| Human UX | PASS, 8 PASS / 0 FAIL |
+| Safe VPN | NOT RUN |
+| Meaningful native sleep/resume | NOT RUN |
+| Effective OS-disabled notification policy | BLOCKED |
+| NS-099 / M17 | INCOMPLETE / IN PROGRESS |
+| Limited pilot / broad release | NO_GO / NO_GO |
+| M18 / NS-100 | DEFER / NOT STARTED |
+
 2026-10-07 closure (native work2026-10-06 UTC). **INCOMPLETE; M17 IN PROGRESS. Limited unsigned pilot NO_GO;
 broad public release NO_GO; M18 DEFER; NS-100 NOT STARTED.** Safe native VPN,
-meaningful native sleep, effective OS-disabled policy and human layout FAIL remain open.
+meaningful native sleep and effective OS-disabled policy remain open. Human UX is PASS.
 TASKS requires all criteria; recording this decision does not complete the task.
 Runtime fix committed/pushed; no tag/release/publication. [97-field report](PUBLIC_BETA_REPORT.md),
 [scenario checklist](PUBLIC_BETA_CHECKLIST.md), [frozen protocol](BETA_PROTOCOL.md).
@@ -133,7 +151,7 @@ INCOMPLETE evidence separately from the runtime fix; its hash, normal push,
 HEAD/remote equality and clean-tree verification are in the final operator report
 and ignored build/ns099-closure-git-final.json. No tag/release/NS-100.
 
-## Native human UX result
+## Previous native human UX result — historical layout finding
 
 Human evaluator response received2026-10-07 Europe/Istanbul, from the prepared
 new Windows11 walkthrough/screens. **Seven PASS, one FAIL; overall UX gate FAIL.**

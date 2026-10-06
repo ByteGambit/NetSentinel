@@ -3,8 +3,8 @@
 NS-099 layout follow-up (2026-10-07): current runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
 unsigned0.1.0 candidate SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes, schema019→019.
 Incidents/DNS/History layout fixed; fresh Windows11 native layout test-build
-captures prepared. Focused human layout recheck **PENDING**; previous7 PASS/1 FAIL
-retained until the response. Prior functional/native measurements below keep
+captures evaluated by the human. Focused layout recheck **PASS**; overall Human UX
+**8 PASS / 0 FAIL**. The previous layout finding is closed. Prior functional/native measurements below keep
 their original ae08d7e/14934a52 candidate scope. VPN NOT RUN, native sleep NOT RUN,
 effective OS-disabled policy BLOCKED; NS-099 INCOMPLETE, M17 IN PROGRESS,
 pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED. [Layout record](NS099_LAYOUT_CLOSURE.md).
@@ -20,7 +20,7 @@ pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED. [Layout record](NS099_LAYOUT_C
 | Physical1920 viewport | NOT RUN, VM screen1668×878; offscreen1920 PASS |
 | Targeted / full |133 passed/36.55s;3794 passed/8 deselected/1 Scapy warning;91.10% coverage/488.91s |
 | Ruff / configured / direct mypy | PASS /36 files PASS /4 files PASS |
-| Human | Focused layout recheck PENDING; previous7 PASS/1 FAIL remains open |
+| Human | Focused layout recheck PASS, overall8 PASS/0 FAIL; original layout finding closed by evaluator |
 | Commit | Runtime `bfe531d960aaabd6b61c1701cf7179f7214c5097` — fix: improve beta list and history layouts; normal main push succeeded |
 | Final evidence Git state | Document-bearing evidence commit/push/HEAD state in operator report and ignored Git receipt |
 | Decisions | NS-099 INCOMPLETE; M17 IN PROGRESS; pilot/broad NO_GO; M18 DEFER; no tag/release/NS-100 |
@@ -157,6 +157,6 @@ Human UX: **FAIL**, seven other criteria PASS; Incidents/DNS upper lists too sma
 New runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`, installer SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes,
 unsigned/NotSigned, schema019→019. Prior native measurements above retain their
 original source/candidate scope. [Layout closure](NS099_LAYOUT_CLOSURE.md).
-Human layout recheck PENDING, previous FAIL open; other7 PASS preserved. VPN
+Human layout recheck PASS, previous finding closed; overall8 PASS/0 FAIL. VPN
 NOT RUN, native sleep NOT RUN, OS-policy BLOCKED unchanged. NS-099 INCOMPLETE,
 M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED.
