@@ -1,22 +1,22 @@
 {
   "record_format": "netsentinel-unpublished-candidate-v1",
   "product": "NetSentinel",
-  "candidate_state": "current unpublished committed layout candidate",
+  "candidate_state": "current unpublished committed notification-policy candidate",
   "version": "0.1.0",
   "pe_file_version": "0.1.0",
   "pe_product_version": "0.1.0",
-  "runtime_source_commit": "bfe531d960aaabd6b61c1701cf7179f7214c5097",
+  "runtime_source_commit": "8242868ba79c63ad743c005366ea715b238cf5d0",
   "runtime_tree_modified": false,
-  "acceptance_changes": "Committed focused Incidents/DNS/History layout fix and regressions; rebuilt from clean main == origin/main. Prior native gates retain their original candidate scope.",
+  "acceptance_changes": "Five-file notification policy/submission semantics fix, regressions, clean main==origin/main rebuild, same-context actual Windows global OFF/ON native evidence. VPN/sleep unchanged; historical scope retained.",
   "filename": "NetSentinel-0.1.0-Setup.exe",
   "artifact_path": "dist/NetSentinel-0.1.0-Setup.exe",
-  "sha256": "74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2",
-  "size_bytes": 37543802,
+  "sha256": "39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9",
+  "size_bytes": 37559481,
   "appid": "{62E3BFC6-ACAD-4FC3-94D8-46927D015096}",
   "signing_state": "unsigned",
   "authenticode_observation": "NotSigned",
   "timestamp_signature": "absent",
-  "build_completed_at_utc": "2026-10-06T22:12:50.747605+00:00",
+  "build_completed_at_utc": "2026-10-07T08:06:18.676611+00:00",
   "schema": 19,
   "channel": "limited-unsigned-pilot-candidate",
   "update_model": "manual",
@@ -30,16 +30,24 @@
   "source_commit_is_complete_runtime_identity": true,
   "runtime_changed_files": [
     {
-      "path": "src/netsentinel/presentation/views/incidents.py",
-      "sha256": "c2911ef10af79310b21c4ba519eeabd949ff45b5ae22e0afe88d190241d10d2d"
+      "path": "src/netsentinel/application/services/notifications.py",
+      "sha256": "47671ebbf49f6809b5e9aa22397c4fa5cf1c716d6b80ac395f82de6a9664dfd1"
     },
     {
-      "path": "src/netsentinel/presentation/views/dns.py",
-      "sha256": "e5a7d832fda71b473c0a3296b9086cab91e6b00c5258fdd617b23173a5d4b299"
+      "path": "src/netsentinel/infrastructure/windows_notification_policy.py",
+      "sha256": "d992a4624feebb0980e70f903fee74a662a50adb6eab72180919b1ee1ccefcad"
     },
     {
-      "path": "src/netsentinel/presentation/views/history.py",
-      "sha256": "63cf032c4fcdac3170b798aa4dc8b3ece8ba8f139fa05a2065c10423a5d1e7c4"
+      "path": "src/netsentinel/presentation/notifications.py",
+      "sha256": "cfa2cac68806b0514d328f1339013b1967b199222388801f6a57d8cb84d7be31"
+    },
+    {
+      "path": "src/netsentinel/presentation/widgets/notification_settings.py",
+      "sha256": "89ee3f8c549c491b54d41fcb18a76119abdbb5736ee5998b2a3a0d6f86baa58e"
+    },
+    {
+      "path": "src/netsentinel/presentation/views/diagnostics.py",
+      "sha256": "ad5abf69966ec0e85fc8f0d4524c4ee3da58b51dbcb42663dbe381cdafbd0539"
     }
   ],
   "superseded_clean_head_candidate_sha256": "42b996d4eb7ad29cd4f667ff0aaa2eeb8275744a7fd80c46e1dba938c473edf9",
@@ -54,7 +62,7 @@
     "runtime_patch_local_path": "build/ns099-runtime-fix.patch",
     "status": "historical only"
   },
-  "installed_exe_sha256": "316019a0e20811bd6231f9ceb5a99c184db9b5b28a2fbbdde3ba2881bca70a32",
+  "installed_exe_sha256": "bfa73e87509d6b2762336a9f0cff87026f31271580a188fa10e81005320a89d4",
   "installed_payload_files_checked": 1119,
   "installed_payload_hash_mismatches": 0,
   "runtime_fix_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
@@ -76,23 +84,27 @@
     "native_toast_privacy_fixture": "PASS",
     "native_click_fixture": "PASS",
     "native_duplicate_source_cooldown_restart_fixture": "PASS",
-    "effective_os_disabled_policy": "BLOCKED",
+    "effective_os_disabled_policy": "PASS",
     "tray_context_quit": "PASS",
     "human_ux": "PASS, 8 PASS / 0 FAIL; focused layout recheck accepted by evaluator"
   },
   "closure_quality": {
-    "targeted_passed": 133,
-    "targeted_seconds": 36.55,
-    "full_passed": 3794,
+    "targeted_passed": 123,
+    "targeted_seconds": 21.69,
+    "full_passed": 3833,
     "full_deselected": 8,
     "full_warnings": 1,
-    "full_seconds": 488.91,
-    "coverage_percent": 91.1,
+    "full_seconds": 734.1,
+    "coverage_percent": 91.09,
     "ruff": "PASS",
     "configured_mypy_files": 36,
-    "direct_mypy_files": 4,
+    "direct_mypy_files": 6,
     "schema_transition": "019->019",
-    "migration": false
+    "migration": false,
+    "runtime_freeze_targeted_seconds": 23.48,
+    "post_native_targeted_passed": 123,
+    "final_diff": "PASS",
+    "privacy_secret_scan": "PASS,26 files /0 findings /19 schemas; bounded patterns"
   },
   "historical_pre_layout_candidate": {
     "runtime_source_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
@@ -130,5 +142,120 @@
     "payload_files_checked": 1119,
     "payload_mismatches": 0
   },
-  "prior_native_gate_scope": "PASS fixture toast/click/dedup/restart and tray results retain ae08d7e/14934a52 candidate scope; not rerun for this layout-only candidate"
+  "prior_native_gate_scope": "Current notification/privacy/click/duplicate/restart policy evidence uses8242868/39b14fe8. Tray/context Quit and42min benign burden retain ae08d7e/14934a52 scope; layout/human results retain bfe531d/evaluator scope.",
+  "historical_pre_policy_candidate": {
+    "runtime_source_commit": "bfe531d960aaabd6b61c1701cf7179f7214c5097",
+    "sha256": "74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2",
+    "size_bytes": 37543802,
+    "installed_exe_sha256": "316019a0e20811bd6231f9ceb5a99c184db9b5b28a2fbbdde3ba2881bca70a32",
+    "closure_quality": {
+      "targeted_passed": 133,
+      "targeted_seconds": 36.55,
+      "full_passed": 3794,
+      "full_deselected": 8,
+      "full_warnings": 1,
+      "full_seconds": 488.91,
+      "coverage_percent": 91.1,
+      "ruff": "PASS",
+      "configured_mypy_files": 36,
+      "direct_mypy_files": 4,
+      "schema_transition": "019->019",
+      "migration": false
+    },
+    "closure_gates": {
+      "vpn": "NOT RUN",
+      "meaningful_native_sleep": "NOT RUN",
+      "native_toast_privacy_fixture": "PASS",
+      "native_click_fixture": "PASS",
+      "native_duplicate_source_cooldown_restart_fixture": "PASS",
+      "effective_os_disabled_policy": "BLOCKED",
+      "tray_context_quit": "PASS",
+      "human_ux": "PASS, 8 PASS / 0 FAIL; focused layout recheck accepted by evaluator"
+    },
+    "human_ux": {
+      "overall": "PASS",
+      "passed": 8,
+      "failed": 0,
+      "finding": "Original Incidents/DNS/History layout finding closed by human recheck",
+      "layout_code_fixed": true,
+      "focused_recheck": "PASS",
+      "finding_status": "CLOSED",
+      "evaluator_response": "Temel kontroller kesilmeden okunabiliyor mu? PASS — Yeni yerleşimde Incidents ve DNS listeleri yeterli görünür alan kazanmış. History sütunları okunabilir ve gerektiğinde yatay kaydırmayla erişilebilir. Önceki yerleşim bulgusu giderildi; pilotu engelleyen bir layout sorunu görmüyorum.",
+      "evaluated_on_local_date": "2026-10-07"
+    }
+  },
+  "compiled_application_modules_checked": 194,
+  "notification_policy_fix_commit": "8242868ba79c63ad743c005366ea715b238cf5d0",
+  "notification_policy_install": {
+    "installer_exit": 0,
+    "milliseconds": 35763,
+    "admin_token": false,
+    "payload_files_checked": 1119,
+    "payload_mismatches": 0
+  },
+  "notification_policy_native": {
+    "gate": "PASS",
+    "platform_state_under_global_off": "delivery_unknown",
+    "runtime_visible_delivery_confirmed": null,
+    "os_control_id": "SystemSettings_Notifications_ShowAppNotifications_ToggleSwitch",
+    "global_transition": "ON->OFF->ON",
+    "os_original_restored": true,
+    "do_not_disturb": "OFF, unchanged",
+    "interactive_session": 1,
+    "limited_token": true,
+    "users_only_account_claim": false,
+    "os_build": "26200.9457",
+    "os_edition": "Home/Core",
+    "pyqt_version": "6.11.0",
+    "qt_compile_version": "6.11.0",
+    "qt_runtime_version": "6.11.2",
+    "pyz_sha256": "fca552e60dfc82fb13ae7cf36196701511a246d6cacc4714acc83965d1f2b8a9",
+    "fixture_scope": "Isolated synthetic production AlertService/notification/UI components; inert engine; no new live benign FP claim",
+    "unique_persisted_synthetic_alerts": 7,
+    "intents_including_duplicates": 13,
+    "eligible_for_delivery": 6,
+    "adapter_attempts": 6,
+    "qt_showmessage_calls": 6,
+    "accepted_adapter_submissions": 6,
+    "duplicate_suppressed": 6,
+    "directly_observed_visible_on_popups": 2,
+    "off_cases_with_no_observed_popup": 2,
+    "exploratory_on_calls_visibility_not_measured": 2,
+    "final_off_samples_seconds": [
+      0,
+      1.5,
+      3,
+      4.5,
+      6
+    ],
+    "runtime_delivery_unknown_count_across_processes": 6,
+    "clicks": 1,
+    "navigation_success": 1,
+    "navigation_failure": 0,
+    "selected_matches_target": true,
+    "restart_replay": 0,
+    "final_restart_persisted_alerts": 7,
+    "final_restart_new_intents": 0,
+    "final_restart_adapter_attempts": 0,
+    "final_restart_fresh_pid_verified": true,
+    "final_live_process": {
+      "intents": 5,
+      "eligible": 2,
+      "adapter_attempts": 2,
+      "accepted": 2,
+      "duplicate_suppressed": 3,
+      "clicks": 1,
+      "navigation_success": 1,
+      "observed_on_popup": 1,
+      "observed_off_popup": 0
+    },
+    "native_visibility_limit": "Bounded screen observations; Qt has no delivery confirmation; UIA text selector unsupported and not used as visibility proof",
+    "harness_corrections": "Future identities/PID/time, pending own command archived/cleared, stopped-process attempts excluded",
+    "cleanup": {
+      "probe_processes": 0,
+      "owned_tasks_remaining": 0,
+      "credentials_created": 0
+    },
+    "evidence_document": "docs/NS099_NOTIFICATION_POLICY_CLOSURE.md"
+  }
 }

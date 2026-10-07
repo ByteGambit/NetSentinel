@@ -1,5 +1,7 @@
 # NS-099 — focused layout closure
 
+This layout candidate is historical after the [notification-policy fix](NS099_NOTIFICATION_POLICY_CLOSURE.md). Its human PASS evidence retains the original evaluator/source scope; the current candidate identity is in PUBLIC_BETA_CANDIDATE.json.
+
 2026-10-07 Europe/Istanbul. NS-099 **INCOMPLETE**, M17 **IN PROGRESS**.
 Limited pilot/broad release **NO_GO**, M18 **DEFER**, NS-100 **NOT STARTED**.
 VPN **NOT RUN**, meaningful native sleep/resume **NOT RUN**, effective

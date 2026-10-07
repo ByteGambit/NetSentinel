@@ -1,5 +1,6 @@
 """Isolated native fixture: exact final production PYZ, no live telemetry/DB edits."""
 import json
+import os
 import sys
 from pathlib import Path
 from datetime import UTC, datetime
@@ -75,6 +76,7 @@ def main() -> int:
         with db.connection() as connection:
             alert_count = connection.execute("SELECT count(*) FROM alerts").fetchone()[0]
         result = {"fixture": "isolated native production components; same candidate PYZ",
+            "reported_at_utc": datetime.now(UTC).isoformat(), "process_id": os.getpid(),
             "source_commit": identity["runtime_source_commit"],
             "installer_sha256": identity["sha256"],
             "generated_this_process": generated, "enabled": shell.notifications.service.enabled,
@@ -98,11 +100,14 @@ def main() -> int:
             action = json.loads(command.read_text(encoding="utf-8-sig"))["action"]
             command.unlink()
             last_action = action
-            if action in ("off", "on", "policy", "reenabled", "session"):
+            if action in ("off", "on", "policy", "reenabled", "session", "future"):
                 if action == "on":
                     shell.notifications.save_enabled(True)
                 now = datetime.now(UTC)
-                c = AlertCandidate(sha256(action.encode()).hexdigest(), "ip_mac_conflict", "a" * 64,
+                # Fresh identities support repeated native observation without
+                # mutating old alert rows or bypassing delivery dedup/cooldown.
+                subject = f"future:{now.isoformat()}" if action == "future" else action
+                c = AlertCandidate(sha256(subject.encode()).hexdigest(), "ip_mac_conflict", "a" * 64,
                     "synthetic-private-user", "low", "low", AlertEvidence(now, "192.0.2.123",
                     details=(("path", "C:/synthetic/private/tool.exe"), ("domain", "synthetic.private.example"))))
                 target, eligible = alerts.record(c)

@@ -3,8 +3,10 @@
 2026-10-07 Europe/Istanbul. Scope: notification policy only. Human UX remains
 PASS (8/8), layout finding CLOSED. VPN and meaningful native sleep remain NOT RUN.
 NS-099 INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER; no NS-100,
-tag or release. Native policy gate remains BLOCKED until the new candidate is
-installed and the affected native scenario has actually been measured.
+tag or release. **Notification-policy gate PASS**: the newly installed candidate
+was tested against the actual Windows global Notifications control in the same
+interactive context, with honest UNKNOWN reporting and native screen evidence.
+This closes only the policy gate; it does not waive the remaining TASKS criteria.
 
 ## Previous BLOCKED root cause
 
@@ -23,7 +25,8 @@ interactive user's context. No password/secret was requested.
 
 ## Windows/Qt boundary
 
-The installed Qt/PyQt version is6.11.0. Its Windows showMessage implementation
+PyQt and its compile-time Qt version are6.11.0; the bundled Qt runtime is6.11.2.
+The Windows showMessage implementation
 uses Shell_NotifyIcon with NIF_INFO, without returning that call's result to
 Python. supportsMessages checks legacy balloon support, rather than exposing
 per-app/global toast permission or visible delivery. [Qt6.11 Windows source](https://github.com/qt/qtbase/blob/6.11/src/plugins/platforms/windows/qwindowssystemtrayicon.cpp).
@@ -94,14 +97,14 @@ persisted alerts and unchanged monitoring lifecycle. Native fixture data is
 isolated and synthetic, uses the production PYZ, and records its supplied
 candidate identity rather than a hard-coded historical source.
 
-Final targeted123 PASS (23.48s); full offline3833 PASS /8 deselected /1 warning
+Runtime freeze targeted123 PASS (23.48s); full offline3833 PASS /8 deselected /1 warning
 (734.10s),91.09% coverage. Ruff PASS, configured mypy36 PASS, direct mypy6 PASS.
 Final diff/privacy checks and committed rebuild identity are recorded after the
 runtime freeze. The isolated native fixture also exposes Diagnostics/Settings
 for screenshots; its onboarding is explicitly completed for this policy-only
 exercise and notification defaults remain OFF.
 
-## Native scenario plan and status
+## Native setup
 
 Windows11 Home x64 build26200 VM, existing desktop user, Limited-token Session1.
 Actual Settings UI was opened through MCP; UI Automation read the global
@@ -109,10 +112,110 @@ Notifications toggle ON and Do Not Disturb OFF. The prior shell-generated fixtur
 sender was also listed ON. No raw user names or app identity numbers are committed.
 No effective disabled result is inferred from these enabled observations.
 
-After the committed runtime build: verify all installed payload hashes; run the
-isolated exact-PYZ fixture with default OFF, enable/new eligible alert, actual
-OS notification toggle OFF, duplicate/restart checks, restore original OS setting,
-then a new alert/click. Measure policy state, submissions and actual desktop
-visibility independently. If the backend cannot observe a confirmed disabled
-setting, report UNKNOWN honestly. Native gate PASS requires an actual disabled
-scenario and honest application behavior; otherwise BLOCKED/NOT RUN remains.
+The installer was rebuilt from clean main==origin/main after runtime commit
+`8242868ba79c63ad743c005366ea715b238cf5d0` and normal push. Version0.1.0,
+NetSentinel-0.1.0-Setup.exe,37,559,481 bytes, SHA256
+`39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`.
+UNSIGNED/NotSigned; unchanged AppId{62E3BFC6-ACAD-4FC3-94D8-46927D015096},
+schema019. Limited-token install exit0,35.763s,1119 payload hashes checked,
+0 mismatches. Installed EXE SHA256
+`bfa73e87509d6b2762336a9f0cff87026f31271580a188fa10e81005320a89d4`.
+194 compiled application modules matched source. Fixture and production PYZ
+were byte-identical: SHA256
+`fca552e60dfc82fb13ae7cf36196701511a246d6cacc4714acc83965d1f2b8a9`.
+The74529e4c layout installer is historical; it was preserved before overwrite.
+
+## Native measurements — PASS
+
+Windows11 Home/Core26200.9457, existing desktop account with a Limited token,
+Session1. This is not a newly created Users-only account or pristine OS claim.
+VMware MCP copied/installed/verified the candidate and executed the test helpers.
+The isolated fixture invokes production AlertService and notification/UI code;
+its engine is inert, rather than a new live benign-network workload.
+
+The exact native Settings control was
+`SystemSettings_Notifications_ShowAppNotifications_ToggleSwitch`.
+UI Automation verified ON→OFF and OFF→ON in Session1. No credential was requested
+or created; no registry policy flag, unrelated security control, random VPN or
+notification backend was added. Do Not Disturb remained OFF. Original global ON
+was restored in a finally block after each test. The final transition was OFF→ON
+at2026-10-07T08:38:43.5806087Z.
+
+| Measurement | Actual result |
+|---|---|
+| Default OFF |1 persisted synthetic alert,0 eligible submissions/adapter attempts; DISABLED_BY_APP |
+| Explicit enable, OS ON |1 adapter/showMessage call; real generic low-severity popup observed; DELIVERY_UNKNOWN/visible confirmation null |
+| Actual OS OFF, first case |1 new persisted alert,1 adapter/showMessage call; accepted submission, UNKNOWN; no visible popup in the recorded desktop observation |
+| First duplicates |3 suppressed; no additional adapter/showMessage call |
+| Restart while OS OFF |3 alerts persisted,0 new intents/attempts/submissions/replay |
+| Re-enabled, final live case |New future alert,1 adapter/showMessage call; native popup captured at4.5s, then physical click |
+| Native click |1 click,1 successful navigation,0 navigation failures; selected UUID exactly matched the newly generated target UUID |
+| Actual OS OFF, final live case |New future alert,1 accepted adapter/showMessage call; UNKNOWN/null visibility; no popup at0/1.5/3/4.5/6s in native desktop samples |
+| Final duplicates |3 suppressed,0 additional calls; local alerts7, fixture engine still RUNNING |
+| Final restart after OS restore |Fresh PID/time report;7 alerts persisted,0 generated/eligible/attempted/submitted/replay; preference ON, UNKNOWN |
+| Cleanup |Fixture processes0, owned tasks0, credentials created0; installed candidate and evidence/data preserved |
+
+The final live process independently measured5 intents (2 new alerts+3 duplicate
+intents),2 eligible adapter/showMessage calls,2 accepted submissions,
+delivery_unknown2, duplicate_skipped3, clicks1/navigation_success1. One of those
+two calls produced the observed ON popup; the OFF call produced none in the
+sampled six-second window. Runtime visible_delivery_confirmed remained null in
+both cases. A native observation never becomes a fictitious Qt delivery counter.
+
+Across all live fixture processes:7 unique synthetic alerts,13 eligible-marked
+intents including6 duplicates,6 adapter/showMessage calls and accepted submissions,
+6 duplicates suppressed,2 directly observed ON popups,2 observed OFF cases with
+no popup,1 confirmed click, restart replay0. Two earlier exploratory ON calls
+were not captured at the right time; their visibility is **NOT MEASURED**, not
+counted as delivered or failed. Eligible-for-delivery after local rules was6;
+the default-OFF intent and duplicates were excluded. No sink failure/unavailable
+or detected OS-policy skip was recorded: this global toggle is not observable by
+the chosen runtime API, so production correctly remained UNKNOWN.
+
+### Observation limitations and corrected harness checks
+
+UI Automation did not expose the native popup's title in its text tree. Its
+zero-match samples are not used as proof of hidden delivery. A short-lived popup
+also defeated the initial window lookup. The final observer therefore captured
+actual Session1 desktop frames through native screen-copy calls executed via
+MCP, before a real mouse click; MCP also captured static screens. This avoids
+inferring delivery from adapter return values or a missed automation selector.
+No edited/generated images are used as evidence. The observed VM viewport was
+1001×484; overlapping Settings obscured part of the notification dialog screenshot.
+Readable state wording is additionally covered by composed GUI tests.
+
+Some exploratory restart commands reached an already stopped fixture and left a
+pending control file. Those attempts are excluded from acceptance. The harness
+now reports PID/time and supports genuinely future synthetic identities. Its own
+pending command was archived/cleared before restart; liveness and a fresh startup
+report were verified. The final restart was also checked against a fresh PID,
+zero new intents and unchanged persisted count. This is a test-harness repair,
+with no further production or installer change. The late fixture additions are
+validated by native execution, Ruff/direct mypy and the final targeted run;
+the full offline run covers the frozen production fix and regression tests.
+
+Policy PASS follows the user's native acceptance rule: the actual OS-disabled
+condition was programmatically verified, and NetSentinel reported submission and
+unknown visibility honestly. This does not claim comprehensive per-app/DND
+permission detection or universal suppression timing. Positive documented balloon
+policy/session restriction, unavailable and failure paths are additionally fake/API
+tested; Home enforcement of an injected Taskbar policy is not claimed.
+
+Raw installer, receipts, native frames and test logs remain local under ignored
+build/ns099-policy-*; only sanitized evidence/metadata are committed.
+
+## Current exit decisions
+
+| Gate | Result |
+|---|---|
+| Notification policy / current native popup/privacy/click/duplicates/restart | PASS, scope and limits above |
+| Human UX | PASS8/8 on recorded layout/evaluator scope; layout CLOSED; no new human score invented |
+| Safe native VPN | NOT RUN, unchanged; no safe environment |
+| Meaningful native sleep/resume | NOT RUN, unchanged; VMware suspend is not accepted |
+| Benign/FP | Historical42min observation: alerts0/incidents0; not repeated on the policy candidate; synthetic alerts are not benign FP evidence |
+| Tray context Quit | Historical scoped PASS; not unnecessarily repeated |
+| NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria unchanged |
+| Limited unsigned pilot / broad public release | NO_GO / NO_GO; broad still subject to NS-097 |
+| M18 / NS-100 / publication | DEFER / NOT STARTED / tag-release NONE |
+
+Final post-native targeted123 PASS (21.69s), Ruff PASS, configured mypy36 PASS, direct mypy6 PASS, diff check PASS, bounded privacy/secret scan26 files/0 findings/schema19. Full offline3833/8/91.09% applies to the frozen production fix; subsequent changes are native fixture instrumentation and sanitized evidence only.

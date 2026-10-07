@@ -1,6 +1,38 @@
 # NS-099 — Final delivery record
 
-NS-099 layout follow-up (2026-10-07): current runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
+NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
+global Notifications OFF/ON in the same Limited-token Session1; application
+reports **UNKNOWN**, accepted submission is not visible-delivery proof.
+Current unpublished unsigned0.1.0 source `8242868ba79c63ad743c005366ea715b238cf5d0`,
+SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`, 37,559,481 bytes, schema019→019.
+Installed1119 hashes/0 mismatches;194 source-matching compiled modules.
+Native popup/privacy/click/duplicates/restart PASS in the recorded policy scope.
+Human UX remains PASS8/8, layout CLOSED in its evaluator scope. VPN and meaningful
+native sleep NOT RUN; NS-099 INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
+[Policy model, native measurements and limitations](NS099_NOTIFICATION_POLICY_CLOSURE.md).
+
+| Current policy candidate / result | Value |
+|---|---|
+| Runtime commit / source | `8242868ba79c63ad743c005366ea715b238cf5d0` — fix: report notification policy and delivery uncertainty; normal main push succeeded |
+| Installer | NetSentinel-0.1.0-Setup.exe,0.1.0,37,559,481 bytes |
+| SHA256 | `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9` |
+| Signing / AppId / schema | NotSigned / {62E3BFC6-ACAD-4FC3-94D8-46927D015096} / 019→019, no migration |
+| Install | Limited token, exit0,35.763s;1119 files/0 hash mismatches;194 compiled modules matched source |
+| Windows detection | Documented balloon policy + native session restrictions; exact global/per-app/DND permission remains UNKNOWN |
+| Actual OS disabled | PASS: Settings control verified OFF, adapter accepted1 per case, no popup in bounded native observations, UNKNOWN/null visibility |
+| Native counters |7 persisted synthetic alerts,13 intents including6 duplicates;6 eligible/attempted/accepted;2 directly seen ON popups,2 OFF cases without popup,2 exploratory ON visibility NOT MEASURED |
+| Native click / restart |1 real click/1 exact-target navigation/0 failures; restart replay0;7 persisted after final fresh-PID restart |
+| Final live controlled process |5 intents,2 eligible/attempted/accepted,3 duplicates suppressed;1 seen ON popup/0 OFF popups;1 click/navigation; runtime visibility remains null |
+| Human / benign FP / tray | Human8 PASS scoped to evaluator; benign42min0 alerts/0 incidents and tray-context Quit PASS retained in original candidate scope |
+| Quality | Final targeted123/21.69s (freeze123/23.48s); full3833/8 deselected/1 warning,91.09%,734.10s; Ruff, configured mypy36/direct6 PASS; final checks below/in operator report |
+| Cleanup / OS restore |Probe0, owned tasks0, credentials0; original global ON/DND OFF preserved; evidence and installed candidate retained |
+| Final docs commit / Git state |Separate evidence commit and normal push; exact final HEAD in operator report and ignored Git receipt |
+| Decision |Policy PASS; NS-099 INCOMPLETE/M17 IN PROGRESS; pilot/broad NO_GO; M18 DEFER; NS-100/tag/release NONE |
+
+## Historical layout delivery record
+
+Historical NS-099 layout follow-up (2026-10-07): runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
 unsigned0.1.0 candidate SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes, schema019→019.
 Incidents/DNS/History layout fixed; fresh Windows11 native layout test-build
 captures evaluated by the human. Focused layout recheck **PASS**; overall Human UX
@@ -9,7 +41,7 @@ their original ae08d7e/14934a52 candidate scope. VPN NOT RUN, native sleep NOT R
 effective OS-disabled policy BLOCKED; NS-099 INCOMPLETE, M17 IN PROGRESS,
 pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED. [Layout record](NS099_LAYOUT_CLOSURE.md).
 
-| Current layout candidate field | Result |
+| Historical layout candidate field | Result |
 |---|---|
 | Source | `bfe531d960aaabd6b61c1701cf7179f7214c5097` |
 | File | NetSentinel-0.1.0-Setup.exe, 37,543,802 bytes |

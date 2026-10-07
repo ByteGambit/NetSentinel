@@ -1,6 +1,34 @@
 # NS-099 — Public beta acceptance gate
 
-## Layout follow-up (2026-10-07)
+NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
+global Notifications OFF/ON in the same Limited-token Session1; application
+reports **UNKNOWN**, accepted submission is not visible-delivery proof.
+Current unpublished unsigned0.1.0 source `8242868ba79c63ad743c005366ea715b238cf5d0`,
+SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`, 37,559,481 bytes, schema019→019.
+Installed1119 hashes/0 mismatches;194 source-matching compiled modules.
+Native popup/privacy/click/duplicates/restart PASS in the recorded policy scope.
+Human UX remains PASS8/8, layout CLOSED in its evaluator scope. VPN and meaningful
+native sleep NOT RUN; NS-099 INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
+[Policy model, native measurements and limitations](NS099_NOTIFICATION_POLICY_CLOSURE.md).
+
+## Current M17 exit table
+
+| Gate / decision | Current result |
+|---|---|
+| Notification policy | PASS, actual OS OFF; honest UNKNOWN and no observed popup; original ON restored |
+| Native notification/privacy/click/duplicates/restart | PASS in current policy fixture scope; visibility counters remain unconfirmed |
+| Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
+| Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
+| Safe VPN | NOT RUN, unchanged |
+| Meaningful native sleep/resume | NOT RUN, unchanged |
+| FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
+| NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
+| Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |
+| M18 / NS-100 / tag-release | DEFER / NOT STARTED / NONE |
+
+
+## Historical layout follow-up (2026-10-07)
 
 The focused [layout closure](NS099_LAYOUT_CLOSURE.md) changes Incidents/DNS/History
 presentation only. The ae08d7e/14934a52 installer and all closure observations
@@ -11,7 +39,7 @@ observations are preserved. Overall Human UX: **8 PASS / 0 FAIL**.
 VPN/sleep NOT RUN and OS-policy BLOCKED remain unchanged; NS-099 INCOMPLETE,
 M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER. NS-100 NOT STARTED.
 
-### Current M17 exit update — human layout finding closed
+### Historical layout-time M17 exit update — human layout finding closed
 
 The evaluator accepted the new Incidents/DNS list space and History readability
 with horizontal scrolling. [Exact response and current result](NS099_LAYOUT_CLOSURE.md#human-layout-recheck-pass).

@@ -1,16 +1,46 @@
 # NS-099 — Native candidate checklist
 
+NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
+global Notifications OFF/ON in the same Limited-token Session1; application
+reports **UNKNOWN**, accepted submission is not visible-delivery proof.
+Current unpublished unsigned0.1.0 source `8242868ba79c63ad743c005366ea715b238cf5d0`,
+SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`, 37,559,481 bytes, schema019→019.
+Installed1119 hashes/0 mismatches;194 source-matching compiled modules.
+Native popup/privacy/click/duplicates/restart PASS in the recorded policy scope.
+Human UX remains PASS8/8, layout CLOSED in its evaluator scope. VPN and meaningful
+native sleep NOT RUN; NS-099 INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
+[Policy model, native measurements and limitations](NS099_NOTIFICATION_POLICY_CLOSURE.md).
+
+## Current policy closure
+
+| Gate / decision | Current result |
+|---|---|
+| Notification policy | PASS, actual OS OFF; honest UNKNOWN and no observed popup; original ON restored |
+| Native notification/privacy/click/duplicates/restart | PASS in current policy fixture scope; visibility counters remain unconfirmed |
+| Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
+| Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
+| Safe VPN | NOT RUN, unchanged |
+| Meaningful native sleep/resume | NOT RUN, unchanged |
+| FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
+| NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
+| Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |
+| M18 / NS-100 / tag-release | DEFER / NOT STARTED / NONE |
+
+Current receipt/visibility/click counts and cleanup: [policy record](NS099_NOTIFICATION_POLICY_CLOSURE.md#native-measurements--pass).
+All following scenario tables retain their recorded historical source scope.
+
 Historical closure checklist candidate (superseded by the layout fix): unsigned0.1.0,37,556,108 bytes, SHA256
 `14934a527e985dc3f32bb94fb3e721ad87d86b3cee1330de12f2b2af36b46538`, clean committed runtime `ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4`.
 [Identity](PUBLIC_BETA_CANDIDATE.json), [closure gate table](PUBLIC_BETA_ACCEPTANCE.md).
 The scenario table below preserves pre-closure42b996/A0 and339da4 evidence;
 its historic install/browser/updater/KEEP rows are not new-candidate repetitions.
 
-Current layout candidate: source `bfe531d960aaabd6b61c1701cf7179f7214c5097`, SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes.
+Historical layout candidate: source `bfe531d960aaabd6b61c1701cf7179f7214c5097`, SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes.
 [Layout/native/human recheck](NS099_LAYOUT_CLOSURE.md). Human layout recheck PASS, overall8 PASS/0 FAIL;
 other seven human PASS results preserved; required VPN/sleep/policy gates unchanged.
 
-## Environment
+## Historical environment
 
 | Field | Actual record |
 |---|---|

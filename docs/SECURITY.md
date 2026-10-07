@@ -1,5 +1,19 @@
 # Güvenlik ve güvenli kullanım
 
+NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
+global Notifications OFF/ON in the same Limited-token Session1; application
+reports **UNKNOWN**, accepted submission is not visible-delivery proof.
+Current unpublished unsigned0.1.0 source `8242868ba79c63ad743c005366ea715b238cf5d0`,
+SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`, 37,559,481 bytes, schema019→019.
+Installed1119 hashes/0 mismatches;194 source-matching compiled modules.
+Native popup/privacy/click/duplicates/restart PASS in the recorded policy scope.
+Human UX remains PASS8/8, layout CLOSED in its evaluator scope. VPN and meaningful
+native sleep NOT RUN; NS-099 INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
+[Policy model, native measurements and limitations](NS099_NOTIFICATION_POLICY_CLOSURE.md).
+
+## Previous layout follow-up — historical candidate
+
 NS-099 layout follow-up (2026-10-07): current runtime/source `bfe531d960aaabd6b61c1701cf7179f7214c5097`,
 unsigned0.1.0 candidate SHA256 `74529e4cfa03d466ed365a4b0fe5c65c4399873acf150b0c3472496472bdf4c2`, 37,543,802 bytes, schema019→019.
 Incidents/DNS/History layout fixed; fresh Windows11 native layout test-build
