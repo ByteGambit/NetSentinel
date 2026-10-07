@@ -1,5 +1,11 @@
 # NS-099 — Native candidate checklist
 
+Third host sleep attempt (2026-10-07): **NOT RUN**. Hotspot temporarily off and
+AWAYMODE cleared, but USB audio SYSTEM request remained; no sleep action issued.
+Hotspot restored On/Running/Manual, ordinary Quit clean. Awake-only counters are
+separate from untested recovery; no override or permanent power-policy change.
+[Third attempt](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#third-attempt--hotspot-cleared-usb-audio-system-request-remained).
+
 Second host sleep diagnostic (2026-10-07): **NOT RUN**. Mobile Hotspot AWAYMODE
 request and enabled AC Away Mode explain a current apparent-sleep mechanism;
 no clean S3 action while the request remained, no service/power/override change.
@@ -38,7 +44,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; host-server launch BLOCKED by Windows Application Control; counts NOT MEASURED |
-| Meaningful native sleep/resume | NOT RUN; host S3 supported, first transition unverified; second clean attempt not initiated with active Hotspot Away Mode request |
+| Meaningful native sleep/resume | NOT RUN; S3 supported, Hotspot cleared in third attempt but USB audio SYSTEM remained; stopped before sleep and Hotspot restored |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |

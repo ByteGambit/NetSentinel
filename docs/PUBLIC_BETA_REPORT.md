@@ -1,5 +1,14 @@
 # NS-099 — Final delivery record
 
+Third host sleep attempt (2026-10-07): **NOT RUN**, residual USB audio SYSTEM
+request after temporary Hotspot off/AWAYMODE cleared. Stop-before-sleep instruction
+honored; no sleep/resume/duration evidence or post-resume workload. Awake interval
+alert/incident delta0/0, notifications OFF/counters0, DB +4,292,608 bytes; bounded
+logs/collector errors0, ordinary Quit upper bound2.604s. Hotspot restored On,
+Running/Manual. Docs-only normal commit/push, no override/code/rebuild/tag/release.
+VPN BLOCKED/NOT RUN; NS-099 INCOMPLETE/M17 IN PROGRESS; M18 DEFER, NS-100 NOT STARTED.
+[Measurements and scope](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#third-attempt--hotspot-cleared-usb-audio-system-request-remained).
+
 Second host sleep diagnostic (2026-10-07): **NOT RUN**, active Mobile Hotspot
 SYSTEM/AWAYMODE request with AC Away Mode enabled. Administrator read-only query
 succeeded; Legacy Kernel Caller SYSTEM and WebView2 audio EXECUTION also present,

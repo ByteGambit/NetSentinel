@@ -1,9 +1,12 @@
 # NS-099 — Physical host native sleep attempts (2026-10-07)
 
-**Latest: second-attempt diagnostic only — sleep NOT RUN, active Away Mode
-request identified.** The first attempt below remains NOT RUN. The second
-diagnostic is recorded separately at the end; first-attempt counters are not
-reused as second-attempt measurements. VPN remains BLOCKED / NOT RUN.
+**Latest: third attempt — sleep NOT RUN, remaining USB audio SYSTEM request.**
+The operator temporarily turned Mobile Hotspot off; its SYSTEM/AWAYMODE requests
+cleared, but a USB Audio Device still held SYSTEM for an active audio stream.
+The requested pre-sleep stop condition was honored. No sleep action was requested.
+Hotspot was restored On through native Windows Settings; startup type Manual
+preserved. Each attempt below retains its own measurement scope. VPN remains
+BLOCKED / NOT RUN.
 
 ## First attempt — unverified host sleep
 
@@ -210,3 +213,122 @@ or first-attempt result is weakened by committing the evidence.
 **Native sleep/resume NOT RUN; prerequisite BLOCKED by an active Away Mode
 request. VPN BLOCKED / NOT RUN unchanged. NS-099 INCOMPLETE, M17 IN PROGRESS,
 pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED; no tag/release.**
+
+## Third attempt — hotspot cleared, USB audio SYSTEM request remained
+
+Preparation reused the same frozen candidate, freshly verified again: installer
+SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
+37,559,481 bytes; runtime source `8242868ba79c63ad743c005366ea715b238cf5d0`;
+1119 payload files/0 hash mismatches, EXE hash unchanged. No rebuild or production
+change. Repository HEAD/origin/main at preparation were
+`d2ae8cefd3350ea9ce4db6c0aa2a72e0ad80937a`, clean tracked tree.
+
+A separate third-attempt LocalAppData profile was created. Only the first
+isolated test profile's default preferences and prior onboarding dismissal were
+copied, not developer data or earlier history. Two owned setup processes were
+stopped before acceptance measurements: the first-run guide and a process on
+the sandbox desktop that the native UI tool could not target. The candidate was
+then started outside that private desktop as a standard user on the physical
+user desktop. Those setup stops are not clean-shutdown or sleep recovery PASS.
+An intentional setup monitoring restart accounts for two persisted sessions and
+560 existing gap rows in the pre-action DB. Both remain unchanged in the final
+measurement. Final measured process PID8224 started11:03:19.545264 UTC;
+active candidate process count1.
+
+Native Diagnostics: engine Running, DB Available, history writer Running,
+queue0/2048 after Retry. DNS writer NotChecked with capture stopped. Notifications
+and scheduled retention remained default OFF; threat intelligence disabled.
+Notification intents/eligible/adapter attempts/submitted0; visible delivery
+UNKNOWN. The optional unavailable-adapter counter in Diagnostics is not treated
+as a worker/application failure. Native Application behavior showed tray
+availability and default Quit; its dialog was canceled without a setting change.
+This is pre-sleep GUI/capability evidence, not post-resume tray acceptance.
+
+Before hotspot was disabled, the elevated read-only request snapshot at
+10:58:22.8893714 UTC showed icssvc SYSTEM/AWAYMODE, Legacy Kernel Caller SYSTEM,
+Brave Playing audio EXECUTION, DISPLAY none. The previously observed WebView2
+audio request was absent; no WebView2 or unrelated browser/system process was
+killed. An exact benign audio tab/application was not identified, so the user's
+existing browser was preserved. A finite five-second clock/DB recorder and
+post-action event/DB/process checks were prepared before the manual action.
+
+The operator replied **Hotspot kapalı**. Subsequent UAC launches initially failed
+without a result; after the operator explicitly authorized a new local UAC
+prompt, the query succeeded at **11:23:25.6094515 UTC**, Administrator=true,
+powercfg exit0. `icssvc` was Stopped, startup Manual. Actual post-hotspot output:
+
+| Request class | Result |
+|---|---|
+| DISPLAY | None |
+| SYSTEM | **USB Audio Device — An audio stream is currently in use** |
+| AWAYMODE | None |
+| EXECUTION | None |
+| PERFBOOST / ACTIVELOCKSCREEN | None / None |
+
+Hotspot and Legacy Kernel Caller were no longer listed. The USB device's raw
+instance ID is kept out of tracked evidence. The remaining request's owning
+application was **not identified**, so no attribution to WebView2, Brave or
+NetSentinel is asserted. Following the explicit instruction to stop if another
+SYSTEM/AWAYMODE request remained, **no sleep instruction or sleep action was
+issued**. No override or permanent power-policy change was made. This is an
+environment prerequisite failure, not a NetSentinel sleep-recovery failure.
+
+## Third-attempt measurements — awake interval only
+
+| Measurement | Prepared snapshot | Stop snapshot |
+|---|---|---|
+| UTC / local timestamp | 11:04:42.706656 / 14:04:42.706656 +03:00 | 11:24:51.269348 / 14:24:51.269348 +03:00 |
+| Awake time / uptime tick seconds | 357687.545679 / 379606.000 | 358896.108370 / 380814.562 |
+| PID / active processes / recorded sessions | 8224 / 1 / 2 | 8224 / 1 / 2 |
+| Alerts / occurrences / incidents | 0 / 0 / 0 | 0 / 0 / 0 |
+| Notification intents/eligible/attempts/submitted | 0/0/0/0, disabled | 0/0/0/0, disabled; native UI counters |
+| DB bytes | 3,506,176 | 7,798,784 (+4,292,608) |
+| History rows / gap rows | 1627 / 560 | 5967 / 560 |
+| Baseline rows | 17, decoded | 25, decoded |
+| SQLite integrity / foreign-key violations / schema | ok / 0 / 019 | ok / 0 / 019 |
+| Invalid history timestamps / log bytes | 0 / 0 | 0 / 0 |
+
+Wall elapsed1208.562692s; awake elapsed1208.5626918s, approximately zero sleep
+gap. Across246 samples, collector exceptions0 and largest sample interval
+5.113843s. These numbers describe the ordinary waiting/diagnostic interval, not
+sleep duration or post-resume workload. Monitoring continued with the same PID
+and no new session. No alert/incident storm occurred during this interval.
+No sleep-gap duration, baseline accounting, retention scheduling, notification
+replay, native tray recovery or post-resume benign-browser claim is made.
+The browser-name query does not include Brave and returned0 rows; no dedicated
+post-resume navigation was generated because the S3 prerequisite did not pass.
+Log/collector observations are a bounded error measure, not an exhaustive system
+error count.
+
+No new power event after the measured app launch was found in bounded
+Kernel-Power42/107/506/507 and Power-Troubleshooter1 queries; final query was
+11:29:23.6937103 UTC. Recorded pre-action latest Kernel-Power42/107 and
+Power-Troubleshooter1 IDs/timestamps match the historical events in the second
+diagnostic above. Verified sleep entry/resume/type/duration: **NOT RUN / NOT
+MEASURED**, with no historical event substituted as current evidence.
+
+Native main-window Close exercised default Quit. A50ms watcher observed exit at
+11:25:34.958428 UTC, **2.604428s after the action timestamp**, an upper bound
+including UI dispatch. No remaining NetSentinel process/window; recorder stopped.
+Post-close DB:8,085,504 bytes,6124 history rows,512 risk assessments,25 baseline
+rows,0 alerts/incidents, schema019, integrity ok, foreign-key violations0;
+WAL/SHM removed on close. This is ordinary clean shutdown/persistence evidence.
+
+## Third-attempt restoration and delivery
+
+The previously enabled Mobile Hotspot was restored using its native Windows
+Settings switch. Native UI independently showed **On** and icssvc returned
+**Running / Manual**. Sharing source, band, network properties, credentials and
+power-saving setting were not edited. The Settings window opened for restoration
+was closed. No service was permanently disabled/uninstalled. Raw request paths,
+device identifiers, profile data and screenshots containing private Settings
+details were not saved/exported into tracked evidence. Local numeric receipts
+and isolated test data remain under ignored
+`build/ns099-native-sleep-20261007-third/`.
+
+Docs-only evidence: diff/whitespace and bounded privacy/secret review; normal main
+commit/push. No runtime suite rerun, code/schema/dependency change or installer
+rebuild. Native sleep **NOT RUN**, prerequisite **BLOCKED by USB audio SYSTEM
+request**. VPN **BLOCKED/NOT RUN** unchanged; NS-099 **INCOMPLETE**, M17 **IN
+PROGRESS**, pilot/broad **NO_GO**, M18 **DEFER**, NS-100 **NOT STARTED**;
+tag/release **NONE**.

@@ -1,5 +1,13 @@
 # NS-099 — Public beta acceptance gate
 
+Third host sleep attempt (2026-10-07): **NOT RUN**. The operator temporarily
+disabled Hotspot; elevated query confirmed AWAYMODE none, but USB Audio Device
+SYSTEM remained for an active stream. The explicit pre-sleep stop condition was
+honored. No sleep action issued; awake-only alerts/incidents delta0/0,
+notifications disabled/attempts0; ordinary Quit upper bound2.604s. Hotspot restored
+On natively, icssvc Running/Manual. No override/permanent policy/runtime change.
+[Third-attempt evidence](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#third-attempt--hotspot-cleared-usb-audio-system-request-remained).
+
 Second host sleep diagnostic (2026-10-07): **sleep NOT RUN**. Elevated read-only
 `powercfg /requests` identified Mobile Hotspot (`icssvc`) SYSTEM/AWAYMODE,
 Legacy Kernel Caller SYSTEM and WebView2 audio EXECUTION. Host is AC online with
@@ -45,7 +53,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; private host-server provisioning BLOCKED by Windows Application Control; workload counts NOT MEASURED |
-| Meaningful native sleep/resume | NOT RUN; host S3 supported, first transition unverified; second clean attempt not initiated with active Hotspot Away Mode request |
+| Meaningful native sleep/resume | NOT RUN; S3 supported, Hotspot cleared in third attempt but USB audio SYSTEM remained; stopped before sleep and Hotspot restored |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |

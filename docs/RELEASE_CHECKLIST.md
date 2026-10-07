@@ -1,5 +1,11 @@
 # NS-099 — Release readiness checklist (unpublished)
 
+Third host sleep attempt (2026-10-07): **NOT RUN**, remaining USB audio SYSTEM
+request after Hotspot off; stopped before sleep as instructed. Hotspot restored
+On/Running/Manual. No sleep-recovery waiver, runtime/power-policy change or
+override. VPN BLOCKED/NOT RUN, NS-099 INCOMPLETE/M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED. [Exact scope](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#third-attempt--hotspot-cleared-usb-audio-system-request-remained).
+
 Second host sleep diagnostic (2026-10-07): **NOT RUN**, active Hotspot Away Mode
 request with AC Away Mode allowed; no clean S3 transition or workload measured.
 No service/override/power setting changed. Docs-only commit/push creates no
