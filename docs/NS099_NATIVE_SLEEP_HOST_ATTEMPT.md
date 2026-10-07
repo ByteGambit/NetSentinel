@@ -1,6 +1,14 @@
 # NS-099 — Physical host native sleep attempts (2026-10-07)
 
-**Latest: third attempt — sleep NOT RUN, remaining USB audio SYSTEM request.**
+**Latest: subsequent host S3 observed; NetSentinel sleep/resume NOT RUN.**
+After a read-only audio diagnosis and a clean power-request snapshot, the
+operator independently reported waking. New Windows events establish host S3
+for 142.461447 seconds. The measured candidate had already been cleanly quit;
+no application pre-sleep baseline or recorder was prepared for this transition.
+This proves host capability, not application recovery. See the follow-up below.
+VPN remains BLOCKED / NOT RUN; NS-099 remains INCOMPLETE.
+
+**Third attempt — sleep NOT RUN, remaining USB audio SYSTEM request.**
 The operator temporarily turned Mobile Hotspot off; its SYSTEM/AWAYMODE requests
 cleared, but a USB Audio Device still held SYSTEM for an active audio stream.
 The requested pre-sleep stop condition was honored. No sleep action was requested.
@@ -332,3 +340,72 @@ rebuild. Native sleep **NOT RUN**, prerequisite **BLOCKED by USB audio SYSTEM
 request**. VPN **BLOCKED/NOT RUN** unchanged; NS-099 **INCOMPLETE**, M17 **IN
 PROGRESS**, pilot/broad **NO_GO**, M18 **DEFER**, NS-100 **NOT STARTED**;
 tag/release **NONE**.
+
+## Follow-up: verified host S3 without an application test
+
+The next task was limited to identifying the audio blocker, with no sleep action
+requested by Codex. Read-only Core Audio session/peak queries matched the prior
+power-request USB instance through its PnP container to Speakers/Microphone
+(2- USB PnP Audio Device). At 11:42:25 UTC, the only observed active session was
+Brave render audio: brave.exe PID8252, parent Brave PID17460, Session10,
+unmuted, peak0.683202. Subsequent snapshots at 11:43:58 and 11:45:10 were
+Inactive/peak0; no application was closed by Codex. An elevated query at
+11:45:03.5103398 UTC no longer listed the USB SYSTEM request. Hotspot was still
+holding SYSTEM/AWAYMODE because it had been restored after the third attempt.
+These observations identify the currently observed stream owner; they do not
+retroactively prove the owner at every earlier request timestamp or constitute
+a controlled Brave-close experiment. No audio content was recorded.
+
+The operator then turned Hotspot off again. At **11:48:14.1120783 UTC**,
+Administrator=true, powercfg exit0: **all six request classes None**, including
+SYSTEM/AWAYMODE/EXECUTION. The nearby audio snapshot found no active session.
+The icssvc service remained Running/Manual despite no active power request;
+service-running state alone was not used to infer Hotspot sharing state. No
+override, device disable, driver uninstall or permanent policy write occurred.
+
+After this read-only check the operator independently wrote **Uyandı**. Bounded
+System queries since the clean request snapshot returned the following new
+events, with no query exceptions:
+
+| Evidence | UTC timestamp / data |
+|---|---|
+| Kernel-Power42, record34047 | 11:50:48.8184419; TargetState4 / EffectiveState4 |
+| Kernel-Power107, record34050 | 11:50:50.4648503; TargetState4 / EffectiveState4 |
+| Power-Troubleshooter1, record34067 | Emitted11:53:12.5136308; TargetState4 / EffectiveState4 |
+| SleepTime in Power-Troubleshooter1 | **11:50:47.8557455** (local14:50:47.8557455) |
+| WakeTime in Power-Troubleshooter1 | **11:53:10.3171929** (local14:53:10.3171929) |
+| WakeTime minus SleepTime | **142.461447 seconds** |
+
+State4 is Windows PowerSystemSleeping3/S3. `powercfg /a` still reports S3
+available, S0 Low Power Idle unavailable. HiberWriteDuration/HiberReadDuration
+were0. The duration above comes from SleepTime/WakeTime, not event107's emission
+time or the separate SleepDuration/WakeDuration transition fields. No prepared
+pre/post awake-time observation exists for this independently initiated sleep.
+The new state and sleep/wake fields establish host S3; no screen-off-only claim
+or VMware suspend substitution is used.
+
+**Application acceptance is still NOT RUN.** The final measured candidate was
+cleanly quit at 11:25:34.958428 UTC, with its shutdown receipt at11:25:35.045038;
+it was not relaunched by Codex for this read-only task. No candidate process was
+found at the post-wake query. Its isolated DB remained unchanged from shutdown:
+8,085,504 bytes,6124 history rows,25 baseline rows,0 alerts/incidents; last
+history observation11:25:32.226193 UTC, integrity ok, foreign-key violations0,
+schema019. This is a stopped-file check, not live monitoring/persistence recovery
+evidence or a measured zero false-positive/notification burden during sleep.
+
+Monitoring recovery, duplicate engine/session, duration/gap accounting, baseline
+and retention timing across sleep, notification replay, GUI/tray usability,
+post-resume benign workload and shutdown: **NOT RUN**. Application before/after
+alert/incident/notification deltas and error/shutdown duration: **NOT MEASURED**.
+No application crash/recovery FAIL is inferred from an intentionally closed
+candidate. The host transition removes the earlier hardware/environment doubt;
+it does not close the NS-099 application gate.
+
+Sanitized local observation/analysis receipts are under ignored
+`build/ns099-native-sleep-unprepared-20261007/`; audio receipts under ignored
+`build/ns099-audio-blocker/`. No new manual sleep instruction, application launch,
+Hotspot restoration or other setting change was issued in this follow-up; the
+operator's latest Hotspot-off choice was preserved. Docs-only evidence receives
+diff/privacy checks and normal main commit/push; no rebuild/runtime suite.
+VPN **BLOCKED/NOT RUN**, NS-099 **INCOMPLETE**, M17 **IN PROGRESS**, pilot/broad
+**NO_GO**, M18 **DEFER**, NS-100 **NOT STARTED**; tag/release **NONE**.

@@ -1,5 +1,12 @@
 # NS-099 — Public beta acceptance gate
 
+Follow-up host S3 (2026-10-07): Windows sleep/wake fields verify **142.461447s**
+after all power-request classes cleared. **NetSentinel sleep/resume NOT RUN**:
+the measured candidate had already been quit, with no new application baseline
+or active recorder. Stopped DB unchanged; no recovery or burden PASS inferred.
+VPN BLOCKED/NOT RUN, NS-099 INCOMPLETE/M17 IN PROGRESS and release decisions unchanged.
+[Host S3/application scope](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#follow-up-verified-host-s3-without-an-application-test).
+
 Third host sleep attempt (2026-10-07): **NOT RUN**. The operator temporarily
 disabled Hotspot; elevated query confirmed AWAYMODE none, but USB Audio Device
 SYSTEM remained for an active stream. The explicit pre-sleep stop condition was
@@ -53,7 +60,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; private host-server provisioning BLOCKED by Windows Application Control; workload counts NOT MEASURED |
-| Meaningful native sleep/resume | NOT RUN; S3 supported, Hotspot cleared in third attempt but USB audio SYSTEM remained; stopped before sleep and Hotspot restored |
+| Meaningful native sleep/resume | Application NOT RUN; later host S3 verified for142.46s with requests clear, but measured candidate already quit and no recovery baseline |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |

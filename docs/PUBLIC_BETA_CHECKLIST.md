@@ -1,5 +1,10 @@
 # NS-099 — Native candidate checklist
 
+Follow-up (2026-10-07): actual host S3 verified for **142.461447s** after a clean
+power-request snapshot. **Application sleep/resume NOT RUN**: measured candidate
+already quit, no live recovery/burden baseline. No gate waiver or release change.
+[Separate host/application result](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#follow-up-verified-host-s3-without-an-application-test).
+
 Third host sleep attempt (2026-10-07): **NOT RUN**. Hotspot temporarily off and
 AWAYMODE cleared, but USB audio SYSTEM request remained; no sleep action issued.
 Hotspot restored On/Running/Manual, ordinary Quit clean. Awake-only counters are
@@ -44,7 +49,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; host-server launch BLOCKED by Windows Application Control; counts NOT MEASURED |
-| Meaningful native sleep/resume | NOT RUN; S3 supported, Hotspot cleared in third attempt but USB audio SYSTEM remained; stopped before sleep and Hotspot restored |
+| Meaningful native sleep/resume | Application NOT RUN; later host S3 verified for142.46s with requests clear, but measured candidate already quit and no recovery baseline |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |

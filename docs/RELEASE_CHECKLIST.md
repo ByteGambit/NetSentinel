@@ -1,5 +1,11 @@
 # NS-099 — Release readiness checklist (unpublished)
 
+Follow-up host S3 verified for142.461447s after requests cleared; **application
+sleep/resume NOT RUN** because the measured candidate had already been quit and
+no live baseline existed. Host proof grants no recovery waiver or release GO.
+VPN BLOCKED/NOT RUN, NS-099 INCOMPLETE/M17 IN PROGRESS, pilot/broad NO_GO;
+M18 DEFER, NS-100 NOT STARTED. [Scope](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#follow-up-verified-host-s3-without-an-application-test).
+
 Third host sleep attempt (2026-10-07): **NOT RUN**, remaining USB audio SYSTEM
 request after Hotspot off; stopped before sleep as instructed. Hotspot restored
 On/Running/Manual. No sleep-recovery waiver, runtime/power-policy change or

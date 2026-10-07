@@ -1,5 +1,14 @@
 # NS-099 — Final delivery record
 
+Follow-up (2026-10-07): all power-request classes None at11:48:14 UTC, followed
+by independently initiated host S3, SleepTime11:50:47.8557455 / WakeTime11:53:10.3171929
+UTC, **142.461447s**. **Application sleep/resume NOT RUN**: measured candidate
+already cleanly quit; stopped DB unchanged, no recovery/burden measurements.
+Host proof is separate from application acceptance. Docs-only, no rebuild;
+VPN BLOCKED/NOT RUN, NS-099 INCOMPLETE/M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED, tag/release NONE.
+[New Windows evidence and limits](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#follow-up-verified-host-s3-without-an-application-test).
+
 Third host sleep attempt (2026-10-07): **NOT RUN**, residual USB audio SYSTEM
 request after temporary Hotspot off/AWAYMODE cleared. Stop-before-sleep instruction
 honored; no sleep/resume/duration evidence or post-resume workload. Awake interval
