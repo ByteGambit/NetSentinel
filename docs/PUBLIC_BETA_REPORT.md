@@ -1,5 +1,23 @@
 # NS-099 — Final delivery record
 
+Second host sleep diagnostic (2026-10-07): **NOT RUN**, active Mobile Hotspot
+SYSTEM/AWAYMODE request with AC Away Mode enabled. Administrator read-only query
+succeeded; Legacy Kernel Caller SYSTEM and WebView2 audio EXECUTION also present,
+DISPLAY none. No fresh sleep event, app launch or new workload measurements;
+no service/power/override change. Prior first-attempt numbers remain historical.
+Docs-only evidence is committed/pushed normally; no installer rebuild, tag,
+release, VPN retest or NS-100. NS-099 INCOMPLETE/M17 IN PROGRESS, M18 DEFER,
+pilot/broad NO_GO. [Blocker and scope](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#second-attempt--blocker-diagnosis-no-sleep-action-requested).
+
+Physical-host sleep attempt (2026-10-07): **NOT RUN**, actual native transition
+not verified despite S3 support and the operator's reported wake. Wall and awake
+time both advanced157.72s; no new power event. App PID/session unchanged,
+alert/incident delta0/0, notification attempts0 with notifications OFF;
+DB grew266,240 bytes by first post-action snapshot, integrity clean. Ordinary
+Quit upper bound2.315s, no remaining app. NS-099 INCOMPLETE/M17 IN PROGRESS;
+VPN BLOCKED/NOT RUN; pilot/broad NO_GO, M18 DEFER. No runtime change/rebuild,
+commit/push/tag/release/NS-100. [Exact scope and evidence](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md).
+
 VPN-only environment attempt (2026-10-07): **NOT RUN**, because Windows
 Application Control blocked the hash-verified portable host server before process
 creation. Alerts/incidents/notifications/app errors **NOT MEASURED**. No product

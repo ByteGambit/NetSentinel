@@ -1,5 +1,19 @@
 # NS-099 — Release readiness checklist (unpublished)
 
+Second host sleep diagnostic (2026-10-07): **NOT RUN**, active Hotspot Away Mode
+request with AC Away Mode allowed; no clean S3 transition or workload measured.
+No service/override/power setting changed. Docs-only commit/push creates no
+release approval. VPN BLOCKED/NOT RUN, NS-099 INCOMPLETE/M17 IN PROGRESS,
+pilot/broad NO_GO, M18 DEFER and NS-100 NOT STARTED remain unchanged.
+[Blocker evidence](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#second-attempt--blocker-diagnosis-no-sleep-action-requested).
+
+Physical-host sleep attempt (2026-10-07): **native sleep/resume NOT RUN**;
+S3 available but no verified transition or sleep gap after the reported wake.
+Ordinary app/DB/quit observations do not close the gate. VPN BLOCKED/NOT RUN;
+NS-099 INCOMPLETE/M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER unchanged.
+No new installer, commit/push/tag/release or NS-100.
+[Measured host attempt](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md).
+
 VPN-only attempt (2026-10-07): **NOT RUN; provisioning BLOCKED** by host Windows
 Application Control. No tunnel or VPN burden measurements. Candidate/runtime and
 release decisions unchanged; native sleep untouched. NS-099 INCOMPLETE/M17 IN

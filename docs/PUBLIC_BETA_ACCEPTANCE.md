@@ -1,5 +1,22 @@
 # NS-099 — Public beta acceptance gate
 
+Second host sleep diagnostic (2026-10-07): **sleep NOT RUN**. Elevated read-only
+`powercfg /requests` identified Mobile Hotspot (`icssvc`) SYSTEM/AWAYMODE,
+Legacy Kernel Caller SYSTEM and WebView2 audio EXECUTION. Host is AC online with
+Away Mode allowed. This provides a current explanation for apparent sleep
+without suspend; no historical causation or S3 recovery PASS inferred. No
+service/policy/override change or new manual sleep action. VPN BLOCKED/NOT RUN,
+NS-099 INCOMPLETE/M17 IN PROGRESS and release decisions unchanged.
+[Second diagnostic evidence](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#second-attempt--blocker-diagnosis-no-sleep-action-requested).
+
+Physical-host sleep attempt (2026-10-07): **native sleep/resume NOT RUN**.
+Host supports S3, but after the reported wake no new power event or sleep clock
+gap was measured (157.718656s wall / 157.7186565s awake). App/DB remained healthy,
+alerts/incidents0 and notifications OFF; ordinary Quit was clean. This is not
+native recovery evidence. VPN BLOCKED/NOT RUN, NS-099 INCOMPLETE/M17 IN PROGRESS,
+pilot/broad NO_GO and M18 DEFER remain unchanged. No rebuild/source change.
+[Host measurements and limits](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md).
+
 VPN environment attempt (2026-10-07): **VPN NOT RUN; provisioning BLOCKED**.
 The hash-verified portable host server was prevented from starting by Windows
 Application Control. No tunnel/workload measurements; counts NOT MEASURED.
@@ -28,7 +45,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; private host-server provisioning BLOCKED by Windows Application Control; workload counts NOT MEASURED |
-| Meaningful native sleep/resume | NOT RUN, unchanged |
+| Meaningful native sleep/resume | NOT RUN; host S3 supported, first transition unverified; second clean attempt not initiated with active Hotspot Away Mode request |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |

@@ -1,5 +1,17 @@
 # NS-099 — Native candidate checklist
 
+Second host sleep diagnostic (2026-10-07): **NOT RUN**. Mobile Hotspot AWAYMODE
+request and enabled AC Away Mode explain a current apparent-sleep mechanism;
+no clean S3 action while the request remained, no service/power/override change.
+VPN BLOCKED/NOT RUN; first-attempt result and release decisions unchanged.
+[Diagnostic record](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#second-attempt--blocker-diagnosis-no-sleep-action-requested).
+
+Physical-host sleep attempt (2026-10-07): **NOT RUN**. S3 capability confirmed,
+actual native transition unverified: no new power event or sleep clock gap after
+the reported wake. App/DB healthy and ordinary Quit clean; these are not sleep
+recovery PASS. VPN BLOCKED/NOT RUN and all release decisions unchanged.
+[Host pre/post measurements](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md).
+
 VPN-only attempt (2026-10-07): **NOT RUN**, host endpoint provisioning BLOCKED
 by Windows Application Control before server launch. All VPN workload counters
 NOT MEASURED; candidate unchanged, no native sleep test or gate waiver.
@@ -26,7 +38,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; host-server launch BLOCKED by Windows Application Control; counts NOT MEASURED |
-| Meaningful native sleep/resume | NOT RUN, unchanged |
+| Meaningful native sleep/resume | NOT RUN; host S3 supported, first transition unverified; second clean attempt not initiated with active Hotspot Away Mode request |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |
