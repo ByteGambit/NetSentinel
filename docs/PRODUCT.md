@@ -1,5 +1,19 @@
 # Ürün tanımı
 
+NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
+NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
+unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
+37,559,481 bytes, schema019→019. Fresh installed1119 hashes/0 mismatches.
+Real tunnel/HTTPS/scope/disconnect/restart and baseline/DB persistence PASS;
+alerts/incidents0 throughout, notifications OFF/intents0, bounded app errors0.
+Native S3 PASS, notification policy PASS and human UX8/8 retain their recorded scope.
+Limited unsigned pilot **CONDITIONAL_GO** subject to NS-097 owner/distribution gates;
+broad release **NO_GO** (unsigned/signing gates). M18 **GO FOR PLANNING ONLY**,
+no explicit response implementation GO; NS-100 **NOT STARTED**; tag/release **NONE**.
+[VPN measurements, limitations and cleanup](NS099_VPN_WIREGUARD_CLOSURE.md).
+
+Earlier acceptance summaries below are historical; product/security rules remain in force.
+
 NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
 global Notifications OFF/ON in the same Limited-token Session1; application
 reports **UNKNOWN**, accepted submission is not visible-delivery proof.

@@ -1,5 +1,9 @@
 # NS-099 — VPN environment attempt (2026-10-07)
 
+Historical SoftEther attempt. Superseded for the current VPN gate by the
+[successful private WireGuard closure](NS099_VPN_WIREGUARD_CLOSURE.md); the
+original policy stop/NOT RUN evidence below is preserved and was not retried.
+
 **VPN acceptance: NOT RUN. Environment provisioning: BLOCKED.** No tunnel was
 established, so none of the VPN workload or recovery criteria is marked PASS.
 NS-099 remains INCOMPLETE; M17 IN PROGRESS; limited pilot and broad release NO_GO;

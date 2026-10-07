@@ -7,7 +7,7 @@
   "pe_product_version": "0.1.0",
   "runtime_source_commit": "8242868ba79c63ad743c005366ea715b238cf5d0",
   "runtime_tree_modified": false,
-  "acceptance_changes": "Five-file notification policy/submission semantics fix, regressions, clean main==origin/main rebuild, same-context actual Windows global OFF/ON native evidence. VPN/sleep unchanged; historical scope retained.",
+  "acceptance_changes": "Notification-policy runtime freeze and candidate identity unchanged. Native host S3 PASS and final private WireGuard VPN PASS close exact NS-099/M17 acceptance in recorded scopes; prior candidate/evaluator limitations retained. Docs-only environment evidence.",
   "filename": "NetSentinel-0.1.0-Setup.exe",
   "artifact_path": "dist/NetSentinel-0.1.0-Setup.exe",
   "sha256": "39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9",
@@ -51,8 +51,8 @@
     }
   ],
   "superseded_clean_head_candidate_sha256": "42b996d4eb7ad29cd4f667ff0aaa2eeb8275744a7fd80c46e1dba938c473edf9",
-  "acceptance_status": "INCOMPLETE",
-  "limited_unsigned_pilot_decision": "NO_GO",
+  "acceptance_status": "COMPLETE",
+  "limited_unsigned_pilot_decision": "CONDITIONAL_GO",
   "broad_public_release_decision": "NO_GO",
   "historical_uncommitted_candidate": {
     "sha256": "339da4135a630f085ba640200e464017ab1d724419842caf63a6ffb97f9cdbed",
@@ -79,8 +79,8 @@
     "evaluated_on_local_date": "2026-10-07"
   },
   "closure_gates": {
-    "vpn": "NOT RUN",
-    "meaningful_native_sleep": "NOT RUN",
+    "vpn": "PASS, native private WireGuard IPv4/OFF scenario",
+    "meaningful_native_sleep": "PASS, prepared native host S3; optional OFF scope",
     "native_toast_privacy_fixture": "PASS",
     "native_click_fixture": "PASS",
     "native_duplicate_source_cooldown_restart_fixture": "PASS",
@@ -281,5 +281,59 @@
       "credentials_created": 0
     },
     "evidence_document": "docs/NS099_NOTIFICATION_POLICY_CLOSURE.md"
-  }
+  },
+  "native_sleep_evidence": "docs/NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#final-prepared-retry-live-candidate-s3-recovery",
+  "vpn_closure": {
+    "observed_on_local_date": "2026-10-08",
+    "result": "PASS",
+    "client_vm": "Windows 11",
+    "linux_distro": "Kali Rolling 2026.3",
+    "linux_wireguard_tools": "1.0.20260223-2",
+    "windows_wireguard": "1.1.1, Authenticode Valid / WireGuard LLC",
+    "tunnel_established": true,
+    "address_family_scope": "IPv4; IPv6 default routed into tunnel without global IPv6 connectivity",
+    "installed_payload_files_checked": 1119,
+    "installed_payload_hash_mismatches": 0,
+    "history_before": 388,
+    "history_vpn_sample": 492,
+    "history_after_disconnect_browser": 552,
+    "history_after_restart_browser": 690,
+    "alerts_before_during_after": [
+      0,
+      0,
+      0
+    ],
+    "incidents_before_during_after": [
+      0,
+      0,
+      0
+    ],
+    "notification_intents_native_before_restart": 0,
+    "notification_eligible_native_before_restart": 0,
+    "notifications_enabled": false,
+    "visible_delivery_confirmation": null,
+    "visible_delivery_status": "UNKNOWN; no OS delivery telemetry, bounded unwanted popups observed0",
+    "bounded_application_error_lines": 0,
+    "baseline_rows_before": 11,
+    "baseline_rows_after": 13,
+    "baseline_payloads_preserved_on_restart": 13,
+    "baseline_capacity_loss": 0,
+    "schema": 19,
+    "db_integrity": "ok",
+    "old_pid": 12028,
+    "restart_pid": 8896,
+    "clean_quit_remaining_processes": 0,
+    "shutdown_duration_seconds": null,
+    "peer_received_bytes": 240656,
+    "peer_sent_bytes": 2819880,
+    "temporary_tunnel_services_after": 0,
+    "temporary_tunnel_interfaces_after": 0,
+    "owned_tasks_after": 0,
+    "cdp_listeners_after": 0,
+    "runtime_changed": false,
+    "record": "docs/NS099_VPN_WIREGUARD_CLOSURE.md"
+  },
+  "m17_status": "COMPLETE",
+  "m18_recommendation": "GO FOR PLANNING ONLY; implementation response GO and authorization absent",
+  "ns100_status": "NOT STARTED"
 }

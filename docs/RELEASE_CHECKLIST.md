@@ -1,5 +1,19 @@
 # NS-099 — Release readiness checklist (unpublished)
 
+NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
+NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
+unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
+37,559,481 bytes, schema019→019. Fresh installed1119 hashes/0 mismatches.
+Real tunnel/HTTPS/scope/disconnect/restart and baseline/DB persistence PASS;
+alerts/incidents0 throughout, notifications OFF/intents0, bounded app errors0.
+Native S3 PASS, notification policy PASS and human UX8/8 retain their recorded scope.
+Limited unsigned pilot **CONDITIONAL_GO** subject to NS-097 owner/distribution gates;
+broad release **NO_GO** (unsigned/signing gates). M18 **GO FOR PLANNING ONLY**,
+no explicit response implementation GO; NS-100 **NOT STARTED**; tag/release **NONE**.
+[VPN measurements, limitations and cleanup](NS099_VPN_WIREGUARD_CLOSURE.md).
+
+Earlier acceptance summaries below are historical; product/security rules remain in force.
+
 Final prepared sleep retry: **native S3/recovery PASS**, accepted candidate,
 1732.464145s, same PID/session, healthy monitoring/history/DB, no storm with
 notifications OFF, post-wake benign monitoring, native Quit3.033s/no ghost.
@@ -56,12 +70,12 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 
 [Candidate](PUBLIC_BETA_CANDIDATE.json), [acceptance](PUBLIC_BETA_ACCEPTANCE.md),
 [native checklist](PUBLIC_BETA_CHECKLIST.md), [frozen protocol](BETA_PROTOCOL.md).
-NS-099 **INCOMPLETE**, M17 **IN PROGRESS**, limited pilot **NO_GO**, broad release
-**NO_GO**, M18 **DEFER**. This checklist creates no publication/tag or approval.
+NS-099 **COMPLETE**, M17 **COMPLETE**, limited pilot **CONDITIONAL_GO**, broad release
+**NO_GO**, M18 **GO FOR PLANNING ONLY**. This checklist creates no publication/tag or approval.
 
 | Area | Current evidence | Open gate |
 |---|---|---|
-| Core/context/risk | Prior M11–M14 and native scenarios; final accepted-candidate host S3 recovery/benign monitoring PASS in stated OFF scope | Required safe VPN BLOCKED/NOT RUN |
+| Core/context/risk | Prior M11–M14 and native scenarios; final accepted-candidate host S3 recovery/benign monitoring PASS in stated OFF scope | Private WireGuard VPN PASS; IPv4/OFF scope and limitations recorded |
 | Incidents/baselines | Prior M13/M16, accelerated caps/explicit story/restarts; native aggregate persistence | Native zero incidents do not exercise narrative quality |
 | Notifications | DefaultsOFF and zero-alert benign observation; fake sink policy PASS | Current policy fixture PASS: actual global OFF/ON, UNKNOWN, popup/privacy/click/duplicates/restart; human toastUX/layout PASS retained in evaluator scope |
 | Tray | Native Hide/actual icon Show/default X Quit; no ghosts | Prior-candidate tray-context Quit PASS1357ms; human intent PASS |
@@ -70,7 +84,7 @@ NS-099 **INCOMPLETE**, M17 **IN PROGRESS**, limited pilot **NO_GO**, broad relea
 | Signing/distribution | Explicit UNSIGNED/NotSigned, manual updates, verified integrity | Broad signer/protected release gate; owner audience/license/channel/contact |
 | Onboarding/feedback | A0 six-page walkthrough; final B appearance/Skip/persistence/export; no accidental consent | Human UX8 PASS/0 FAIL, layout finding closed; broader DPI/scaling remains unmeasured |
 | Windows matrix | Windows 11 Home x64 build 26200.9457 observed | All other client builds/ARM64/server NOT TESTED |
-| Performance/FP | Native42min interval, zero reviewed alerts, SQLite OK/log0, bounded exits; offline caps | Missing scenarios prevent complete burden assessment; no leak/peak/SLA claim |
+| Performance/FP | Native42min interval, zero reviewed alerts, SQLite OK/log0, bounded exits; offline caps | Required scenarios closed in recorded scope; broader builds/enabled optional matrix unmeasured; no leak/peak/SLA claim |
 | Quality | Policy3833/8deselected,91.09%,734.10s; targeted123; Ruff/mypy/audit/integrity PASS; portable historical scope | Remote CI not run; final diff/privacy checks local only |
 | Publication | NONE | Future explicit release authorization, final signed hashes/metadata when a release exists |
 

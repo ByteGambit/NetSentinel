@@ -1,5 +1,19 @@
 # NS-099 — Native candidate checklist
 
+NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
+NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
+unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
+37,559,481 bytes, schema019→019. Fresh installed1119 hashes/0 mismatches.
+Real tunnel/HTTPS/scope/disconnect/restart and baseline/DB persistence PASS;
+alerts/incidents0 throughout, notifications OFF/intents0, bounded app errors0.
+Native S3 PASS, notification policy PASS and human UX8/8 retain their recorded scope.
+Limited unsigned pilot **CONDITIONAL_GO** subject to NS-097 owner/distribution gates;
+broad release **NO_GO** (unsigned/signing gates). M18 **GO FOR PLANNING ONLY**,
+no explicit response implementation GO; NS-100 **NOT STARTED**; tag/release **NONE**.
+[VPN measurements, limitations and cleanup](NS099_VPN_WIREGUARD_CLOSURE.md).
+
+Earlier acceptance summaries below are historical; product/security rules remain in force.
+
 Final prepared native sleep retry (2026-10-07): **PASS** for accepted candidate
 and default optional features OFF. Actual S3 **1732.464145s**, same PID/session,
 engine/history writer Running/queue0, alert/incident/notification delta0/0/0,
@@ -49,20 +63,21 @@ native sleep NOT RUN; NS-099 INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO,
 M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 [Policy model, native measurements and limitations](NS099_NOTIFICATION_POLICY_CLOSURE.md).
 
-## Current policy closure
+## Current M17 exit table
 
 | Gate / decision | Current result |
 |---|---|
-| Notification policy | PASS, actual OS OFF; honest UNKNOWN and no observed popup; original ON restored |
-| Native notification/privacy/click/duplicates/restart | PASS in current policy fixture scope; visibility counters remain unconfirmed |
-| Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
-| Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
-| Safe VPN | NOT RUN; host-server launch BLOCKED by Windows Application Control; counts NOT MEASURED |
-| Meaningful native sleep/resume | PASS, final prepared accepted-candidate host S3 for1732.46s; same PID/session, responsive recovery, benign monitoring and clean Quit; optional OFF scope |
-| FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
-| NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
-| Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |
-| M18 / NS-100 / tag-release | DEFER / NOT STARTED / NONE |
+| Normal browser / updater / restart | PASS; prior scoped cases retained, current real VPN/browser/disconnect/restart added |
+| Standard user / Npcap missing / install-upgrade-uninstall / privacy-storage | PASS in recorded candidate scopes; no pristine-image or other-build claim |
+| Notification policy / popup-privacy-click-dedup-restart | PASS in policy fixture scope; runtime delivery UNKNOWN; ON visibility limitations retained |
+| Tray context Quit | Prior scoped PASS; current ordinary File Quit observed with0 remaining processes |
+| Human UX | PASS8/8; layout CLOSED; no new human rating invented |
+| Safe native VPN | PASS, private WireGuard IPv4 tunnel + benign HTTPS + scope/disconnect/restart + cleanup |
+| Meaningful native sleep/resume | PASS, accepted-candidate host S3 1732.46s; same PID/session, monitoring and clean Quit; optional OFF scope |
+| FP / notification burden | Current VPN alerts0/incidents0, notifications OFF/intents0; historical42min benign and explicit ON fixture limits retained |
+| NS-099 / M17 | COMPLETE / COMPLETE; exact TASKS criteria preserved |
+| Limited unsigned pilot / broad release | CONDITIONAL_GO / NO_GO; NS-097 owner/distribution/signing gates apply |
+| M18 / NS-100 / tag-release | GO FOR PLANNING ONLY / NOT STARTED / NONE; no implementation authorization |
 
 Current receipt/visibility/click counts and cleanup: [policy record](NS099_NOTIFICATION_POLICY_CLOSURE.md#native-measurements--pass).
 All following scenario tables retain their recorded historical source scope.

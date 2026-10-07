@@ -1,5 +1,19 @@
 # Yol haritası
 
+NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
+NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
+unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
+37,559,481 bytes, schema019→019. Fresh installed1119 hashes/0 mismatches.
+Real tunnel/HTTPS/scope/disconnect/restart and baseline/DB persistence PASS;
+alerts/incidents0 throughout, notifications OFF/intents0, bounded app errors0.
+Native S3 PASS, notification policy PASS and human UX8/8 retain their recorded scope.
+Limited unsigned pilot **CONDITIONAL_GO** subject to NS-097 owner/distribution gates;
+broad release **NO_GO** (unsigned/signing gates). M18 **GO FOR PLANNING ONLY**,
+no explicit response implementation GO; NS-100 **NOT STARTED**; tag/release **NONE**.
+[VPN measurements, limitations and cleanup](NS099_VPN_WIREGUARD_CLOSURE.md).
+
+Earlier acceptance summaries below are historical; product/security rules remain in force.
+
 NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
 global Notifications OFF/ON in the same Limited-token Session1; application
 reports **UNKNOWN**, accepted submission is not visible-delivery proof.
@@ -256,7 +270,7 @@ Bu sürüm hedefleri bağlayıcı tarih değil, kapsam kapılarıdır.
 
 ## Yeni faz: M11–M16 tamamlandı; M17 devam ediyor, M18 conditional
 
-**Durum:** M1–M16 tamamlandı; NS-001–NS-098 COMPLETE (2026-10-06). M17 IN PROGRESS: NS-093 tray/application lifecycle, NS-094 desktop notifications, NS-095 storage/privacy controls, NS-096 installer/upgrade/uninstall, NS-097 signing/update spike ve NS-098 first-run/feedback tamamlandı. NS-096 mevcut VM'de yeni standart profillerle kabul edildi; pristine OS snapshot yoktu; 0.1.1 fixture app payload'ı 0.1.0 kaldı. Dağıtım limited unsigned/manual pilot conditional GO, broad signer/kalan gate olmadan NO-GO. NS-098 versioned guide, separate consent, NS-095 full sanitized preview/local Save, synthetic screenshots ve pilot notes ekler; full offline 3781 passed/8 deselected ve statik kontroller PASS. NS-099 IN PROGRESS / INCOMPLETE; committed ae08d7e runtime'dan installer rebuilt; yeni Windows 11 VM standard/Unicode install/repair/browser/updater/restart/export/KEEP PASS, required VPN/meaningful native sleep NOT RUN, native toast/click/tray Quit scoped PASS, effective OS-policy PASS (same-context actual global OFF/ON; honest UNKNOWN, current8242868 policy evidence); focused human layout recheck PASS, overall8 UX PASS; [NS-099 report](PUBLIC_BETA_ACCEPTANCE.md). M18, M17 tamamlanıp NS-099 public beta acceptance gate geçmeden ve açık response GO kararı verilmeden başlatılamayan conditional roadmap'tir. Yukarıdaki ve önceki teslimatlardaki tarihsel milestone kayıtları değişmez.
+**Durum:** M1–M17 tamamlandı; NS-001–NS-099 COMPLETE (2026-10-08). Son required private WireGuard VPN gate PASS; native S3/policy/human UX ve önceki candidate-scoped acceptance korunur. Limited unsigned pilot CONDITIONAL_GO, broad release NO_GO under NS-097; unsigned/manual dağıtım için owner audience/license/channel/contact ve açık dağıtım onayı gerekir. M18 yalnız GO FOR PLANNING; explicit response GO ve kullanıcı uygulama onayı olmadan NS-100–NS-104 başlatılmaz. [Final evidence](NS099_VPN_WIREGUARD_CLOSURE.md). Önceki milestone kayıtları tarihsel kapsamını korur.
 
 Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi process yapıyor, bu davranış normal mi ve neden şüpheli olabilir?” Öncelikler visibility, context, explainable detection. Task kabul kriterleri [TASKS.md](TASKS.md) içindedir.
 
