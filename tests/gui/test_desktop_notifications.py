@@ -13,6 +13,7 @@ from netsentinel.application.services.alert_query import AlertQueryService
 from netsentinel.application.services.notifications import (
     DesktopNotificationRequest, PersistedNotificationIntent, NotificationDeliveryOutcome as Outcome,
     preview_body,
+    NotificationPlatformState,
 )
 from netsentinel.domain.alerts import AlertStatus
 from netsentinel.domain.risk_scoring import RiskSeverity
@@ -313,6 +314,77 @@ def test_Qt_rejects_producer_thread(adapter):
     thread.start()
     thread.join(2)
     assert failures == [True] and not FakeIcon.instances
+
+
+@pytest.mark.parametrize("state", [NotificationPlatformState.DISABLED_BY_OS, NotificationPlatformState.SESSION_RESTRICTED])
+def test_Qt_platform_restriction_prevents_real_submission(adapter, state):
+    adapter._policy_query = lambda: state
+    assert adapter.submit(request()) is Outcome.PLATFORM_RESTRICTED
+    assert adapter.submission_attempts == 0 and not FakeIcon.instances
+    adapter._policy_query = lambda: NotificationPlatformState.DELIVERY_UNKNOWN
+    assert adapter.submit(request()) is Outcome.SUBMITTED_TO_SINK
+    assert adapter.submission_attempts == 1
+
+
+def test_actual_adapter_failure_remains_distinct_from_unknown_permission(qtbot, tmp_path):
+    shell, _, sink, _, _, _, service, _ = compose(qtbot, tmp_path)
+    try:
+        sink.exception = True
+        service.record(candidate())
+        shell.notifications.drain()
+        shell.notifications.show_settings()
+        text = shell.notifications.settings_dialog.delivery_state.text()
+        assert "unverified" in text and "attempt failed" in text
+        assert "private" not in text
+        sink.exception = False
+        service.record(candidate(2))
+        shell.notifications.drain()
+        assert "Last request submitted" in shell.notifications.settings_dialog.delivery_state.text()
+    finally:
+        shell.controller.shutdown()
+
+
+@pytest.mark.parametrize("state,word", [
+    (NotificationPlatformState.DISABLED_BY_OS, "configured off"),
+    (NotificationPlatformState.SESSION_RESTRICTED, "restricts"),
+    (NotificationPlatformState.UNAVAILABLE, "unavailable"),
+    (NotificationPlatformState.DELIVERY_UNKNOWN, "unverified"),
+    (NotificationPlatformState.FAILED, "failed"),
+])
+def test_policy_settings_diagnostics_persistence_and_monitoring(qtbot, tmp_path, state, word):
+    shell, engine, sink, _, _, repo, service, _ = compose(qtbot, tmp_path)
+    try:
+        sink.platform_state = state
+        first, _ = service.record(candidate(1))
+        persisted = repo.get(first.id)
+        shell.window.navigate_to(PageId.DIAGNOSTICS)
+        shell.notifications.drain()
+        shell.notifications.show_settings()
+        dialog = shell.notifications.settings_dialog
+        assert word in dialog.delivery_state.text()
+        diagnostics = shell.window.page_widget(PageId.DIAGNOSTICS)
+        assert word in diagnostics.notifications.text()
+        assert "visible delivery UNKNOWN" in diagnostics.notifications.text()
+        assert repo.get(first.id) == persisted
+        assert engine.start_calls == 1 and engine.stop_calls == 0
+        dialog.reject()
+        shell.notifications.save_enabled(False)
+        shell.notifications.show_settings()
+        assert "not an application failure" in shell.notifications.settings_dialog.delivery_state.text()
+        shell.notifications.settings_dialog.reject()
+        sink.platform_state = NotificationPlatformState.DELIVERY_UNKNOWN
+        shell.notifications.save_enabled(True)
+        before = sink.attempts
+        shell.notifications.drain()
+        assert sink.attempts == before  # Re-enable cannot replay the earlier intent.
+        second, _ = service.record(candidate(2))
+        shell.notifications.drain()
+        sink.click(len(sink.requests) - 1)
+        view = shell.window.page_widget(PageId.ALERTS)
+        qtbot.waitUntil(lambda: view.selected_alert_id == second.id)
+        assert repo.get(first.id) == persisted
+    finally:
+        shell.controller.shutdown()
 
 
 def test_startup_existing_records_zero_notifications_and_future_only(qtbot, tmp_path):

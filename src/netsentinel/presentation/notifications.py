@@ -12,7 +12,9 @@ from netsentinel.application.events import EventDispatcher
 from netsentinel.application.services.notifications import (
     DesktopNotificationRequest, DesktopNotificationSink, NotificationDeliveryOutcome,
     NotificationDeliveryService, PersistedNotificationIntent,
+    NotificationPlatformState,
 )
+from netsentinel.infrastructure.windows_notification_policy import windows_notification_policy
 from netsentinel.domain.risk_scoring import RiskSeverity
 from netsentinel.presentation.tray import ApplicationController
 from netsentinel.presentation.views.alerts import AlertsView
@@ -33,12 +35,16 @@ class QtDesktopNotificationSink(QObject):
     CAPACITY = 8
     CLICK_LIFETIME = 600.0
 
-    def __init__(self, application: QApplication, window: QMainWindow) -> None:
+    def __init__(self, application: QApplication, window: QMainWindow, *,
+                 policy_query: Callable[[], NotificationPlatformState] | None = None) -> None:
         super().__init__(window)
         self._application = application
         self._handler: Callable[[UUID], None] | None = None
         self._closed = False
         self._handles: dict[QSystemTrayIcon, tuple[UUID, float]] = {}
+        self._policy_query = policy_query or (windows_notification_policy if application.platformName() == "windows"
+            else lambda: NotificationPlatformState.DELIVERY_UNKNOWN)
+        self.submission_attempts = 0
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
         self._timer.timeout.connect(self._expire)
@@ -46,10 +52,24 @@ class QtDesktopNotificationSink(QObject):
     def set_click_handler(self, handler: Callable[[UUID], None]) -> None:
         self._handler = handler
 
+    def policy_state(self) -> NotificationPlatformState:
+        if QThread.currentThread() != self.thread():
+            raise RuntimeError("notification policy query requires Qt thread")
+        if self._closed or not QSystemTrayIcon.isSystemTrayAvailable() or not QSystemTrayIcon.supportsMessages():
+            return NotificationPlatformState.UNAVAILABLE
+        try:
+            state = self._policy_query()
+            return state if isinstance(state, NotificationPlatformState) else NotificationPlatformState.DELIVERY_UNKNOWN
+        except Exception:
+            return NotificationPlatformState.DELIVERY_UNKNOWN
+
     def submit(self, request: DesktopNotificationRequest) -> NotificationDeliveryOutcome:
         if QThread.currentThread() != self.thread():
             raise RuntimeError("notification sink requires Qt thread")
-        if self._closed or not QSystemTrayIcon.isSystemTrayAvailable() or not QSystemTrayIcon.supportsMessages():
+        state = self.policy_state()
+        if state in (NotificationPlatformState.DISABLED_BY_OS, NotificationPlatformState.SESSION_RESTRICTED):
+            return NotificationDeliveryOutcome.PLATFORM_RESTRICTED
+        if state is NotificationPlatformState.UNAVAILABLE:
             return NotificationDeliveryOutcome.SINK_UNAVAILABLE
         self._expire()
         if len(self._handles) >= self.CAPACITY:
@@ -62,6 +82,7 @@ class QtDesktopNotificationSink(QObject):
             icon.show()
             message_icon = (QSystemTrayIcon.MessageIcon.Critical if request.severity is RiskSeverity.HIGH
                             else QSystemTrayIcon.MessageIcon.Warning)
+            self.submission_attempts += 1
             icon.showMessage(request.title, request.body, message_icon, 10000)
             self._timer.start()
             return NotificationDeliveryOutcome.SUBMITTED_TO_SINK
@@ -132,6 +153,7 @@ class DesktopNotificationController(QObject):
         if self._closed or self._controller.quitting:
             return
         self.service.drain_one()
+        self.service.refresh_policy()
         self._refresh_diagnostics()
 
     def _refresh_diagnostics(self) -> None:
@@ -140,6 +162,8 @@ class DesktopNotificationController(QObject):
             diagnostics = window.page_widget(PageId.DIAGNOSTICS)
             assert isinstance(diagnostics, DiagnosticsView)
             diagnostics.set_notification_diagnostics(self.service.diagnostics(), enabled=self.service.enabled)
+        if self.settings_dialog is not None:
+            self.settings_dialog.refresh_delivery_state()
 
     def _click(self, alert_id: UUID) -> None:
         if self._closed or self._controller.quitting:
@@ -176,7 +200,9 @@ class DesktopNotificationController(QObject):
             window = self._window_ref()
             if window is None:
                 return
-            self.settings_dialog = NotificationSettingsDialog(self.service.enabled, self.save_enabled, window)
+            self.settings_dialog = NotificationSettingsDialog(self.service.enabled, self.save_enabled, window,
+                policy_state=self.service.refresh_policy,
+                submission_outcome=lambda: self.service.diagnostics().last_submission_outcome)
             self.settings_dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
             self.settings_dialog.finished.connect(self._settings_finished)
         self.settings_dialog.show()
@@ -191,4 +217,5 @@ class DesktopNotificationController(QObject):
         if self._save_preference is not None:
             self._save_preference(enabled)
         self.service.set_enabled(enabled)
+        self.service.refresh_policy()
         self._refresh_diagnostics()

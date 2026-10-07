@@ -25,6 +25,16 @@ class NotificationDeliveryOutcome(str, Enum):
     QUEUED = "queued"
     QUEUE_COALESCED = "queue_coalesced"
     QUEUE_FULL = "queue_full"
+    PLATFORM_RESTRICTED = "platform_restricted"
+
+
+class NotificationPlatformState(str, Enum):
+    DISABLED_BY_APP = "disabled_by_app"
+    DISABLED_BY_OS = "disabled_by_os"
+    SESSION_RESTRICTED = "session_restricted"
+    UNAVAILABLE = "unavailable"
+    DELIVERY_UNKNOWN = "delivery_unknown"
+    FAILED = "failed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +100,7 @@ def preview_body(severity: RiskSeverity) -> str:
 
 
 class DesktopNotificationSink(Protocol):
+    def policy_state(self) -> NotificationPlatformState: ...
     def submit(self, request: DesktopNotificationRequest) -> NotificationDeliveryOutcome: ...
     def set_click_handler(self, handler: Callable[[UUID], None]) -> None: ...
     def close(self) -> None: ...
@@ -112,8 +123,15 @@ class NotificationDeliveryPolicy:
 
 @dataclass(frozen=True, slots=True)
 class NotificationDiagnostics:
+    platform_state: NotificationPlatformState = NotificationPlatformState.DELIVERY_UNKNOWN
     intents_seen: int = 0
+    eligible_for_delivery: int = 0
+    submission_attempts: int = 0
     submitted_to_sink: int = 0
+    os_policy_skipped: int = 0
+    delivery_unknown: int = 0
+    visible_delivery_confirmed: int | None = None
+    last_submission_outcome: NotificationDeliveryOutcome | None = None
     duplicate_skipped: int = 0
     cooldown_skipped: int = 0
     escalation_notifications: int = 0
@@ -146,8 +164,8 @@ class NotificationDeliveryService:
     """Producer only enqueues; the GUI thread drains and owns the sink.
 
     State never evicts into a replay: new subjects above the session budget are
-    rejected. Each subject retains one attempted identity and successful high
-    watermark. Neither failure nor a policy skip is successful delivery proof.
+    rejected. Each subject retains one attempted identity and accepted-submission
+    high watermark. No outcome here proves that the user saw a notification.
     """
 
     def __init__(self, sink: DesktopNotificationSink, *, enabled: bool = False,
@@ -159,7 +177,8 @@ class NotificationDeliveryService:
         self._lock = RLock()
         self._queue: OrderedDict[UUID, PersistedNotificationIntent] = OrderedDict()
         self._states: dict[UUID, _State] = {}
-        self._diagnostics = NotificationDiagnostics()
+        self._diagnostics = NotificationDiagnostics(platform_state=(
+            NotificationPlatformState.DELIVERY_UNKNOWN if enabled else NotificationPlatformState.DISABLED_BY_APP))
 
     @property
     def enabled(self) -> bool:
@@ -180,12 +199,35 @@ class NotificationDeliveryService:
             self._diagnostics = replace(self._diagnostics, **{
                 field: min(2**63 - 1, getattr(self._diagnostics, field) + 1)})
 
+    def refresh_policy(self) -> NotificationPlatformState:
+        """GUI-owned read only; an unknown policy is never visibility proof."""
+        with self._lock:
+            state = NotificationPlatformState.DISABLED_BY_APP
+            if self._enabled and not self._closed:
+                try:
+                    state = self.sink.policy_state()
+                    if not isinstance(state, NotificationPlatformState):
+                        state = NotificationPlatformState.DELIVERY_UNKNOWN
+                except Exception:
+                    state = NotificationPlatformState.FAILED
+            self._diagnostics = replace(self._diagnostics, platform_state=state)
+            if state in (NotificationPlatformState.DISABLED_BY_OS, NotificationPlatformState.SESSION_RESTRICTED,
+                         NotificationPlatformState.UNAVAILABLE, NotificationPlatformState.FAILED):
+                # Do not keep a restricted-time queue to replay when the OS
+                # permits messages again. The committed alerts remain intact.
+                for _ in self._queue:
+                    self.count("queue_dropped")
+                self._queue.clear()
+            return state
+
     def set_enabled(self, enabled: bool) -> None:
         if type(enabled) is not bool:
             raise ValueError("notification preference must be boolean")
         with self._lock:
             self._enabled = enabled
             self._queue.clear()  # Enable never replays disabled-time intents.
+            self._diagnostics = replace(self._diagnostics, platform_state=(
+                NotificationPlatformState.DELIVERY_UNKNOWN if enabled else NotificationPlatformState.DISABLED_BY_APP))
 
     def enqueue(self, intent: PersistedNotificationIntent) -> NotificationDeliveryOutcome:
         with self._lock:
@@ -252,20 +294,42 @@ class NotificationDeliveryService:
             return skip
         request = DesktopNotificationRequest(intent.alert_id, severity,
                                             "NetSentinel security alert", preview_body(severity))
+        self.count("eligible_for_delivery")
+        platform = self.refresh_policy()
+        if platform in (NotificationPlatformState.DISABLED_BY_OS, NotificationPlatformState.SESSION_RESTRICTED):
+            self.count("os_policy_skipped")
+            return NotificationDeliveryOutcome.PLATFORM_RESTRICTED
+        if platform is NotificationPlatformState.UNAVAILABLE:
+            self.count("sink_unavailable")
+            return NotificationDeliveryOutcome.SINK_UNAVAILABLE
+        if platform is NotificationPlatformState.FAILED:
+            self.count("sink_failure")
+            return NotificationDeliveryOutcome.SINK_FAILED
+        self.count("submission_attempts")
         try:
             outcome = self.sink.submit(request)
         except Exception:
             outcome = NotificationDeliveryOutcome.SINK_FAILED
+        if not isinstance(outcome, NotificationDeliveryOutcome) or outcome not in (
+                NotificationDeliveryOutcome.SUBMITTED_TO_SINK, NotificationDeliveryOutcome.SINK_UNAVAILABLE,
+                NotificationDeliveryOutcome.PLATFORM_RESTRICTED, NotificationDeliveryOutcome.SINK_FAILED):
+            outcome = NotificationDeliveryOutcome.SINK_FAILED
+        self._diagnostics = replace(self._diagnostics, last_submission_outcome=outcome)
         if outcome is NotificationDeliveryOutcome.SUBMITTED_TO_SINK:
             self._states[intent.alert_id] = _State(intent.identity, max(highest, rank), now)
             self.count("submitted_to_sink")
+            self.count("delivery_unknown")
             if escalation:
                 self.count("escalation_notifications")
         elif outcome is NotificationDeliveryOutcome.SINK_UNAVAILABLE:
             self.count("sink_unavailable")
+        elif outcome is NotificationDeliveryOutcome.PLATFORM_RESTRICTED:
+            self.count("os_policy_skipped")
+            self.refresh_policy()
         else:
             outcome = NotificationDeliveryOutcome.SINK_FAILED
             self.count("sink_failure")
+            self._diagnostics = replace(self._diagnostics, platform_state=NotificationPlatformState.FAILED)
         return outcome
 
     def close(self) -> None:

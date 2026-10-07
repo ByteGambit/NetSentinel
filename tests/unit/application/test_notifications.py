@@ -185,7 +185,12 @@ def test_preview_fixed_plain_bounded_and_diagnostics_aggregate(severity):
     assert request.title == "NetSentinel security alert"
     for forbidden in ("192.0.2", "private", "C:/", "<", ">", "MAC", "hash", "path", "evidence"):
         assert forbidden not in request.body
-    assert all(type(value) is int for value in asdict(service.diagnostics()).values())
+    from netsentinel.application.services.notifications import NotificationPlatformState
+    aggregate = asdict(service.diagnostics())
+    assert aggregate.pop("platform_state") is NotificationPlatformState.DELIVERY_UNKNOWN
+    assert aggregate.pop("last_submission_outcome") is Outcome.SUBMITTED_TO_SINK
+    assert aggregate.pop("visible_delivery_confirmed") is None
+    assert all(type(value) is int for value in aggregate.values())
     with pytest.raises(ValueError):
         replace(request, body="<b>192.0.2.1</b>")
 

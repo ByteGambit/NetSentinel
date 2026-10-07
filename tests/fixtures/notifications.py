@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 
 from netsentinel.application.services.notifications import (
-    NotificationDeliveryOutcome as Outcome, PersistedNotificationIntent,
+    NotificationDeliveryOutcome as Outcome, PersistedNotificationIntent, NotificationPlatformState,
 )
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence, AlertStatus, alert_id
 
@@ -28,6 +28,10 @@ class FakeNotificationSink:
         self.handler = None
         self.on_submit = None
         self.attempts = 0
+        self.platform_state = NotificationPlatformState.DELIVERY_UNKNOWN
+
+    def policy_state(self):
+        return self.platform_state
 
     def submit(self, request):
         self.attempts += 1

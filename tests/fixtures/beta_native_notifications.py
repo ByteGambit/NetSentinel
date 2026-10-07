@@ -14,6 +14,7 @@ from netsentinel.domain.alerts import Alert, AlertCandidate, AlertEvidence
 from netsentinel.infrastructure.sqlite.alert_repository import SQLiteAlertRepository
 from netsentinel.infrastructure.sqlite.database import SQLiteDatabase
 from netsentinel.presentation.app import create_application
+from netsentinel.presentation.notifications import QtDesktopNotificationSink
 from netsentinel.presentation.views.main_window import PageId
 from netsentinel.presentation.views.alerts import AlertsView
 from netsentinel.shared.config import AppConfig, load_config_file, save_config_file
@@ -49,7 +50,8 @@ def main() -> int:
     root.mkdir(parents=True, exist_ok=True)
     cfg = root / "config.json"
     if not cfg.exists():
-        save_config_file(cfg, AppConfig())
+        # This policy-only fixture does not repeat the already observed guide.
+        save_config_file(cfg, AppConfig(onboarding_completed=True, onboarding_completed_version=1))
     engine = FixtureEngine()
     db = SQLiteDatabase(root / "synthetic.sqlite3")
     repo = SQLiteAlertRepository(db)
@@ -63,19 +65,27 @@ def main() -> int:
     target: Alert | None = None
     last_action = "startup-no-replay"
     history: list[dict[str, object]] = []
+    identity = json.loads((root / "candidate.json").read_text(encoding="utf-8-sig"))
 
 
     def report() -> None:
         assert shell.notifications is not None
         view = shell.window.page_widget(PageId.ALERTS)
         assert isinstance(view, AlertsView)
+        with db.connection() as connection:
+            alert_count = connection.execute("SELECT count(*) FROM alerts").fetchone()[0]
         result = {"fixture": "isolated native production components; same candidate PYZ",
-            "source_commit": "ae08d7ef1205f5bd4f0b9b0397075c1f6176f2c4",
+            "source_commit": identity["runtime_source_commit"],
+            "installer_sha256": identity["sha256"],
             "generated_this_process": generated, "enabled": shell.notifications.service.enabled,
             "diagnostics": asdict(shell.notifications.service.diagnostics()),
             "selected_alert": str(view.selected_alert_id) if view.selected_alert_id else None,
             "target_alert": str(target.id) if target else None,
             "last_action": last_action, "action_history": history,
+            "monitoring_fixture_running": engine.running,
+            "local_alert_count": alert_count,
+            "qt_submission_attempts": (shell.notifications.service.sink.submission_attempts
+                if isinstance(shell.notifications.service.sink, QtDesktopNotificationSink) else None),
             "policy_note": "submitted_to_sink is not OS-delivered; OS observation recorded separately"}
         (root / "result.json").write_text(json.dumps(result), encoding="utf-8")
 
@@ -88,7 +98,7 @@ def main() -> int:
             action = json.loads(command.read_text(encoding="utf-8-sig"))["action"]
             command.unlink()
             last_action = action
-            if action in ("off", "on", "policy"):
+            if action in ("off", "on", "policy", "reenabled", "session"):
                 if action == "on":
                     shell.notifications.save_enabled(True)
                 now = datetime.now(UTC)
@@ -105,6 +115,12 @@ def main() -> int:
                     shell.notifications.drain()
             elif action == "disable":
                 shell.notifications.save_enabled(False)
+            elif action == "diagnostics":
+                shell.window.navigate_to(PageId.DIAGNOSTICS)
+            elif action == "settings":
+                shell.notifications.show_settings()
+            elif action == "status":
+                shell.notifications.service.refresh_policy()
             elif action == "quit":
                 report()
                 shell.controller.request_quit()

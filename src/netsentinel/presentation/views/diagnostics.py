@@ -10,6 +10,7 @@ from netsentinel.application.services.capabilities import CapabilityMatrix
 from netsentinel.presentation.capability_query import CapabilityCoordinator
 from netsentinel.shared.diagnostics import CaptureCapabilityReason, CaptureHealthSnapshot
 from netsentinel.application.services.notifications import NotificationDiagnostics
+from netsentinel.presentation.widgets.notification_settings import notification_state_text
 from netsentinel.shared.config import AppConfig
 
 
@@ -134,8 +135,12 @@ class DiagnosticsView(QWidget):
             self.set_preferences(replace(self._config, desktop_notifications_enabled=enabled),
                                  credential_available=self._credential_available)
             self.notifications.setText(
-                f"Desktop notifications: {'enabled' if enabled else 'disabled'}; "
+                f"Desktop notifications: {notification_state_text(enabled, snapshot.platform_state)} "
+                f"intents {snapshot.intents_seen}; eligible {snapshot.eligible_for_delivery}; "
+                f"adapter attempts {snapshot.submission_attempts}; OS/session skipped {snapshot.os_policy_skipped}; "
                 f"submitted {snapshot.submitted_to_sink} (display unconfirmed); "
+                "visible delivery UNKNOWN (Qt supplies no display confirmation); "
+                f"last adapter outcome {snapshot.last_submission_outcome.value if snapshot.last_submission_outcome else 'none'}; "
                 f"unavailable {snapshot.sink_unavailable}; failed {snapshot.sink_failure}; "
                 f"queue coalesced {snapshot.queue_coalesced}, dropped {snapshot.queue_dropped}; "
                 f"session capacity skipped {snapshot.capacity_skipped}; "
