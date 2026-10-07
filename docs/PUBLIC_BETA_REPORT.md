@@ -1,5 +1,22 @@
 # NS-099 — Final delivery record
 
+Final prepared sleep retry (2026-10-07): **native S3/recovery PASS** with accepted
+8242868 runtime, no production change/rebuild. Sleep12:08:13.9440018 UTC,
+Wake12:37:06.4081465 UTC, **1732.464145s**. PID19696/one monitoring session
+preserved; monitoring/history writer Running, queue0/2048, healthy schema019 DB.
+Alert/incident/notification delta0/0/0 (notifications OFF); no observed storm.
+DB +925,696 bytes first post-wake, +3,059,712 after closure.36 new Edge rows
+post-wake; OS automatically associated its account with the test browser, notice
+not accepted/settings unchanged, only owned browser processes stopped. Existing
+pre-sleep capacity-loss counter cycling documented, no new S3 coverage drop.
+Normal NetSentinel Quit upper bound3.032945s,0 remaining processes/window.
+Docs-only diff/privacy and normal main commit/push; no full runtime rerun.
+VPN BLOCKED/NOT RUN; NS-099 INCOMPLETE/M17 IN PROGRESS, pilot/broad NO_GO,
+M18 DEFER, NS-100 NOT STARTED, tag/release NONE.
+[Full prepared native result](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#final-prepared-retry-live-candidate-s3-recovery).
+
+The earlier sleep and policy summaries below retain their historical scope.
+
 Follow-up (2026-10-07): all power-request classes None at11:48:14 UTC, followed
 by independently initiated host S3, SleepTime11:50:47.8557455 / WakeTime11:53:10.3171929
 UTC, **142.461447s**. **Application sleep/resume NOT RUN**: measured candidate

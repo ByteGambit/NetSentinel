@@ -1,5 +1,14 @@
 # NS-099 — Release readiness checklist (unpublished)
 
+Final prepared sleep retry: **native S3/recovery PASS**, accepted candidate,
+1732.464145s, same PID/session, healthy monitoring/history/DB, no storm with
+notifications OFF, post-wake benign monitoring, native Quit3.033s/no ghost.
+Required VPN remains BLOCKED/NOT RUN, so NS-099 INCOMPLETE/M17 IN PROGRESS and
+pilot/broad NO_GO remain. M18 DEFER, NS-100 NOT STARTED; no publication/tag/rebuild.
+[Scope and limitations](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#final-prepared-retry-live-candidate-s3-recovery).
+
+Earlier closure summaries below are historical evidence, not the latest sleep result.
+
 Follow-up host S3 verified for142.461447s after requests cleared; **application
 sleep/resume NOT RUN** because the measured candidate had already been quit and
 no live baseline existed. Host proof grants no recovery waiver or release GO.
@@ -52,7 +61,7 @@ NS-099 **INCOMPLETE**, M17 **IN PROGRESS**, limited pilot **NO_GO**, broad relea
 
 | Area | Current evidence | Open gate |
 |---|---|---|
-| Core/context/risk | Prior M11–M14 accepted and offline regressions; native benign browser/updater, driver-missing, restarts | Safe VPN and complete native sleep/gap evidence |
+| Core/context/risk | Prior M11–M14 and native scenarios; final accepted-candidate host S3 recovery/benign monitoring PASS in stated OFF scope | Required safe VPN BLOCKED/NOT RUN |
 | Incidents/baselines | Prior M13/M16, accelerated caps/explicit story/restarts; native aggregate persistence | Native zero incidents do not exercise narrative quality |
 | Notifications | DefaultsOFF and zero-alert benign observation; fake sink policy PASS | Current policy fixture PASS: actual global OFF/ON, UNKNOWN, popup/privacy/click/duplicates/restart; human toastUX/layout PASS retained in evaluator scope |
 | Tray | Native Hide/actual icon Show/default X Quit; no ghosts | Prior-candidate tray-context Quit PASS1357ms; human intent PASS |

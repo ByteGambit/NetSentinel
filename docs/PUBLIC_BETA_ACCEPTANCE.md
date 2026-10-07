@@ -1,5 +1,16 @@
 # NS-099 — Public beta acceptance gate
 
+Final prepared native sleep retry (2026-10-07): **PASS**, accepted8242868 candidate
+running across new host S3 **1732.464145s** (15:08:13.944→15:37:06.408 local).
+Same PID19696/one monitoring session, engine/writer Running, queue0/2048, alerts/incidents0,
+notifications OFF/counters0, integrity ok;36 new Edge history rows after wake,
+native Quit3.033s with0 remaining processes. Enabled optional features and
+browser account isolation are not claimed tested; exact limits below.
+VPN BLOCKED/NOT RUN still prevents NS-099 completion/M17 exit and release GO.
+[Final prepared measurements](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#final-prepared-retry-live-candidate-s3-recovery).
+
+The following earlier sleep/notification closure summaries are historical.
+
 Follow-up host S3 (2026-10-07): Windows sleep/wake fields verify **142.461447s**
 after all power-request classes cleared. **NetSentinel sleep/resume NOT RUN**:
 the measured candidate had already been quit, with no new application baseline
@@ -60,7 +71,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; private host-server provisioning BLOCKED by Windows Application Control; workload counts NOT MEASURED |
-| Meaningful native sleep/resume | Application NOT RUN; later host S3 verified for142.46s with requests clear, but measured candidate already quit and no recovery baseline |
+| Meaningful native sleep/resume | PASS, final prepared accepted-candidate host S3 for1732.46s; same PID/session, responsive recovery, benign monitoring and clean Quit; optional OFF scope |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |

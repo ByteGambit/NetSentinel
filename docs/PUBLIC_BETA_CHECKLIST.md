@@ -1,5 +1,14 @@
 # NS-099 — Native candidate checklist
 
+Final prepared native sleep retry (2026-10-07): **PASS** for accepted candidate
+and default optional features OFF. Actual S3 **1732.464145s**, same PID/session,
+engine/history writer Running/queue0, alert/incident/notification delta0/0/0,
+healthy DB, post-wake benign browser observations, clean Quit3.033s/no ghost.
+VPN BLOCKED/NOT RUN; NS-099 INCOMPLETE/M17 IN PROGRESS and release NO_GO unchanged.
+[Prepared run and explicit limits](NS099_NATIVE_SLEEP_HOST_ATTEMPT.md#final-prepared-retry-live-candidate-s3-recovery).
+
+Earlier closure summaries below preserve their historical measurement scope.
+
 Follow-up (2026-10-07): actual host S3 verified for **142.461447s** after a clean
 power-request snapshot. **Application sleep/resume NOT RUN**: measured candidate
 already quit, no live recovery/burden baseline. No gate waiver or release change.
@@ -49,7 +58,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
 | Safe VPN | NOT RUN; host-server launch BLOCKED by Windows Application Control; counts NOT MEASURED |
-| Meaningful native sleep/resume | Application NOT RUN; later host S3 verified for142.46s with requests clear, but measured candidate already quit and no recovery baseline |
+| Meaningful native sleep/resume | PASS, final prepared accepted-candidate host S3 for1732.46s; same PID/session, responsive recovery, benign monitoring and clean Quit; optional OFF scope |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
 | Limited pilot / broad release | NO_GO / NO_GO; broad signing/distribution policy still applies |
