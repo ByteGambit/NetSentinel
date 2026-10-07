@@ -1,5 +1,10 @@
 # NS-099 — Native candidate checklist
 
+VPN-only attempt (2026-10-07): **NOT RUN**, host endpoint provisioning BLOCKED
+by Windows Application Control before server launch. All VPN workload counters
+NOT MEASURED; candidate unchanged, no native sleep test or gate waiver.
+[Environment evidence and stop reason](NS099_VPN_ENVIRONMENT_ATTEMPT.md).
+
 NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
 global Notifications OFF/ON in the same Limited-token Session1; application
 reports **UNKNOWN**, accepted submission is not visible-delivery proof.
@@ -20,7 +25,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Native notification/privacy/click/duplicates/restart | PASS in current policy fixture scope; visibility counters remain unconfirmed |
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
-| Safe VPN | NOT RUN, unchanged |
+| Safe VPN | NOT RUN; host-server launch BLOCKED by Windows Application Control; counts NOT MEASURED |
 | Meaningful native sleep/resume | NOT RUN, unchanged |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |

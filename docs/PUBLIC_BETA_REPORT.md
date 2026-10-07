@@ -1,5 +1,12 @@
 # NS-099 — Final delivery record
 
+VPN-only environment attempt (2026-10-07): **NOT RUN**, because Windows
+Application Control blocked the hash-verified portable host server before process
+creation. Alerts/incidents/notifications/app errors **NOT MEASURED**. No product
+change, security bypass or native sleep test. NS-099 INCOMPLETE; M17 IN PROGRESS;
+pilot/broad NO_GO; M18 DEFER; NS-100 NOT STARTED; no tag/release.
+[Attempt, candidate identity and cleanup](NS099_VPN_ENVIRONMENT_ATTEMPT.md).
+
 NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
 global Notifications OFF/ON in the same Limited-token Session1; application
 reports **UNKNOWN**, accepted submission is not visible-delivery proof.

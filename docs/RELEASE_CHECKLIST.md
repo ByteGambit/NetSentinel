@@ -1,5 +1,11 @@
 # NS-099 — Release readiness checklist (unpublished)
 
+VPN-only attempt (2026-10-07): **NOT RUN; provisioning BLOCKED** by host Windows
+Application Control. No tunnel or VPN burden measurements. Candidate/runtime and
+release decisions unchanged; native sleep untouched. NS-099 INCOMPLETE/M17 IN
+PROGRESS, pilot/broad NO_GO, M18 DEFER; NS-100/tag/release NONE.
+[Private endpoint attempt and cleanup](NS099_VPN_ENVIRONMENT_ATTEMPT.md).
+
 NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
 global Notifications OFF/ON in the same Limited-token Session1; application
 reports **UNKNOWN**, accepted submission is not visible-delivery proof.

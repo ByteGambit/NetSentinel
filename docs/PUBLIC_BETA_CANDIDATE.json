@@ -88,6 +88,30 @@
     "tray_context_quit": "PASS",
     "human_ux": "PASS, 8 PASS / 0 FAIL; focused layout recheck accepted by evaluator"
   },
+  "vpn_environment_attempt": {
+    "observed_on": "2026-10-07",
+    "client_vm": "Windows 11",
+    "result": "NOT RUN",
+    "provisioning_result": "BLOCKED",
+    "blocker": "Host Windows Application Control prevented the hash-verified portable SoftEther server from starting",
+    "tunnel_established": false,
+    "runtime_changed": false,
+    "native_sleep_attempted": false,
+    "workload_counts": {
+      "alerts": null,
+      "incidents": null,
+      "notifications": null,
+      "application_errors": null
+    },
+    "counts_status": "NOT MEASURED; no VPN workload executed",
+    "host_server_processes_after_attempt": 0,
+    "host_server_services_after_attempt": 0,
+    "host_lab_listeners_after_attempt": 0,
+    "host_lab_firewall_rules_after_attempt": 0,
+    "guest_vpn_profiles_after_attempt": 0,
+    "security_policy_bypass": false,
+    "record": "docs/NS099_VPN_ENVIRONMENT_ATTEMPT.md"
+  },
   "closure_quality": {
     "targeted_passed": 123,
     "targeted_seconds": 21.69,

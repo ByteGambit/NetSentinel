@@ -1,5 +1,12 @@
 # NS-099 — Public beta acceptance gate
 
+VPN environment attempt (2026-10-07): **VPN NOT RUN; provisioning BLOCKED**.
+The hash-verified portable host server was prevented from starting by Windows
+Application Control. No tunnel/workload measurements; counts NOT MEASURED.
+No production change or security bypass; native sleep untouched. NS-099
+INCOMPLETE, M17 IN PROGRESS, pilot/broad NO_GO, M18 DEFER, NS-100 NOT STARTED.
+[Exact attempt, stop reason and cleanup](NS099_VPN_ENVIRONMENT_ATTEMPT.md).
+
 NS-099 notification-policy closure (2026-10-07): **policy PASS**, actual Windows
 global Notifications OFF/ON in the same Limited-token Session1; application
 reports **UNKNOWN**, accepted submission is not visible-delivery proof.
@@ -20,7 +27,7 @@ M18 DEFER, NS-100 NOT STARTED; tag/release NONE.
 | Native notification/privacy/click/duplicates/restart | PASS in current policy fixture scope; visibility counters remain unconfirmed |
 | Tray / benign browser/updater / install scenarios | Original candidate-scoped PASS, not unnecessarily repeated |
 | Human UX | PASS8/8; original layout finding CLOSED; no new human rating invented |
-| Safe VPN | NOT RUN, unchanged |
+| Safe VPN | NOT RUN; private host-server provisioning BLOCKED by Windows Application Control; workload counts NOT MEASURED |
 | Meaningful native sleep/resume | NOT RUN, unchanged |
 | FP / notification burden | Historical benign42min alerts0/incidents0; current synthetic policy measurements scoped separately; required missing cases prevent full M17 exit |
 | NS-099 / M17 | INCOMPLETE / IN PROGRESS; exact TASKS criteria preserved |
