@@ -303,6 +303,10 @@ class ResponseReason(str, Enum):
     READBACK_UNAVAILABLE = "readback_unavailable"
     OS_DB_DISAGREEMENT = "os_db_disagreement"
     RULE_READBACK_VERIFIED = "rule_readback_verified"
+    INVALID_REQUEST = "invalid_request"
+    UNSUPPORTED = "unsupported"
+    BACKEND_UNAVAILABLE = "backend_unavailable"
+    OPERATION_FAILED = "operation_failed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -340,9 +344,11 @@ class ResponseResult:
                 ResponseReason.POLICY_LIMITED, ResponseReason.REVALIDATION_REQUIRED,
                 ResponseReason.CONFIRMATION_REQUIRED, ResponseReason.STALE_CONFIRMATION,
                 ResponseReason.TARGET_UNAVAILABLE, ResponseReason.OWNERSHIP_CONFLICT, ResponseReason.STORAGE_UNAVAILABLE,
+                ResponseReason.INVALID_REQUEST, ResponseReason.UNSUPPORTED, ResponseReason.BACKEND_UNAVAILABLE,
             },
             ResponseOutcome.FAILED: {ResponseReason.ACCESS_DENIED, ResponseReason.UAC_CANCELLED,
-                                     ResponseReason.POLICY_LIMITED, ResponseReason.OWNERSHIP_CONFLICT},
+                                     ResponseReason.POLICY_LIMITED, ResponseReason.OWNERSHIP_CONFLICT,
+                                     ResponseReason.BACKEND_UNAVAILABLE, ResponseReason.OPERATION_FAILED},
             ResponseOutcome.OUTCOME_UNKNOWN: {ResponseReason.READBACK_UNAVAILABLE},
             ResponseOutcome.PARTIAL: {ResponseReason.OS_DB_DISAGREEMENT},
             ResponseOutcome.VERIFIED: {ResponseReason.RULE_READBACK_VERIFIED},
@@ -464,3 +470,290 @@ def deserialize_response_command(payload: bytes) -> ResponseCommand:
         )
     except (ValueError, TypeError, KeyError, RecursionError, OverflowError):
         raise ValueError("invalid response command payload") from None
+
+
+# NS-100 ownership handoff clarification. Values only: no backend or storage.
+OWNED_FIREWALL_MANIFEST_VERSION = 1
+MAX_OWNED_FIREWALL_MANIFEST_BYTES = 16 * 1024
+
+
+def _rule_text(value: str) -> None:
+    if (type(value) is not str or any(unicodedata.category(c) in {"Cc", "Cf", "Cs"} for c in value)
+            or len(value.encode("utf-8")) > MAX_RESPONSE_PATH_BYTES):
+        raise ValueError("firewall readback requires bounded plain text")
+
+
+@dataclass(frozen=True, slots=True)
+class FirewallRuleSnapshot:
+    """Complete supported property readback, never a writable rule request.
+
+    Spec contains application, remote address/port, protocol, profile, direction
+    and effect. Other properties include the Rule2/Rule3 restrictions. A future
+    adapter must reject unavailable/unsupported properties, broader spec shapes
+    and unknown rule types rather than substitute defaults into this snapshot.
+    Strings are normalized documented API representations, not COM objects.
+    """
+
+    name: str
+    spec: ResponseRuleSpec = field(repr=False)
+    description: str = field(repr=False)
+    grouping: str = field(repr=False)
+    enabled: bool
+    service_name: str = field(repr=False)
+    local_addresses: str = field(repr=False)
+    local_ports: str = field(repr=False)
+    icmp_types_and_codes: str = field(repr=False)
+    interfaces: tuple[str, ...] = field(repr=False)
+    interface_types: str = field(repr=False)
+    edge_traversal: bool
+    edge_traversal_options: int
+    local_app_package_id: str = field(repr=False)
+    local_user_owner: str = field(repr=False)
+    local_user_authorized_list: str = field(repr=False)
+    remote_user_authorized_list: str = field(repr=False)
+    remote_machine_authorized_list: str = field(repr=False)
+    secure_flags: int
+
+    def __post_init__(self) -> None:
+        if type(self.spec) is not ResponseRuleSpec:
+            raise TypeError("firewall readback requires an exact typed scope")
+        for value in (self.name, self.description, self.grouping, self.service_name,
+                      self.local_addresses, self.local_ports, self.icmp_types_and_codes,
+                      self.interface_types, self.local_app_package_id, self.local_user_owner,
+                      self.local_user_authorized_list, self.remote_user_authorized_list,
+                      self.remote_machine_authorized_list):
+            _rule_text(value)
+        if not self.name:
+            raise ValueError("firewall readback requires a rule name")
+        if type(self.interfaces) is not tuple or len(self.interfaces) > 64:
+            raise TypeError("firewall interfaces require a bounded immutable tuple")
+        for value in self.interfaces:
+            _rule_text(value)
+        if type(self.enabled) is not bool or type(self.edge_traversal) is not bool:
+            raise TypeError("firewall readback booleans must be exact")
+        for flag in (self.edge_traversal_options, self.secure_flags):
+            if type(flag) is not int or not 0 <= flag <= 2**32 - 1:
+                raise ValueError("firewall readback flags exceed typed bounds")
+
+
+def expected_firewall_rule(command: ResponseCommand) -> FirewallRuleSnapshot:
+    """Pure expected full scope. This is not evidence that a rule was created."""
+    if type(command) is not ResponseCommand:
+        raise TypeError("firewall expectation requires an exact response command")
+    return FirewallRuleSnapshot(
+        name=command.rule_name, spec=command.spec,
+        description=f"NetSentinel response v1 {command.rule_id}", grouping="", enabled=True,
+        service_name="", local_addresses="*", local_ports="*", icmp_types_and_codes="",
+        interfaces=(), interface_types="All", edge_traversal=False, edge_traversal_options=0,
+        local_app_package_id="", local_user_owner="", local_user_authorized_list="",
+        remote_user_authorized_list="", remote_machine_authorized_list="", secure_flags=0,
+    )
+
+
+def _confirmed_action(command: ResponseCommand, confirmation: ResponseConfirmation,
+                      action: ResponseAction) -> None:
+    if (type(command) is not ResponseCommand or type(confirmation) is not ResponseConfirmation
+            or command.action is not action):
+        raise TypeError("firewall request requires the exact typed action and confirmation")
+    if not confirmation_matches(command, confirmation, confirmation.confirmed_at):
+        raise ValueError("firewall request confirmation does not bind its command")
+
+
+@dataclass(frozen=True, slots=True)
+class FirewallCreateRequest:
+    command: ResponseCommand = field(repr=False)
+    confirmation: ResponseConfirmation = field(repr=False)
+
+    def __post_init__(self) -> None:
+        _confirmed_action(self.command, self.confirmation, ResponseAction.CREATE)
+
+
+@dataclass(frozen=True, slots=True)
+class OwnedFirewallRuleManifest:
+    """Originating verified creation evidence held by the caller, not storage.
+
+    Construction/deserialization cannot authenticate provenance or grant writes.
+    NS-101 produces this only after its own create and complete unique readback;
+    NS-102 will durably store/recover it. Name/UUID cannot reconstruct ownership.
+    """
+
+    creation: FirewallCreateRequest = field(repr=False)
+    rule: FirewallRuleSnapshot = field(repr=False)
+    created_at: datetime
+    verified_at: datetime
+    manifest_version: int = OWNED_FIREWALL_MANIFEST_VERSION
+
+    def __post_init__(self) -> None:
+        if type(self.creation) is not FirewallCreateRequest or type(self.rule) is not FirewallRuleSnapshot:
+            raise TypeError("ownership requires exact originating creation and full readback")
+        if type(self.manifest_version) is not int or self.manifest_version != OWNED_FIREWALL_MANIFEST_VERSION:
+            raise ValueError("unsupported ownership manifest version")
+        object.__setattr__(self, "created_at", _utc(self.created_at))
+        object.__setattr__(self, "verified_at", _utc(self.verified_at))
+        if (not confirmation_matches(self.creation.command, self.creation.confirmation, self.created_at)
+                or self.verified_at < self.created_at):
+            raise ValueError("ownership creation and readback times disagree")
+        if (self.creation.command.source.status is not ResponseSourceStatus.AVAILABLE
+                or self.creation.command.source.quality is ObservationQuality.FAILED):
+            raise ValueError("ownership creation requires an available source")
+        if self.rule != expected_firewall_rule(self.creation.command):
+            raise ValueError("ownership readback does not match the full expected rule")
+
+
+@dataclass(frozen=True, slots=True)
+class FirewallCreateResult:
+    request: FirewallCreateRequest = field(repr=False)
+    result: ResponseResult
+    manifest: OwnedFirewallRuleManifest | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        if type(self.request) is not FirewallCreateRequest or type(self.result) is not ResponseResult:
+            raise TypeError("firewall creation handoff requires exact typed values")
+        if (self.result.action is not ResponseAction.CREATE
+                or self.result.command_id != self.request.command.command_id):
+            raise ValueError("creation receipt does not bind its request")
+        if self.result.outcome is ResponseOutcome.VERIFIED:
+            if type(self.manifest) is not OwnedFirewallRuleManifest or self.manifest.creation != self.request:
+                raise ValueError("verified creation requires its exact originating manifest")
+        elif self.manifest is not None:
+            raise ValueError("unverified creation cannot grant ownership")
+
+
+@dataclass(frozen=True, slots=True)
+class FirewallRemoveRequest:
+    command: ResponseCommand = field(repr=False)
+    confirmation: ResponseConfirmation = field(repr=False)
+    manifest: OwnedFirewallRuleManifest = field(repr=False)
+
+    def __post_init__(self) -> None:
+        _confirmed_action(self.command, self.confirmation, ResponseAction.REMOVE)
+        if type(self.manifest) is not OwnedFirewallRuleManifest:
+            raise TypeError("removal requires the originating typed manifest")
+        original = self.manifest.creation.command
+        if (self.command.rule_id != original.rule_id or self.command.origin_store_id != original.origin_store_id
+                or self.command.spec != original.spec or self.command.file_identity != original.file_identity
+                or self.command.source.session_id != original.source.session_id
+                or self.command.source.lifecycle_id != original.source.lifecycle_id
+                or self.command.source.observed_at != original.source.observed_at
+                or self.command.source.quality != original.source.quality
+                or self.command.prepared_at < self.manifest.verified_at):
+            raise ValueError("removal command does not bind the originating manifest")
+
+
+class FirewallReadStatus(str, Enum):
+    MATCHED = "matched"  # Full unique supported readback, not traffic-effect proof.
+    ABSENT = "absent"  # Discovery only; never proof of a successful removal.
+    MISMATCH = "mismatch"
+    DUPLICATE = "duplicate"
+    ACCESS_DENIED = "access_denied"
+    READ_UNAVAILABLE = "read_unavailable"
+    BACKEND_UNAVAILABLE = "backend_unavailable"
+    UNSUPPORTED = "unsupported"
+    INVALID_REQUEST = "invalid_request"
+
+
+@dataclass(frozen=True, slots=True)
+class FirewallReadResult:
+    manifest: OwnedFirewallRuleManifest = field(repr=False)
+    status: FirewallReadStatus
+    checked_at: datetime
+    snapshot: FirewallRuleSnapshot | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        if type(self.manifest) is not OwnedFirewallRuleManifest or type(self.status) is not FirewallReadStatus:
+            raise TypeError("firewall inspection requires exact typed manifest and status")
+        object.__setattr__(self, "checked_at", _utc(self.checked_at))
+        if self.checked_at < self.manifest.verified_at:
+            raise ValueError("firewall inspection cannot predate the originating readback")
+        if self.status in {FirewallReadStatus.MATCHED, FirewallReadStatus.MISMATCH}:
+            if type(self.snapshot) is not FirewallRuleSnapshot:
+                raise TypeError("firewall equality status requires complete supported readback")
+            if (self.snapshot == self.manifest.rule) != (self.status is FirewallReadStatus.MATCHED):
+                raise ValueError("firewall inspection status contradicts full readback equality")
+        elif self.snapshot is not None:
+            raise ValueError("unavailable/ambiguous inspection cannot supply an equality snapshot")
+
+
+def removal_readback_matches(request: FirewallRemoveRequest, readback: FirewallReadResult, *,
+                             read_started_at: datetime, now: datetime) -> bool:
+    """Pure guard for the future adapter's OWN fresh read in this removal call.
+
+    Caller-supplied/cached readback is never authority. Native implementations
+    still own unique enumeration, complete property access and external-edit
+    race handling; this predicate cannot authenticate values or perform removal.
+    """
+    if type(request) is not FirewallRemoveRequest or type(readback) is not FirewallReadResult:
+        raise TypeError("removal comparison requires exact typed values")
+    read_started_at, now = _utc(read_started_at), _utc(now)
+    return (readback.manifest == request.manifest and readback.status is FirewallReadStatus.MATCHED
+            and request.confirmation.confirmed_at <= read_started_at <= readback.checked_at <= now
+            and confirmation_matches(request.command, request.confirmation, now))
+
+
+def _manifest_rule_values(rule: FirewallRuleSnapshot) -> dict[str, object]:
+    # Scope is stored once inside the original command and bound on decode.
+    return {name: getattr(rule, name) for name in FirewallRuleSnapshot.__dataclass_fields__ if name != "spec"}
+
+
+def serialize_owned_firewall_manifest(manifest: OwnedFirewallRuleManifest) -> bytes:
+    """Bounded local sensitive transport, never a log/export or persistence call."""
+    if type(manifest) is not OwnedFirewallRuleManifest:
+        raise TypeError("serialization requires an exact ownership manifest")
+    values = {
+        "version": manifest.manifest_version, "command": _command_values(manifest.creation.command),
+        "confirmation": {
+            "fingerprint": manifest.creation.confirmation.command_fingerprint,
+            "confirmed_at": manifest.creation.confirmation.confirmed_at.isoformat(timespec="microseconds"),
+        },
+        "rule": _manifest_rule_values(manifest.rule),
+        "created_at": manifest.created_at.isoformat(timespec="microseconds"),
+        "verified_at": manifest.verified_at.isoformat(timespec="microseconds"),
+    }
+    payload = json.dumps(values, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    if len(payload) > MAX_OWNED_FIREWALL_MANIFEST_BYTES:
+        raise ValueError("ownership manifest exceeds byte limit")
+    return payload
+
+
+def deserialize_owned_firewall_manifest(payload: bytes) -> OwnedFirewallRuleManifest:
+    """Strict v1 roundtrip. Valid bytes do not prove trusted originating custody."""
+    if type(payload) is not bytes or not 1 <= len(payload) <= MAX_OWNED_FIREWALL_MANIFEST_BYTES:
+        raise ValueError("invalid ownership manifest payload")
+    try:
+        data = _object(json.loads(payload.decode("utf-8"), object_pairs_hook=_unique), {
+            "version", "command", "confirmation", "rule", "created_at", "verified_at",
+        })
+        command = deserialize_response_command(json.dumps(data["command"], ensure_ascii=False).encode("utf-8"))
+        confirmation = _object(data["confirmation"], {"fingerprint", "confirmed_at"})
+        creation = FirewallCreateRequest(command, ResponseConfirmation(
+            _text(confirmation["fingerprint"]), _decode_time(confirmation["confirmed_at"]),
+        ))
+        rule = _object(data["rule"], set(FirewallRuleSnapshot.__dataclass_fields__) - {"spec"})
+        interfaces = rule["interfaces"]
+        if type(interfaces) is not list:
+            raise TypeError("invalid interface transport")
+        # Decode each field explicitly so framework objects/untyped casts cannot enter.
+        snapshot = FirewallRuleSnapshot(
+            name=_text(rule["name"]), spec=command.spec, description=_text(rule["description"]),
+            grouping=_text(rule["grouping"]), enabled=_boolean(rule["enabled"]),
+            service_name=_text(rule["service_name"]), local_addresses=_text(rule["local_addresses"]),
+            local_ports=_text(rule["local_ports"]), icmp_types_and_codes=_text(rule["icmp_types_and_codes"]),
+            interfaces=tuple(_text(value) for value in interfaces),
+            interface_types=_text(rule["interface_types"]), edge_traversal=_boolean(rule["edge_traversal"]),
+            edge_traversal_options=_integer(rule["edge_traversal_options"]),
+            local_app_package_id=_text(rule["local_app_package_id"]), local_user_owner=_text(rule["local_user_owner"]),
+            local_user_authorized_list=_text(rule["local_user_authorized_list"]),
+            remote_user_authorized_list=_text(rule["remote_user_authorized_list"]),
+            remote_machine_authorized_list=_text(rule["remote_machine_authorized_list"]),
+            secure_flags=_integer(rule["secure_flags"]),
+        )
+        return OwnedFirewallRuleManifest(creation, snapshot, _decode_time(data["created_at"]),
+                                         _decode_time(data["verified_at"]), _integer(data["version"]))
+    except (ValueError, TypeError, KeyError, RecursionError, OverflowError):
+        raise ValueError("invalid ownership manifest payload") from None
+
+
+def _boolean(value: object) -> bool:
+    if type(value) is not bool:
+        raise TypeError("response boolean must be exact")
+    return value

@@ -3,9 +3,14 @@
 Date: **2026-10-08 (Europe/Istanbul)**. User instruction **“GO NS-100”**
 authorizes this task after M17/NS-099 completion and acceptance of the
 [M18 planning gate](M18_RESPONSE_PLANNING.md). This is contract implementation
-only. **NS-101–104 NOT STARTED; no firewall write, elevation, helper, response UI,
+only. **NS-101 INCOMPLETE / stopped before coding; NS-102–104 NOT STARTED;
+no firewall write, elevation, helper, response UI,
 installer rebuild, dependency, schema, tag or release.** The original planning
 document is retained as the historical review that preceded this authorization.
+
+**NS-100 remains COMPLETE with the scoped ownership handoff clarification
+(2026-10-08).** This adds only immutable values, a bounded manifest codec and
+an application protocol. It does not resume NS-101 adapter implementation.
 
 ## Scope and values
 
@@ -107,12 +112,15 @@ network request, automatic upload or diagnostics hook. Schema stays **019**.
 
 ## Privilege contract and explicit deny decision
 
-`application/ports.py` defines only `ResponsePrivilegeProbe.assess(command)`.
+The privilege preflight in `application/ports.py` remains
+`ResponsePrivilegeProbe.assess(command)`.
 It is read-only and must never launch UAC or mutate state. `ResponseContractReview`
 checks confirmation before calling that injected port once, then returns a typed
 **NOT_ATTEMPTED** result. Missing/cancelled confirmation, stale selection/clock,
 invalid source, malformed probe replies and exceptions fail closed. Exceptions
-are discarded, never shown in result/error text. No executor method exists.
+are discarded, never shown in result/error text. No executor implementation exists.
+The ownership handoff protocol below declares future adapter operations;
+it neither implements nor dispatches them.
 
 Privilege statuses: **PRIVILEGE_REQUIRED, ACCESS_DENIED, UAC_CANCELLED,
 READ_UNAVAILABLE, POLICY_LIMITED, BOUNDARY_UNAVAILABLE, REVALIDATION_REQUIRED**.
@@ -144,13 +152,105 @@ Windows administration without claiming NetSentinel-owned success.
 
 Rule UUID/name and origin-store ID provide prospective identity, **not ownership
 proof**. Before a future CREATE, refuse any foreign collision or duplicate; never
-blindly upsert. Before REMOVE, require the originating durable manifest, a unique
+blindly upsert. Before REMOVE, require the originating manifest, a unique
 exact rule name and fresh equality of **all** relevant OS properties with the
 expected full specification. Prefix/group/description alone is insufficient.
 Unsupported properties, modified/disabled/missing/renamed/foreign rules, lost
 ledger and unknown ownership cannot be adopted, repaired, re-enabled or deleted.
 COM external-edit atomicity and full readback proof remain NS-101/102 gates.
-There is no durable manifest or reconciliation implementation in NS-100.
+NS-100 now defines the manifest value/handoff, not manifest storage or reconciliation.
+
+### Scoped ownership handoff clarification
+
+The previous gap was an absent typed handoff: NS-101 could neither return its
+verified originating creation evidence nor receive it for read/removal without
+assuming NS-102 storage existed. The user-authorized division is now explicit:
+
+**NS-101 can complete create/read/remove adapter acceptance using a caller-held
+manifest, while durable production ownership across restarts remains unavailable
+until NS-102.** Fake tests may hold that manifest in memory. A separately authorized
+isolated native NS-101 harness may hold it for create → read → remove. This is not
+production persistence or permission to run native tests in this clarification.
+After a harness/process restart, no ownership recovery or adoption by OS name is
+available. Production writes remain NO_GO; existing privilege/native gates remain.
+
+`OwnedFirewallRuleManifest` is a frozen framework-independent v1 value containing:
+
+| Fields | Why retained |
+|---|---|
+| Original `FirewallCreateRequest` (command + exact confirmation) | Rule/command/store UUIDs, full spec, file snapshot and source provenance; binds originating intent rather than a name/UUID discovered later |
+| Complete `FirewallRuleSnapshot` | Exact supported original OS rule equality, including enabled state and restrictions beyond the visible program/IP selector |
+| `created_at`, `verified_at` (UTC) | Creation dispatch time with current confirmation, followed by verified unique full readback; reported adapter evidence, not authenticated timestamps |
+| Manifest version | Stable strict transport for later NS-102 persistence; future/unknown versions fail closed |
+
+The snapshot includes name, description, grouping, full `ResponseRuleSpec`
+(application path, literal remote address, protocol/remote port, profile,
+direction/action), enabled state, service, local addresses/ports, ICMP fields,
+interface list/types, edge traversal/options, package ID, local user owner and
+local/remote user/machine authorization lists, and security flags. These cover
+the documented [INetFwRule](https://learn.microsoft.com/en-us/windows/win32/api/netfw/nn-netfw-inetfwrule),
+[INetFwRule2](https://learn.microsoft.com/en-us/windows/win32/api/netfw/nn-netfw-inetfwrule2)
+and [INetFwRule3](https://learn.microsoft.com/en-us/windows/win32/api/netfw/nn-netfw-inetfwrule3)
+property families without COM objects or native numeric enums in the domain scope.
+
+The supported expected rule is enabled, with exact UUID name and fixed
+`NetSentinel response v1 <uuid>` description; grouping is empty (no display-group
+authority). Local addresses/ports are `*`, interface list empty/type `All`;
+service/ICMP/package/user/IPsec selectors are empty/zero and edge traversal is
+false/options zero. They are explicit comparison fields, not omitted defaults.
+Description/grouping never establish ownership. An adapter must independently
+read every supported property and determine unique identity; unavailable,
+malformed, unsupported/broader or future properties cannot be silently replaced
+with these defaults. Unsupported spec shapes return UNSUPPORTED instead of a
+partial snapshot. Native property normalization/support still requires NS-101
+verification; no API binding or property-support claim is implemented here.
+Path spelling remains exact as in the accepted command. No case/path normalization,
+file access or new target is inferred by the handoff.
+
+`ResponseFirewall` in `application/ports.py` declares only:
+
+- `create(FirewallCreateRequest) → FirewallCreateResult`: exact CREATE command and
+  confirmation required. VERIFIED requires the matching originating manifest;
+  NOT_ATTEMPTED/FAILED/UNKNOWN/PARTIAL cannot carry an ownership grant. The future
+  adapter may produce a manifest only after its own creation and unique full readback.
+- `read(OwnedFirewallRuleManifest) → FirewallReadResult`: explicit fresh inspection;
+  MATCHED requires a complete equal snapshot. ABSENT, MISMATCH, DUPLICATE, access
+  denied, read/backend unavailable, unsupported and invalid request remain distinct.
+  No raw COM objects, arbitrary data or infrastructure exceptions escape the port.
+- `remove(FirewallRemoveRequest) → ResponseResult`: originating manifest plus a
+  distinct confirmed REMOVE command binding the original rule/store/spec/file/source
+  identity. Source availability may expire; original observation/quality remain bound.
+  The adapter must do its OWN fresh unique full read during this call, compare every
+  field, refuse drift/ambiguity/unsupported state, remove that exact unchanged rule,
+  then independently verify absence. Caller-cached reads cannot authorize removal.
+
+`removal_readback_matches` is only a pure equality/time/binding guard. It checks
+the manifest, MATCHED status, a read performed after this operation's supplied
+read-start time/confirmation and before now, and current confirmation validity.
+It is not an OS check, authenticated proof or a removal executor. Missing discovery
+is not successful Undo; no file-existence requirement is added to removal. Existing
+external-edit atomicity limits and unrelated-rule protections remain unchanged.
+
+The manifest codec is canonical sorted-key UTF-8 JSON, bounded to 16 KiB, with
+strict field/version/type/time/confirmation/scope validation and duplicate-key
+rejection at every depth. Scope is stored once in the original command and bound
+to the snapshot on decode. Sensitive path/IP/store/source/file/confirmation and
+restriction fields are excluded from repr. Bytes are local sensitive transport,
+not logs or support exports. Serialization never authenticates custody or performs
+storage; a forged/deserialized manifest alone is not privileged authority.
+
+For future adapter receipts, `ResponseReason` adds INVALID_REQUEST, UNSUPPORTED,
+BACKEND_UNAVAILABLE and OPERATION_FAILED. Existing `ResponseOutcome` and privilege
+statuses are unchanged: a known operation failure is FAILED, unprovable state is
+OUTCOME_UNKNOWN/READBACK_UNAVAILABLE, and OS/DB disagreement is PARTIAL. Invalid or
+unsupported requests cannot become verified/partial successes.
+
+Here, **durable** describes a stable serializable type suitable for durable
+storage. NS-101 produces/consumes and checks caller-held evidence; it must not
+persist, poll or reconcile it. NS-102 supplies actual durable DB custody,
+restart recovery/reconciliation and lifecycle/external-change audit. No SQLite
+schema/repository/audit table, startup wiring, recovery state machine, Windows
+backend, UI or elevation was added by this clarification.
 
 `ResponseResult` separates command outcome from current rule state. Known failure,
 OUTCOME_UNKNOWN and PARTIAL are not VERIFIED. A VERIFIED receipt requires the
@@ -160,9 +260,9 @@ Only test fixtures construct these success receipts now; there is no OS executor
 UAC cancellation after a later durable attempt is FAILED; this read-only preflight
 always remains NOT_ATTEMPTED. Denied removal may leave a rule present.
 
-Future sequencing is durable confirmed INTENT → durable ATTEMPT → trusted
+Future production sequencing is durable confirmed INTENT → durable ATTEMPT → trusted
 validation/confirmation → OS call → independent readback → bounded durable
-receipt. No OS write when persistence/reserved Undo capacity fails. OS/DB/IPC
+receipt. No production OS write when persistence/reserved Undo capacity fails. OS/DB/IPC
 disagreement stays PARTIAL/UNKNOWN; retain recovery provenance, reconcile read-only
 and never retry CREATE blindly. Submission/worker cancellation is not verified
 postcondition. Restart/profile/VPN/sleep changes do not retarget or authorize writes.
@@ -190,3 +290,4 @@ be labelled cleanup success. NS-102/104 own storage/reconciliation/uninstall wor
 Validation results are recorded in [NS-100 acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
 M18 remains in progress. Starting NS-101 requires a separate user instruction;
 NS-100 completion does not unlock writable response or native tests.
+NS-101 remains INCOMPLETE / stopped before adapter coding; NS-102–104 NOT STARTED.

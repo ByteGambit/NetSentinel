@@ -49,7 +49,10 @@ from netsentinel.domain.dns import (
 )
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.domain.risk_evidence import RiskEvidenceBatch
-from netsentinel.domain.response import ResponseCommand, ResponsePrivilegeAssessment
+from netsentinel.domain.response import (
+    FirewallCreateRequest, FirewallCreateResult, FirewallReadResult, FirewallRemoveRequest,
+    OwnedFirewallRuleManifest, ResponseCommand, ResponsePrivilegeAssessment, ResponseResult,
+)
 from netsentinel.domain.threat_intelligence import (
     ThreatIntelProviderDescriptor, ThreatIntelProviderId, ThreatIntelQuery, ThreatIntelResult,
 )
@@ -75,6 +78,30 @@ class ResponsePrivilegeProbe(Protocol):
     """
 
     def assess(self, command: ResponseCommand) -> ResponsePrivilegeAssessment: ...
+
+
+class ResponseFirewall(Protocol):
+    """NS-100 ownership handoff contract, with no implementation/runtime wiring.
+
+    NS-101 will produce/consume caller-held manifests, never persist them. Every
+    mutation rechecks exact confirmation at dispatch and independent privilege/
+    target constraints; local typed values alone are not authenticated authority.
+    Create refuses collisions and returns a manifest only after unique complete
+    readback. Read is explicit, fresh, bounded and never adopts a discovered rule.
+    Remove requires the originating manifest, independently reads full equality
+    during THAT call, refuses ambiguity/drift/unsupported properties, removes
+    only the exact unchanged rule, then verifies absence. A caller's cached read
+    result is not sufficient. Missing discovery is not a verified removal.
+    NS-102 owns durable custody/audit/restart recovery. Production writes stay
+    NO_GO; same-process fake/isolated authorized native harness use is separate.
+    No elevation, shell, COM values or raw exceptions cross this interface.
+    """
+
+    def create(self, request: FirewallCreateRequest) -> FirewallCreateResult: ...
+
+    def read(self, manifest: OwnedFirewallRuleManifest) -> FirewallReadResult: ...
+
+    def remove(self, request: FirewallRemoveRequest) -> ResponseResult: ...
 
 
 class StorageMaintenanceRepository(Protocol):
