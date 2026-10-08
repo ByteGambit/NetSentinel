@@ -1138,7 +1138,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ## M18 — Manual Response & Firewall Integration — CONDITIONAL
 
-**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** 2026-10-08 user **GO NS-100** yalnız NS-100 contract taskını yetkilendirir; NS-101–NS-104 NOT STARTED ve ayrı kullanıcı talimatı bekler. In-product writes NO_GO pending trusted privilege/ownership/native gates. Automatic blocking ve automatic elevation kapsam dışıdır.
+**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** 2026-10-08 user **GO NS-100** sonrası explicit **RESUME NS-101** yalnız adapter/fake tests ve özel Windows VM testini yetkilendirir. NS-100 COMPLETE; NS-101 COMPLETE (explicit isolated VMware native acceptance PASS); NS-102–NS-104 NOT STARTED. In-product writes NO_GO pending trusted privilege/ownership and later lifecycle/UI gates. Automatic blocking ve automatic elevation kapsam dışıdır.
 
 ### NS-100 — Response command/privilege contract
 
@@ -1154,7 +1154,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-101 — Windows Firewall adapter
 
-- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Durum:** ✅ COMPLETE (2026-10-08), explicit user RESUME NS-101 and approved pytest-only exact RFC1918 lab seam. Structured COM add/read/remove, caller-held originating manifest, full fresh ownership equality and fake acceptance implemented. Existing Windows 11 + Desktop Kali on VMnet1 host-only: native PRE/CREATE/READBACK/MANIFEST/scoped BLOCK/CONTROL/REMOVE/ABSENCE/RESTORE/CLEANUP PASS; final1 passed/1438 deprecation warnings/14.17s. 599 targeted passed/1 native deselected; Ruff/mypy37/whitespace/bounded privacy PASS; earlier full4388/9/coverage91.30% retained (no production source change). Production validation unchanged; NS-102–104 NOT STARTED; no UI/runtime response wiring, elevation, auto-block or persistence. [Native evidence, cleanup and limits](RESPONSE_FIREWALL_ACCEPTANCE.md). Acceptance approved for NS-101-only commit/push to main; tag/release NONE.
 - **Amaç:** Dar owned firewall kuralını Windows'ta yönetmek.
 - **Yapılacaklar:** Structured COM/typed Windows API ile add/read/remove adapter ve sanitized permission errors ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/infrastructure/, src/netsentinel/application/ports.py, tests/unit/infrastructure/.

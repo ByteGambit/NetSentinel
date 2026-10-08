@@ -290,4 +290,11 @@ be labelled cleanup success. NS-102/104 own storage/reconciliation/uninstall wor
 Validation results are recorded in [NS-100 acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
 M18 remains in progress. Starting NS-101 requires a separate user instruction;
 NS-100 completion does not unlock writable response or native tests.
-NS-101 remains INCOMPLETE / stopped before adapter coding; NS-102–104 NOT STARTED.
+NS-101 resumed by explicit user instruction on 2026-10-08: adapter/offline tests
+implemented; COMPLETE after explicitly approved test-only lab validation and
+isolated Windows 11/Kali VMware native acceptance on 2026-10-08. Production
+public-literal validation is unchanged; the private-IP exception exists only
+inside the opt-in pytest process and is restored after manifest-based cleanup.
+NS-102–104 NOT STARTED. Production writes remain NO_GO; no runtime response
+wiring, UI, helper, persistence or reconciliation was added.
+[NS-101 implementation, native gate and quality report](RESPONSE_FIREWALL_ACCEPTANCE.md).

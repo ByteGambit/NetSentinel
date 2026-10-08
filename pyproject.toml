@@ -23,6 +23,7 @@ dev = [
     "ruff>=0.16.9",
 ]
 packaging = ["pyinstaller>=6.22,<7"]
+firewall = ["pywin32==312; sys_platform == 'win32'"]
 
 [tool.setuptools.dynamic]
 version = {attr = "netsentinel.version.__version__"}
