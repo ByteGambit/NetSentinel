@@ -1,5 +1,14 @@
 # Yol haritası
 
+NS-100 (2026-10-08): explicit user **GO NS-100** authorizes only the contract
+task; **NS-100 COMPLETE** (205 new tests, full4038/8/91.17%, Ruff/mypy37/direct3/
+whitespace/privacy PASS). M17/NS-099 remain COMPLETE. M18 is IN PROGRESS with
+**in-product writes NO_GO** pending the trusted privilege boundary and later
+ownership/native acceptance. **NS-101–104 NOT STARTED**, separate user instruction
+required; no adapter/helper/firewall/UI/schema/installer/tag/release change.
+[NS-100 contract](RESPONSE_COMMAND_CONTRACT.md), [acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
+The following NS-099 and earlier summaries retain their historical scope.
+
 NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
 NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
 unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
@@ -332,7 +341,7 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ### M18 — Manual Response & Firewall Integration — CONDITIONAL
 
-- **Durum:** ◇ Conditional plan (NS-100–NS-104); committed next work değildir.
+- **Durum:** IN PROGRESS (2026-10-08), explicit user GO for NS-100 only; NS-100 contract COMPLETE, NS-101–NS-104 NOT STARTED. In-product writes NO_GO until privilege/ownership/native gates pass. [Contract](RESPONSE_COMMAND_CONTRACT.md), [acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
 - **Başlatma kapısı:** **M17 tamamlanmış, NS-099 geçmiş ve explicit response GO kararı verilmiş olmalıdır. Bu üç koşuldan önce NS-100–NS-104 başlatılmaz.**
 - **Amaç:** İncelenmiş davranış için dar, geri alınabilir manuel Windows Firewall eylemleri.
 - **Ana teslimatlar:** Explicit user action → preview → confirmation → yalnız NetSentinel-owned narrow firewall rule → audit → undo/expiry; permission UX ve uninstall reconciliation.

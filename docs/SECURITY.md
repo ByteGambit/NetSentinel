@@ -1,5 +1,18 @@
 # Güvenlik ve güvenli kullanım
 
+NS-100 (2026-10-08): user **GO NS-100** accepted; contract implementation
+**COMPLETE**, **in-product writes NO_GO**. Strict local command validation
+and exact preview/source/file/generation binding are not privileged consent.
+Read-only privilege review/default BOUNDARY_UNAVAILABLE cannot mutate OS state
+or prompt UAC. Typed denied/unknown/partial/readback results do not prove traffic
+effect. Ownership requires a durable originating manifest plus unique exact
+full fresh OS readback; no prefix adoption. Trusted helper deployment remains
+unresolved, with no helper/elevation/adapter implemented. **NS-101–104 NOT STARTED**,
+schema019 unchanged; tag/release **NONE**.
+[Privilege/ownership/rollback threat model](RESPONSE_COMMAND_CONTRACT.md),
+[205 new tests/full4038/8/91.17% and bounded privacy acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
+The following NS-099 and earlier summaries retain their historical scope.
+
 NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
 NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
 unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,

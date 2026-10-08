@@ -1,5 +1,16 @@
 # Ürün tanımı
 
+NS-100 (2026-10-08): user **GO NS-100** accepted; contract implementation
+**COMPLETE** (205 new tests; full offline4038/8 deselected, coverage91.17%,
+Ruff/configured mypy37/direct3/whitespace/privacy PASS). Pure typed program+literal-IP+transport/port/single-profile
+outbound BLOCK scope, explicit manual lifetime, preview/file/source binding and
+read-only privilege review are added. In-product writes remain **NO_GO** until
+the trusted privilege boundary and later ownership/native gates are resolved.
+Desktop behavior, installer and schema019 are unchanged; **NS-101–104 NOT STARTED**,
+tag/release **NONE**. [Contract and limits](RESPONSE_COMMAND_CONTRACT.md),
+[acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
+The following NS-099 and earlier summaries retain their historical scope.
+
 NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
 NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
 unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,

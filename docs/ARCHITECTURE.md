@@ -1,5 +1,17 @@
 # Mimari
 
+NS-100 (2026-10-08): user **GO NS-100** accepted; contract implementation
+**COMPLETE**. `domain.response` contains pure frozen scope/provenance/file
+snapshot/confirmation/result values and a bounded strict local codec.
+`application.ports.ResponsePrivilegeProbe` is read-only; the explicit
+`ResponseContractReview` returns NOT_ATTEMPTED, with a default unavailable
+boundary. No executor, OS/file access, Qt, COM, persistence, startup wiring,
+dependency or schema change. **NS-101–104 NOT STARTED**; tag/release **NONE**.
+[Contract and remaining gates](RESPONSE_COMMAND_CONTRACT.md),
+[offline quality acceptance](RESPONSE_COMMAND_ACCEPTANCE.md):205 new tests,
+full4038/8 deselected/91.17%, Ruff/mypy37/direct3/whitespace/privacy PASS.
+The following NS-099 and earlier summaries retain their historical scope.
+
 NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
 NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
 unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,

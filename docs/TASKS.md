@@ -1138,11 +1138,11 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ## M18 — Manual Response & Firewall Integration — CONDITIONAL
 
-**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** NS-100–NS-104 committed next work değildir. Automatic blocking ve automatic elevation kapsam dışıdır.
+**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** 2026-10-08 user **GO NS-100** yalnız NS-100 contract taskını yetkilendirir; NS-101–NS-104 NOT STARTED ve ayrı kullanıcı talimatı bekler. In-product writes NO_GO pending trusted privilege/ownership/native gates. Automatic blocking ve automatic elevation kapsam dışıdır.
 
 ### NS-100 — Response command/privilege contract
 
-- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Durum:** ✅ COMPLETE (2026-10-08), explicit user GO NS-100. Pure frozen scope/command/source/file identity/confirmation/result values, 16KiB strict local codec and read-only privilege review/default unavailable boundary implemented; no actual write/elevation/helper/adapter/UI/schema/installer change.205 new tests; full offline4038 passed/8 deselected (561.96s), coverage91.17%; Ruff/configured mypy37/direct3/whitespace/bounded privacy PASS. In-product writes NO_GO pending trusted privilege/ownership/native gates; NS-101–104 NOT STARTED. [Contract/threat model](RESPONSE_COMMAND_CONTRACT.md), [acceptance](RESPONSE_COMMAND_ACCEPTANCE.md).
 - **Amaç:** Manuel blocking için dar, geri alınabilir sözleşmeyi ve yetki UX'ini tasarlamak.
 - **Yapılacaklar:** Destination/program rule scope, user preview/confirmation, privilege-denied, ownership ve rollback threat model tanımla.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/domain/, src/netsentinel/application/ports.py, docs/SECURITY.md, tests/unit/.
@@ -1211,5 +1211,5 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | COMPLETE; NS-093–NS-099 COMPLETE — private native VPN PASS, native S3 PASS, OS-policy PASS, human UX8/8; recorded candidate/optional limitations retained |
-| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **Conditional; M17 + NS-099 + response GO gate** |
+| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **IN PROGRESS; NS-100 COMPLETE after user GO; NS-101–104 NOT STARTED; in-product writes NO_GO** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

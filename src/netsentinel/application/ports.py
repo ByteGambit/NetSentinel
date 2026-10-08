@@ -49,6 +49,7 @@ from netsentinel.domain.dns import (
 )
 from netsentinel.domain.alerts import Alert, AlertCandidate, AlertStatus
 from netsentinel.domain.risk_evidence import RiskEvidenceBatch
+from netsentinel.domain.response import ResponseCommand, ResponsePrivilegeAssessment
 from netsentinel.domain.threat_intelligence import (
     ThreatIntelProviderDescriptor, ThreatIntelProviderId, ThreatIntelQuery, ThreatIntelResult,
 )
@@ -63,6 +64,17 @@ from netsentinel.shared.diagnostics import (
     CaptureHealthSnapshot,
     DestinationDatasetDiagnostic,
 )
+
+
+class ResponsePrivilegeProbe(Protocol):
+    """Read-only NS-100 assessment port; never launch UAC or mutate OS state.
+
+    Input is untrusted local context, not an authenticated privileged request.
+    No executor is provided. Any future mutation needs independent trusted
+    confirmation, target/ownership validation and NS-101–104 acceptance.
+    """
+
+    def assess(self, command: ResponseCommand) -> ResponsePrivilegeAssessment: ...
 
 
 class StorageMaintenanceRepository(Protocol):
