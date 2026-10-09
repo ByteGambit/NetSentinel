@@ -1,5 +1,28 @@
 # Güvenlik ve güvenli kullanım
 
+NS-102 (2026-10-09): [lifecycle implementation acceptance](RESPONSE_LIFECYCLE_ACCEPTANCE.md#full-ns-102-implementation--2026-10-09)
+uses the native-verified witness. PREPARED is durable pre-Add provenance, never
+deletion authority. FINAL plus distinct confirmed REMOVE and fresh unique full
+equality including literal Description/witness remains required. This resume
+uses only fake firewall APIs; no host firewall mutation, UI, automatic threat
+blocking, elevation helper, privileged service or uninstall acceptance is added.
+
+A malicious privileged local administrator can inspect/copy/change witness,
+firewall metadata and custody and potentially forge the witness. This adversary
+is outside the frozen model; no cryptographic protection against local admin is
+claimed. Witness protects accidental equivalents, ordinary foreign rules, crash
+ambiguity and normal external edits. UUID4/absence preflight cannot eliminate
+preflight-to-Add TOCTOU; external compare-to-Remove remains non-atomic. Drift,
+duplicates and missing/wrong witness refuse ownership promotion/normal mutation.
+No DPAPI/key/certificate/service/WFP expansion is introduced.
+
+Expiry persists an explicit confirmed REMOVE due intent and keeps the unchanged
+action-time confirmation/equality checks. Stale approval remains pending; no
+synthetic confirmation or cleanup guarantee while stopped. Ownership is protected
+from bounded audit/history pruning. Local audit is finite, not tamper-proof, and
+normal diagnostics omit witness/target values. Runtime privileged-write deployment
+retains the separate existing trust gate. Earlier summaries are historical.
+
 NS-100 (2026-10-08): user **GO NS-100** accepted; contract implementation
 **COMPLETE**, **in-product writes NO_GO**. Strict local command validation
 and exact preview/source/file/generation binding are not privileged consent.

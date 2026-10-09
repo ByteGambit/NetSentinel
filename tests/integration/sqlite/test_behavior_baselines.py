@@ -389,7 +389,7 @@ def test_legacy_013_upgrade_is_empty_no_history_inference(tmp_path):
     with database.connection() as connection:
         assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 13
     with SQLiteDatabase(database.path).connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
         assert SQLiteBaselineRepository(connection).load(128) == BaselineLoad(())
         tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
         assert not {"behavior_events", "connection_appearance_log", "poll_snapshots"} & tables

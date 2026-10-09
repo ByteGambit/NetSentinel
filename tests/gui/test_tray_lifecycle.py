@@ -376,7 +376,7 @@ def test_real_polling_and_sqlite_writer_continue_after_hide(qtbot, tmp_path, mon
         tray.show()
         assert shell.window.connections_model.rowCount() == 1
         with SQLiteDatabase(path).connection() as conn:
-            assert conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+            assert conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
     finally:
         assert shell.controller.shutdown()
 

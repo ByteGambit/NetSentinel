@@ -188,6 +188,8 @@ def builtin_migrations() -> tuple[Migration, ...]:
                   sql=_read_resource("018_threat_intel_cache.sql", 18, "threat_intel_cache")),
         Migration(version=19, name="incidents",
                   sql=_read_resource("019_incidents.sql", 19, "incidents")),
+        Migration(version=20, name="response_lifecycle",
+                  sql=_read_resource("020_response_lifecycle.sql", 20, "response_lifecycle")),
     )
 
 

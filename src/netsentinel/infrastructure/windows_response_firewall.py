@@ -19,6 +19,7 @@ from netsentinel.domain.response import (
     FirewallRemoveRequest, FirewallRuleSnapshot, OwnedFirewallRuleManifest, ResponseCommand,
     ResponseOutcome, ResponseReason, ResponseResult, ResponseRuleState, ResponseSourceStatus,
     confirmation_matches, expected_firewall_rule, removal_readback_matches,
+    PreparedFirewallOwnershipClaim, PreparedFirewallReadResult,
 )
 
 
@@ -121,6 +122,16 @@ class WindowsResponseFirewall:
         return self._result(command, ResponseOutcome.NOT_ATTEMPTED, reason)
 
     def create(self, request: FirewallCreateRequest) -> FirewallCreateResult:
+        return self._create(request)
+
+    def create_prepared(self, claim: PreparedFirewallOwnershipClaim) -> FirewallCreateResult:
+        """Coordinator must have durably committed this claim before calling."""
+        if type(claim) is not PreparedFirewallOwnershipClaim:
+            raise TypeError("creation requires exact prepared provenance")
+        return self._create(claim.creation, claim)
+
+    def _create(self, request: FirewallCreateRequest,
+                claim: PreparedFirewallOwnershipClaim | None = None) -> FirewallCreateResult:
         if type(request) is not FirewallCreateRequest:
             raise TypeError("creation requires an exact typed confirmed request")
         command = request.command
@@ -136,7 +147,7 @@ class WindowsResponseFirewall:
         attempted = False
         submitted = False
         try:
-            expected = expected_firewall_rule(command)
+            expected = claim.expected_rule if claim is not None else expected_firewall_rule(command)
             with self._factory() as api:
                 if self._matches(api, expected):
                     return denied(ResponseReason.OWNERSHIP_CONFLICT)
@@ -159,7 +170,8 @@ class WindowsResponseFirewall:
                     if len(rows) != 1 or rows[0] != expected:
                         return FirewallCreateResult(request, self._result(
                             command, ResponseOutcome.OUTCOME_UNKNOWN, ResponseReason.READBACK_UNAVAILABLE))
-                    manifest = OwnedFirewallRuleManifest(request, rows[0], created_at, self._clock())
+                    manifest = OwnedFirewallRuleManifest(request, rows[0], created_at, self._clock(),
+                                                         2 if claim is not None else 1, claim)
             # Context cleanup must also succeed before handing ownership to the caller.
             return FirewallCreateResult(request, self._result(command, ResponseOutcome.VERIFIED,
                 ResponseReason.RULE_READBACK_VERIFIED, ResponseRuleState.PRESENT_ENABLED), manifest)
@@ -198,6 +210,30 @@ class WindowsResponseFirewall:
             if checked_at < manifest.verified_at:
                 status, checked_at = FirewallReadStatus.READ_UNAVAILABLE, manifest.verified_at
             return FirewallReadResult(manifest, status, checked_at)
+
+    def read_prepared(self, claim: PreparedFirewallOwnershipClaim) -> PreparedFirewallReadResult:
+        """Fresh complete enumeration without constructing provisional ownership."""
+        if type(claim) is not PreparedFirewallOwnershipClaim:
+            raise TypeError("inspection requires exact prepared provenance")
+        try:
+            with self._factory() as api:
+                rows = self._matches(api, claim.expected_rule)
+                status = FirewallReadStatus.ABSENT
+                snapshot = None
+                if len(rows) > 1:
+                    status = FirewallReadStatus.DUPLICATE
+                elif rows:
+                    snapshot = rows[0]
+                    status = (FirewallReadStatus.MATCHED if snapshot == claim.expected_rule
+                              else FirewallReadStatus.MISMATCH)
+                result = PreparedFirewallReadResult(claim, status, self._clock(), snapshot)
+            return result
+        except Exception as error:
+            status = error.status if isinstance(error, FirewallApiError) else FirewallReadStatus.READ_UNAVAILABLE
+            checked = self._clock()
+            if checked < claim.prepared_at:
+                status, checked = FirewallReadStatus.READ_UNAVAILABLE, claim.prepared_at
+            return PreparedFirewallReadResult(claim, status, checked)
 
     def remove(self, request: FirewallRemoveRequest) -> ResponseResult:
         if type(request) is not FirewallRemoveRequest:

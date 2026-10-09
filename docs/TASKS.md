@@ -1166,7 +1166,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-102 — Owned rules/audit/reconciliation
 
-- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Durum:** ✅ COMPLETE (2026-10-09). Native-verified PREPARED/witness→FINAL ownership, append-only SQLite020, durable idempotency, bounded audit/reconciliation/diagnostics, strict confirmed REMOVE/rollback/expiry-due semantics ve crash/OS/DB failure kabulü geçti. Targeted774/full4638 passed/9 live deselected; coverage91.21%, Ruff/mypy/whitespace/privacy PASS. [Kabul ve sınırlar](RESPONSE_LIFECYCLE_ACCEPTANCE.md#full-ns-102-implementation--2026-10-09). NS-103/104 NOT STARTED; UI/auto-block/elevation helper/native firewall mutation/commit/push/tag/release NONE.
 - **Amaç:** Oluşturulan kuralların sahipliğini, expiry ve rollback'i sürdürmek.
 - **Yapılacaklar:** UUID manifest, idempotent command, short transaction audit ve OS/DB partial failure reconciliation ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/application/services/, src/netsentinel/infrastructure/sqlite/, src/netsentinel/shared/diagnostics.py, tests/integration/.

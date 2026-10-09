@@ -43,7 +43,7 @@ def test_round_trip_restart_preserves_counts_first_last_and_frozen_reference(tmp
     with database.connection() as connection:
         assert connection.execute("SELECT COUNT(*) FROM vlan_summaries").fetchone()[0] == 1
         assert connection.execute("SELECT COUNT(*) FROM vlan_id_summaries").fetchone()[0] == 2
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
 
 
 def test_scope_capacity_preserves_current_parent_and_child_state(tmp_path) -> None:
@@ -128,7 +128,7 @@ def test_008_upgrade_preserves_learned_summary_and_adds_verification(tmp_path) -
     assert service.get(ctx).baseline_state is VlanBaselineState.LEARNED
     assert service.verify_baseline(ctx).baseline_state is VlanBaselineState.VERIFIED
     with database.connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
         assert connection.execute("SELECT verified_at_utc_us FROM vlan_summaries").fetchone()[0] == stamp
 
 

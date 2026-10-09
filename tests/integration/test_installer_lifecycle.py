@@ -44,7 +44,7 @@ def test_paths_are_separate_from_program_and_bundle(tmp_path, monkeypatch, runti
     assert not paths.root.exists()  # resolution never creates persistent data
     save_config_file(paths.config, AppConfig())
     with SQLiteDatabase().connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
     assert not list(program.iterdir())
 
 
@@ -75,7 +75,7 @@ def test_old_current_schema_upgrade_preserves_existing_history_and_config(tmp_pa
              connection_state, first_seen_utc_us, last_seen_utc_us)
             VALUES ('12345678-1234-1234-1234-123456789abc', 'tcp', '127.0.0.1', 5000, 42, 'old.exe', 'available', 'listen', 1, 1)""")
     with SQLiteDatabase(paths.database).connection() as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
         assert connection.execute("SELECT process_name FROM connection_history").fetchone()[0] == "old.exe"
     assert paths.config.read_bytes() == before
     assert load_config_file(paths.config).config == config
@@ -84,11 +84,11 @@ def test_old_current_schema_upgrade_preserves_existing_history_and_config(tmp_pa
 def test_future_schema_refuses_without_reset(tmp_path):
     path = tmp_path / "future.sqlite3"
     with SQLiteDatabase(path).connection() as connection:
-        connection.execute("INSERT INTO schema_migrations VALUES (20, 'future', 1)")
+        connection.execute("INSERT INTO schema_migrations VALUES (21, 'future', 1)")
     with pytest.raises(DatabaseSchemaTooNew):
         SQLiteDatabase(path).connect()
     with sqlite3.connect(path) as connection:
-        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
+        assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 21
 
 
 def test_old_config_keeps_safe_defaults(tmp_path):
@@ -204,7 +204,7 @@ def test_payload_inventory_hashes_and_license_manifest(payload, payload_module, 
     manifest = tmp_path / "manifest.json"
     payload_module.write_manifest(manifest, payload, files, __version__)
     result = json.loads(manifest.read_text())
-    assert result["version"] == __version__ and result["schema"] == 19 and result["unsigned"]
+    assert result["version"] == __version__ and result["schema"] == 20 and result["unsigned"]
     for entry in result["files"]:
         assert entry["sha256"] == payload_module.file_digest(payload / entry["path"])
         assert not Path(entry["path"]).is_absolute()
@@ -274,7 +274,7 @@ def test_build_orchestration_checks_payload_and_emits_checksum(payload, payload_
     assert ("--use-project-packages" in calls[0]) is project_packages
     assert target.with_name(target.name + ".sha256").read_text().split()[0] == payload_module.file_digest(target)
     manifest = json.loads(target.with_name(target.name + ".manifest.json").read_text())
-    assert manifest["version"] == __version__ and manifest["schema"] == 19
+    assert manifest["version"] == __version__ and manifest["schema"] == 20
     inventory = (fixture_root / "build/payload-files.txt").read_text(encoding="utf-8-sig")
     assert "licenses/Python/LICENSE.txt" in inventory and "config.json" not in inventory
 

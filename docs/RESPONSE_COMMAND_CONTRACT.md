@@ -1,5 +1,294 @@
 # NS-100 — Manual response command and privilege contract
 
+## NS-102 production lifecycle contract — 2026-10-09
+
+The user authorized full **NS-102 only** after the native witness gate passed.
+See [current implementation acceptance](RESPONSE_LIFECYCLE_ACCEPTANCE.md#full-ns-102-implementation--2026-10-09).
+Earlier review/native sections retain their historical scope. NS-103 UI and
+NS-104 uninstall/native acceptance remain NOT STARTED. No runtime response
+composition, automatic threat blocking, privilege helper, elevation, background
+service or task scheduler is added.
+
+**PreparedFirewallOwnershipClaim** is immutable and framework-independent: original
+FirewallCreateRequest (full typed command and exact confirmation), complete
+expected snapshot, independent 256-bit witness, UTC preparation time, version1.
+new_response_rule_identity allocates UUID4 **before preview/confirmation**; the
+coordinator never rewrites a confirmed command. It requires UUID4 and generates
+secrets.token_hex(32) before OS mutation. A unique SQLite witness constraint
+prevents reuse across retained operations. PREPARED is not ownership and cannot
+authorize REMOVE. Strict bounded UTF-8 transport retains Unicode paths and IPv4/IPv6.
+
+The exact native-verified Description is 133 literal ASCII characters/bytes:
+
+> NetSentinel response witness v1 <canonical-uuid> <64 lowercase hex>
+
+Grouping and target semantics remain unchanged. Normal reprs, historical audit
+and diagnostics omit witness/Description/path/IP. Sensitive bounded custody
+transport remains local. Witness is visible OS metadata, not a password.
+
+CREATE commits PREPARED/audit, then ATTEMPT/audit in a second short transaction.
+Only then does the adapter independently validate the target, preflight fresh
+exact-identity absence, Add and verify unique complete witnessed readback.
+The coordinator commits FINAL and VERIFIED_SUCCESS audit atomically. An adapter
+receipt alone is not normal lifecycle success. Final DB failure returns PARTIAL
+without granting ownership and retains original durable provenance. Partial Add
+does not trigger blind cleanup.
+
+FINAL version2 binds original CREATE, store/rule identity, verified full snapshot,
+PREPARED witness/provenance, recorded dispatch-intent time, actual dispatch time
+(created_at) when known, verification time and version. Recovery uses created_at
+None: it never invents Add time inside an expired confirmation window. Dispatch
+intent is a pre-call durable phase, not proof of the instant Windows changed.
+Legacy v1 manifests/codecs and their original Description equality remain strict;
+v1 gains no witnessed recovery semantics.
+
+Existing-operation replay loads the exact durable request and reconciles first.
+Changed request/confirmation/store/revision is refused. CREATE replay never adds
+again. PREPARED promotion requires original durable operation, exact unique rule
+identity, exact literal witness/Description and every expected field in a fresh
+supported OS read. Absence becomes NOT_MATERIALIZED; wrong/missing witness, drift,
+disabled state, duplicates and unavailable reads remain unowned/unresolved.
+FINAL and RECOVERY_PROMOTION persist atomically. Recovery observes evidence; it
+does not manufacture a current CREATE confirmation or execute Add.
+
+REMOVE requires this store's FINAL and a distinct confirmed typed REMOVE, then
+the adapter's own fresh unique complete equality including witness/Description,
+exact removal and verified absence. The original five-minute action-time
+confirmation rule remains unchanged. PREPARED, witness/name/UUID and cached
+readback cannot authorize removal. Rollback uses this same explicit path with
+separate attempt/success/failure audit; unfinalized partial claims cannot be undone.
+Drift, missing state and duplicates refuse normal mutation.
+
+After REMOVE verifies absence, a short transaction stores OS_VERIFIED evidence;
+another finalizes VERIFIED_SUCCESS. Finalization failure preserves the durable
+OS_VERIFIED receipt pending restart/fresh-absence finalization. Without that
+durable receipt, fresh absence is ABSENCE_OBSERVED and UNKNOWN, not proof this
+command removed anything. REMOVE replay never removes again. Historical verified
+operation results and current reconciliation are separate; prior creation success
+is not proof of current presence.
+
+A durable verified removal receipt (including OS_VERIFIED pending finalization)
+also tombstones the originating ownership. If the exact old metadata later
+reappears, reconciliation records external drift rather than readopting it.
+A new REMOVE using that archival manifest is refused; replay of the original
+REMOVE still never mutates. This closes stale-manifest resurrection without
+weakening NS-101 equality or relying on an adversarial witness interpretation.
+
+Append-only schema020 adds response_store, response_operations and response_audit;
+migrations001–019 are unchanged. Custody uses canonical codecs, summary equality,
+command fingerprints, unique CREATE identities, local store binding and revision
+CAS. Invalid/corrupt/future storage refuses mutations. Requests are bounded32KiB;
+claims/manifests16KiB; result512bytes. SQL bounds payload materialization.
+Admission limits are **64 installed/unresolved CREATEs** and **1024 retained
+operations**; capacity refuses admission without evicting ownership/idempotency.
+Reconciliation of verified removal releases active-rule admission capacity.
+CREATE admission reserves at least one future cleanup operation for every
+installed/unresolved rule. Repeated failed REMOVE requests cannot consume another
+rule's reserved first cleanup slot. Finite history still bounds further retries:
+when no safe slot remains, mutation is refused and custody retained.
+An existing DB opens its persisted store identity without caller memory; missing
+store metadata beside retained operations fails closed. Under the store lock,
+custody is validated in bounded64-row pages (maximum1024 operations), outside a
+write transaction, before any coordinator call. A corrupt unrelated record
+cannot be bypassed by submitting a different new CREATE.
+
+Each state transition and typed audit append is one transaction. Audit identifies
+sequence, operation/rule/action/time, phase/result and reconciliation. Requested
+scope comes from the retained operation, not duplicated free text. Events include
+PREPARED, ATTEMPT, readback/verified success, failure, UNKNOWN/PARTIAL,
+RECOVERY/PROMOTION, rollback outcomes, external drift/missing and expiry pending.
+Replay of an already finalized REMOVE records RECOVERY rather than a new
+VERIFIED_SUCCESS/ROLLBACK_SUCCESS. Historical results remain distinct from
+current observation and from a pending OS_VERIFIED receipt being finalized.
+Oldest audit events are pruned atomically to **8192 rows**; custody/idempotency is
+never pruned with audit or NS-095 eligible-history purge. This local finite audit
+is neither complete lifetime history nor a tamper-proof forensic log.
+
+Restart/manual reconciliation uses **64-operation maximum UUID cursor pages**
+and bounded native enumeration. It classifies exact/promoted, not materialized,
+pending CREATE/REMOVE, modified/disabled/missing, ambiguous, expired/expiry pending
+and unknown/partial. It never recreates, re-enables, overwrites, adopts foreign
+rules or retries writes. A backwards clock cannot establish fresh evidence.
+
+The frozen CREATE lifetime remains UNTIL_MANUALLY_REMOVED, expires_at None;
+timed CREATE still fails closed. NS-102 also persists an explicit **confirmed
+REMOVE intent with a due time** through schedule_expiry. Due observation invokes
+normal strict REMOVE only with FINAL and a still-fresh REMOVE confirmation.
+Stale approval remains EXPIRY_PENDING and requires a new distinct confirmed
+request. Drift/denied/unknown cleanup stays reported. No synthetic confirmation,
+wall-clock expiry guarantee while stopped, 15-minute/hour writable lifetime or
+app-exit deletion guarantee is introduced.
+
+A nonblocking OS advisory file lock per DB serializes coordinator CREATE/replay,
+REMOVE/REMOVE, reconciliation and expiry across threads/processes. The OS releases
+it on crash; it is not a SQLite transaction or privilege grant. Transactions cover
+short durable transitions, never COM. Managed callers must use the coordinator.
+External administrators are outside this lock: fresh absence preflight plus
+UUID4 does not eliminate **preflight-to-Add TOCTOU**. Existing external
+compare-to-Remove TOCTOU also remains; Windows COM provides no atomic compare-and-swap.
+
+**Local-admin threat boundary:** a malicious privileged administrator can inspect,
+copy or change metadata/witness/custody and forge equivalent state. That adversary
+is outside the frozen model. Witness gives no cryptographic anti-admin protection;
+it protects accidental equivalent rules, ordinary foreign rules, crash ambiguity
+and normal external edits. No DPAPI/key/certificate/broker/service/WFP expansion
+is added. In-product privileged-write deployment retains its separate trust gate.
+
+Diagnostics expose finalized currently exact ownership, prepared/pending,
+partial/unknown, distinct drifted/missing rules, expiry pending, last reconciliation
+time/result and current reconciliation-error count. No witness/target/raw exception
+or UI/export field is added.
+
+## Historical native witness closure
+
+**Native witness closure (2026-10-09): NATIVE PASS / GO for resuming NS-102's
+PREPARED + witness implementation**, dedicated Windows 11 26200.9457, authorized
+individual inline PowerShell under unchanged Restricted policy. Exact 133-character
+Description/witness, full fresh equality, ordinary Description drift and complete
+cleanup passed (476->476, prefix0, identical inventory hash; guest receipt deleted
+and initially stopped VM restored). [Exact evidence and limits](RESPONSE_LIFECYCLE_ACCEPTANCE.md#native-description-round-trip-closure--2026-10-09).
+NS-102 remains INCOMPLETE; production promotion/recovery/write authority stays
+NO_GO pending full implementation and existing privileged-boundary gates. This
+native-only turn did not resume implementation. The earlier spike below retains
+its original conditional/native-blocked scope; production REMOVE is unchanged.
+
+## NS-102 OS ownership witness review — 2026-10-09
+
+**Latest decision: witness model is viable in the frozen non-adversarial threat
+model, subject to native metadata verification. Full NS-102 remains INCOMPLETE
+and has not resumed.** NS-100/101 remain COMPLETE; NS-103/104 NOT STARTED.
+The prior PREPARED-only stop below remains historical and correct for that model.
+
+The narrow spike introduces **test fixtures only**. A new CREATE allocates an
+independent UUID4 rule/command identity and a **256-bit CSPRNG witness** before
+mutation (`secrets.token_hex(32)`). Proposed literal Description encoding:
+
+```text
+NetSentinel response witness v1 <canonical-rule-uuid> <64-lowercase-hex-witness>
+```
+
+This is 133 ASCII characters, with no `|`, indirect-resource prefix, user label,
+path/IP, secret key or credential. The witness is not a UUID, password, MAC or
+digital signature; it is a random operation discriminator. Keep it out of logs,
+repr, diagnostics/support exports and ordinary user labels. It is observable in
+OS metadata and local PREPARED state; privacy minimization is not secrecy against
+a privileged inspector.
+
+PREPARED binds complete confirmed CREATE, exact expected snapshot **including
+the witness Description**, the independent witness, UTC provenance time and
+format version. All operation/rule/store/source/file/scope/confirmation/contract
+fields stay in the nested command/request. Atomic storage must precede any
+dispatch. PREPARED and witness alone grant **no ownership and no deletion**.
+
+Proposed restart eligibility requires an original durable pre-Add claim, exact
+operation/store/rule binding, one fresh complete supported OS candidate, exact
+witness and full equality of **every** NS-101 property. Missing, wrong/edited
+witness, drift, duplicates, unsupported/incomplete/unavailable readback or missing
+claim must remain unresolved, with no adoption/repair/re-enable/Remove. A foreign
+rule with equal selectors and an absent/wrong independent witness fails this
+proof. Random identity generation is not namespace authentication; never issue
+another Add on uncertain replay. Reconciliation records discovery time, not an
+invented OS creation time.
+
+The final `OwnedFirewallRuleManifest` remains mandatory for confirmed normal
+REMOVE, which performs its own fresh unique full comparison including witness,
+exact removal and independent absence verification. This review changes **no
+production REMOVE type or code**. Existing v1 expects a different fixed Description
+and rejects the spike snapshot: no v1 manifest is synthesized to evade this guard.
+A future versioned final evidence model, strict codecs, honest recovery timestamps
+and a typed PREPARED inspection boundary need review before actual implementation.
+The test eligibility predicate returns a decision, never a production manifest or
+privilege grant. No production persistence, nonce allocation, recovery port or
+adapter mutation path was added.
+
+**Threat boundary:** [M18 planning](M18_RESPONSE_PLANNING.md#8-ownership-command-identity-and-rollback)
+expressly excludes an adversarial-local-admin/tamper-proof ownership guarantee;
+[NS-101 acceptance](RESPONSE_FIREWALL_ACCEPTANCE.md#failure-privilege-and-security-review)
+likewise disclaims authentication of forged manifests/exact clones. A privileged
+administrator or a caller who tampers with the writable ledger can copy the
+witness. An exact clone passes equality; tests demonstrate this limitation. The
+model protects accidental/unrelated matches and ordinary edits, not malicious
+copying, authenticated privileged consent or trusted deployment. Production writes
+remain NO_GO at that separate boundary; no key store, DPAPI, signing, broker,
+service or driver is introduced.
+
+Microsoft documents [Description as a read/write BSTR, forbidding `|`](https://learn.microsoft.com/en-us/windows/win32/api/netfw/nf-netfw-inetfwrule-put_description),
+but specifies no maximum length or general exact-persistence/localization guarantee
+there. The short literal ASCII marker avoids resource references; exact readback
+is mandatory on each supported build, never inferred from setter success. NS-101
+already sets Description before Add, retrieves it during exhaustive enumeration
+and includes it in complete equality. The spike tests that same property mapping
+with fakes, including drift.
+
+[INetFwRules::Add](https://learn.microsoft.com/en-us/windows/win32/api/netfw/nf-netfw-inetfwrules-add)
+can overwrite an existing rule with the same identifier. Name is documented as a
+[friendly name](https://learn.microsoft.com/en-us/windows/win32/api/netfw/nf-netfw-inetfwrule-get_name),
+not a protected namespace. Preserve NS-101's bounded case-alias enumeration and
+zero-match checks before Add, after target validation and immediately at the native
+boundary. Never upsert/adopt an existing identity, even if its witness matches.
+There remains an external insertion/replacement window between the last check and
+Add/Remove; ordinary COM supplies no atomic compare-and-create/delete or
+authenticated origin receipt. Witness entropy does not turn those calls atomic.
+
+**Native gate OPEN / NOT RUN:** the authorized dedicated Windows 11 VM's effective
+PowerShell execution policy was **Restricted**. The file-based metadata probe was
+refused with `PSSecurityException / UnauthorizedAccess` before it executed. No
+policy change, bypass, elevation or alternative mutation path was attempted.
+Read-only cleanup found zero probe rules; transferred files were deleted and the
+initially stopped VM was returned to stopped state. Native Description persistence,
+Unicode, length and transformation behavior remain **NOT VERIFIED**, not failed
+metadata semantics. Thus no production recovery GO follows this review.
+
+The [complete witness report](RESPONSE_LIFECYCLE_ACCEPTANCE.md#os-ownership-witness-review--2026-10-09)
+records tests, the native limitation and all 22 requested delivery items.
+
+## NS-102 PREPARED clarification review — 2026-10-09
+
+The user authorized a two-phase CREATE provenance model and required STOP if
+durable pre-mutation provenance plus fresh equality still cannot establish safe
+ownership. **NS-100/101 remain COMPLETE; NS-102 INCOMPLETE; NS-103/104 NOT STARTED.**
+This review adds no production value, port, adapter recovery or persistence path.
+
+The intended `PreparedFirewallOwnershipClaim` is immutable local provenance:
+complete confirmed `FirewallCreateRequest`, exact expected `FirewallRuleSnapshot`,
+UTC pre-mutation provenance time and claim version. Command/operation, rule,
+store and contract identities remain bound by the nested command. It means
+"durably committed to attempting this exact creation", **not** "owns a rule".
+It cannot be supplied to REMOVE, rollback or any modification. The final
+`OwnedFirewallRuleManifest` remains required for normal removal, with a confirmed
+REMOVE, unique full fresh equality, exact removal and verified absence.
+
+NS-102 would own atomic PREPARED storage before dispatch and durable finalized
+manifest/audit storage afterwards. NS-101 remains stateless with respect to
+persistence. The intended flow is confirmed validation -> PREPARED commit ->
+exact CREATE -> fresh full verification -> finalized manifest commit -> owned
+VERIFIED_SUCCESS audit. Adapter VERIFIED alone is not durable lifecycle success.
+Claim serialization alone cannot prove its commit order or authenticate custody.
+
+**Promotion remains blocked:** after PREPARED, termination before CREATE with an
+equal foreign rule, or termination after NS-101 refuses that collision but before
+recording refusal, produces the same durable claim and fresh unique complete OS
+readback as termination after successful CREATE. Current Rule/Rule2/Rule3 snapshots
+and operation identities cannot distinguish those histories. Promoting solely on
+the proposed four inputs would turn an explicit NS-101 ownership refusal into
+owned authority after restart. This is separate from the already documented
+external edit race during Remove; no concurrent Remove is needed.
+
+The user's safety condition therefore stops implementation before adding a
+promotion path. PREPARED + mismatch/duplicate/unsupported/missing cannot grant
+ownership; exact equality is also insufficient in this demonstrated collision
+window. No recovery may invent creation/verification timestamps, deserialize an
+expected rule as a finalized manifest, or call CREATE again while the prior
+outcome is unknown. A separately reviewed discriminator/custody mechanism or an
+explicit acceptance of this additional origin ambiguity is needed; a second
+writable journal, dispatch flag or self-declared nonce does not by itself supply
+an OS creation receipt.
+
+The complete [NS-102 review and tests](RESPONSE_LIFECYCLE_ACCEPTANCE.md#prepared-contract-clarification-review--2026-10-09)
+preserve the initial blocker report and the new decision. The existing v1
+contract below remains unchanged. Neither this test-only candidate nor any new
+production PREPARED codec/type was introduced into the application.
+
 Date: **2026-10-08 (Europe/Istanbul)**. User instruction **“GO NS-100”**
 authorizes this task after M17/NS-099 completion and acceptance of the
 [M18 planning gate](M18_RESPONSE_PLANNING.md). This is contract implementation

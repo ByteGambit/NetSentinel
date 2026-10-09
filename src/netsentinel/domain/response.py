@@ -6,7 +6,7 @@ Serialization is for bounded local transport, never logs or support exports.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha256
@@ -568,6 +568,41 @@ class FirewallCreateRequest:
         _confirmed_action(self.command, self.confirmation, ResponseAction.CREATE)
 
 
+def ownership_description(rule_id: UUID, witness: str) -> str:
+    """Native-verified literal ASCII marker; not authority by itself."""
+    _uuid(rule_id)
+    _digest(witness)
+    return f"NetSentinel response witness v1 {rule_id} {witness}"
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedFirewallOwnershipClaim:
+    """Pre-dispatch provenance. NEVER a finalized manifest or REMOVE authority."""
+
+    creation: FirewallCreateRequest = field(repr=False)
+    expected_rule: FirewallRuleSnapshot = field(repr=False)
+    witness: str = field(repr=False)
+    prepared_at: datetime
+    claim_version: int = 1
+
+    def __post_init__(self) -> None:
+        if type(self.creation) is not FirewallCreateRequest or type(self.expected_rule) is not FirewallRuleSnapshot:
+            raise TypeError("prepared ownership requires exact typed creation and snapshot")
+        if type(self.claim_version) is not int or self.claim_version != 1:
+            raise ValueError("unsupported prepared ownership version")
+        object.__setattr__(self, "prepared_at", _utc(self.prepared_at))
+        command = self.creation.command
+        if command.rule_id.version != 4:
+            raise ValueError("prepared ownership requires UUID4 identity")
+        if not confirmation_matches(command, self.creation.confirmation, self.prepared_at):
+            raise ValueError("prepared ownership confirmation is stale")
+        if command.source.status is not ResponseSourceStatus.AVAILABLE or command.source.quality is ObservationQuality.FAILED:
+            raise ValueError("prepared ownership requires available creation source")
+        expected = replace(expected_firewall_rule(command), description=ownership_description(command.rule_id, self.witness))
+        if self.expected_rule != expected:
+            raise ValueError("prepared ownership must bind the complete witnessed state")
+
+
 @dataclass(frozen=True, slots=True)
 class OwnedFirewallRuleManifest:
     """Originating verified creation evidence held by the caller, not storage.
@@ -579,24 +614,45 @@ class OwnedFirewallRuleManifest:
 
     creation: FirewallCreateRequest = field(repr=False)
     rule: FirewallRuleSnapshot = field(repr=False)
-    created_at: datetime
+    created_at: datetime | None
     verified_at: datetime
     manifest_version: int = OWNED_FIREWALL_MANIFEST_VERSION
+    prepared_claim: PreparedFirewallOwnershipClaim | None = field(default=None, repr=False)
+    dispatch_intent_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if type(self.creation) is not FirewallCreateRequest or type(self.rule) is not FirewallRuleSnapshot:
             raise TypeError("ownership requires exact originating creation and full readback")
-        if type(self.manifest_version) is not int or self.manifest_version != OWNED_FIREWALL_MANIFEST_VERSION:
+        if type(self.manifest_version) is not int or self.manifest_version not in {1, 2}:
             raise ValueError("unsupported ownership manifest version")
-        object.__setattr__(self, "created_at", _utc(self.created_at))
         object.__setattr__(self, "verified_at", _utc(self.verified_at))
-        if (not confirmation_matches(self.creation.command, self.creation.confirmation, self.created_at)
+        if self.created_at is not None:
+            object.__setattr__(self, "created_at", _utc(self.created_at))
+        if self.manifest_version == 1:
+            if self.prepared_claim is not None or self.created_at is None or self.dispatch_intent_at is not None:
+                raise ValueError("legacy ownership requires actual creation time without a claim")
+            expected = expected_firewall_rule(self.creation.command)
+        else:
+            if (type(self.prepared_claim) is not PreparedFirewallOwnershipClaim
+                    or self.prepared_claim.creation != self.creation
+                    or self.verified_at < self.prepared_claim.prepared_at):
+                raise ValueError("witnessed ownership requires its original prepared claim")
+            expected = self.prepared_claim.expected_rule
+            if self.created_at is not None and self.created_at < self.prepared_claim.prepared_at:
+                raise ValueError("creation predates prepared provenance")
+            if self.dispatch_intent_at is not None:
+                object.__setattr__(self, "dispatch_intent_at", _utc(self.dispatch_intent_at))
+                if not self.prepared_claim.prepared_at <= self.dispatch_intent_at <= (
+                        self.created_at if self.created_at is not None else self.verified_at):
+                    raise ValueError("dispatch intent disagrees with ownership times")
+        if self.created_at is not None and (
+                not confirmation_matches(self.creation.command, self.creation.confirmation, self.created_at)
                 or self.verified_at < self.created_at):
             raise ValueError("ownership creation and readback times disagree")
         if (self.creation.command.source.status is not ResponseSourceStatus.AVAILABLE
                 or self.creation.command.source.quality is ObservationQuality.FAILED):
             raise ValueError("ownership creation requires an available source")
-        if self.rule != expected_firewall_rule(self.creation.command):
+        if self.rule != expected:
             raise ValueError("ownership readback does not match the full expected rule")
 
 
@@ -706,9 +762,15 @@ def serialize_owned_firewall_manifest(manifest: OwnedFirewallRuleManifest) -> by
             "confirmed_at": manifest.creation.confirmation.confirmed_at.isoformat(timespec="microseconds"),
         },
         "rule": _manifest_rule_values(manifest.rule),
-        "created_at": manifest.created_at.isoformat(timespec="microseconds"),
+        "created_at": manifest.created_at.isoformat(timespec="microseconds") if manifest.created_at is not None else None,
         "verified_at": manifest.verified_at.isoformat(timespec="microseconds"),
     }
+    if manifest.manifest_version == 2:
+        if manifest.prepared_claim is None:
+            raise ValueError("missing prepared ownership")
+        values["prepared_claim"] = json.loads(serialize_prepared_firewall_claim(manifest.prepared_claim))
+        values["dispatch_intent_at"] = (manifest.dispatch_intent_at.isoformat(timespec="microseconds")
+                                        if manifest.dispatch_intent_at is not None else None)
     payload = json.dumps(values, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     if len(payload) > MAX_OWNED_FIREWALL_MANIFEST_BYTES:
         raise ValueError("ownership manifest exceeds byte limit")
@@ -720,9 +782,13 @@ def deserialize_owned_firewall_manifest(payload: bytes) -> OwnedFirewallRuleMani
     if type(payload) is not bytes or not 1 <= len(payload) <= MAX_OWNED_FIREWALL_MANIFEST_BYTES:
         raise ValueError("invalid ownership manifest payload")
     try:
-        data = _object(json.loads(payload.decode("utf-8"), object_pairs_hook=_unique), {
-            "version", "command", "confirmation", "rule", "created_at", "verified_at",
-        })
+        raw = json.loads(payload.decode("utf-8"), object_pairs_hook=_unique)
+        if type(raw) is not dict:
+            raise ValueError("invalid ownership object")
+        keys = {"version", "command", "confirmation", "rule", "created_at", "verified_at"}
+        if raw.get("version") == 2:
+            keys.update({"prepared_claim", "dispatch_intent_at"})
+        data = _object(raw, keys)
         command = deserialize_response_command(json.dumps(data["command"], ensure_ascii=False).encode("utf-8"))
         confirmation = _object(data["confirmation"], {"fingerprint", "confirmed_at"})
         creation = FirewallCreateRequest(command, ResponseConfirmation(
@@ -747,8 +813,13 @@ def deserialize_owned_firewall_manifest(payload: bytes) -> OwnedFirewallRuleMani
             remote_machine_authorized_list=_text(rule["remote_machine_authorized_list"]),
             secure_flags=_integer(rule["secure_flags"]),
         )
-        return OwnedFirewallRuleManifest(creation, snapshot, _decode_time(data["created_at"]),
-                                         _decode_time(data["verified_at"]), _integer(data["version"]))
+        claim = (deserialize_prepared_firewall_claim(json.dumps(data["prepared_claim"], ensure_ascii=False).encode("utf-8"))
+                 if data["version"] == 2 else None)
+        return OwnedFirewallRuleManifest(creation, snapshot,
+                                         _decode_time(data["created_at"]) if data["created_at"] is not None else None,
+                                         _decode_time(data["verified_at"]), _integer(data["version"]), claim,
+                                         _decode_time(data["dispatch_intent_at"])
+                                         if claim is not None and data["dispatch_intent_at"] is not None else None)
     except (ValueError, TypeError, KeyError, RecursionError, OverflowError):
         raise ValueError("invalid ownership manifest payload") from None
 
@@ -757,3 +828,66 @@ def _boolean(value: object) -> bool:
     if type(value) is not bool:
         raise TypeError("response boolean must be exact")
     return value
+
+
+def serialize_prepared_firewall_claim(claim: PreparedFirewallOwnershipClaim) -> bytes:
+    if type(claim) is not PreparedFirewallOwnershipClaim:
+        raise TypeError("exact prepared claim required")
+    # Reuse the strict v1 manifest envelope codec to transport the typed request
+    # and full rule, then separately validate PREPARED (never construct ownership).
+    values = {
+        "claim_version": claim.claim_version, "command": _command_values(claim.creation.command),
+        "confirmation": {"fingerprint": claim.creation.confirmation.command_fingerprint,
+                         "confirmed_at": claim.creation.confirmation.confirmed_at.isoformat(timespec="microseconds")},
+        "rule": _manifest_rule_values(claim.expected_rule), "witness": claim.witness,
+        "prepared_at": claim.prepared_at.isoformat(timespec="microseconds"),
+    }
+    payload = json.dumps(values, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    if len(payload) > MAX_OWNED_FIREWALL_MANIFEST_BYTES:
+        raise ValueError("prepared claim exceeds byte limit")
+    return payload
+
+
+def deserialize_prepared_firewall_claim(payload: bytes) -> PreparedFirewallOwnershipClaim:
+    if type(payload) is not bytes or not 1 <= len(payload) <= MAX_OWNED_FIREWALL_MANIFEST_BYTES:
+        raise ValueError("invalid prepared claim payload")
+    try:
+        data = _object(json.loads(payload.decode("utf-8"), object_pairs_hook=_unique), {
+            "claim_version", "command", "confirmation", "rule", "witness", "prepared_at",
+        })
+        command = deserialize_response_command(json.dumps(data["command"], ensure_ascii=False).encode("utf-8"))
+        confirmation = _object(data["confirmation"], {"fingerprint", "confirmed_at"})
+        request = FirewallCreateRequest(command, ResponseConfirmation(
+            _text(confirmation["fingerprint"]), _decode_time(confirmation["confirmed_at"])))
+        rule = _object(data["rule"], set(FirewallRuleSnapshot.__dataclass_fields__) - {"spec"})
+        if type(rule["interfaces"]) is not list:
+            raise ValueError("invalid prepared interfaces")
+        rule["interfaces"] = tuple(_text(value) for value in rule["interfaces"])
+        # All snapshot fields have exact runtime validation in their constructor.
+        snapshot = FirewallRuleSnapshot(spec=command.spec, **rule)  # type: ignore[arg-type]
+        return PreparedFirewallOwnershipClaim(request, snapshot, _text(data["witness"]),
+                                               _decode_time(data["prepared_at"]), _integer(data["claim_version"]))
+    except (ValueError, TypeError, KeyError, RecursionError, OverflowError):
+        raise ValueError("invalid prepared claim payload") from None
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedFirewallReadResult:
+    claim: PreparedFirewallOwnershipClaim = field(repr=False)
+    status: FirewallReadStatus
+    checked_at: datetime
+    snapshot: FirewallRuleSnapshot | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        if type(self.claim) is not PreparedFirewallOwnershipClaim or type(self.status) is not FirewallReadStatus:
+            raise TypeError("prepared inspection requires exact typed provenance and status")
+        object.__setattr__(self, "checked_at", _utc(self.checked_at))
+        if self.checked_at < self.claim.prepared_at:
+            raise ValueError("prepared inspection predates provenance")
+        if self.status in {FirewallReadStatus.MATCHED, FirewallReadStatus.MISMATCH}:
+            if type(self.snapshot) is not FirewallRuleSnapshot:
+                raise TypeError("prepared equality requires complete supported snapshot")
+            if (self.snapshot == self.claim.expected_rule) != (self.status is FirewallReadStatus.MATCHED):
+                raise ValueError("prepared inspection contradicts full equality")
+        elif self.snapshot is not None:
+            raise ValueError("ambiguous prepared inspection cannot supply an equality snapshot")

@@ -48,7 +48,7 @@ def test_source_queries_are_batched_not_one_per_row(tmp_path, monkeypatch, count
     assert sum("BEGIN" in s for s in statements) == 1
 
 
-def test_reads_are_pure_restart_safe_and_schema_019(tmp_path):
+def test_reads_are_pure_restart_safe_and_schema_020(tmp_path):
     db, writer, record, repository, query = story(tmp_path)
     writer.acknowledge(record.incident_id, expected_revision=1, now=NOW + timedelta(minutes=1))
     before = state(db)
@@ -59,7 +59,7 @@ def test_reads_are_pure_restart_safe_and_schema_019(tmp_path):
     restarted = SQLiteIncidentTimelineRepository(db).read_snapshot(record.incident_id)
     assert restarted.incident.record == page.record
     from netsentinel.infrastructure.sqlite.migrations import builtin_migrations
-    assert builtin_migrations()[-1].version == 19
+    assert builtin_migrations()[-1].version == 20
 
 
 @pytest.mark.parametrize("mode", ["available", "expired", "corrupt", "unsupported", "bad_scope"])

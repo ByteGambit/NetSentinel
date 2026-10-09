@@ -119,7 +119,7 @@ def test_risk_incident_export_and_guide_survive_three_restarts_together(tmp_path
         privacy = StoragePrivacyService(SQLiteStorageMaintenanceRepository(story.db))
         export = privacy.preview_export()
         body = json.loads(export.content)
-        assert body["manifest"]["schema_version"] == 19
+        assert body["manifest"]["schema_version"] == 20
         assert body["manifest"]["format"] == "support-export-v1"
         assert body["manifest"]["redaction_policy"] == "allowlist-v1"
         assert len(export.content) <= 65536

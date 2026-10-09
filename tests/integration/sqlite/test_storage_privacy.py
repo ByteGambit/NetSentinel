@@ -245,7 +245,7 @@ def test_export_allowlist_privacy_manifest_and_exact_atomic_save(database, servi
     export = service.preview_export()
     body = json.loads(export.content)
     assert body['manifest']['format'] == 'support-export-v1'
-    assert body['manifest']['schema_version'] == 19
+    assert body['manifest']['schema_version'] == 20
     assert body['manifest']['redaction_policy'] == 'allowlist-v1'
     for sensitive in ('192.0.2.123', '203.0.113.123', 'private.example', 'private-user', 'C:/private', 'tool.exe', 'evidence_json'):
         assert sensitive not in export.content.decode() and sensitive not in export.sample
@@ -292,7 +292,7 @@ def test_export_cancel_or_failure_leaves_existing_target_and_no_temp(database, s
 def test_summary_path_free_approximate_sizes_no_vacuum_or_new_migration(database, service):
     connection(database, 1, NOW)
     summary = service.summary()
-    assert summary.schema_version == 19 and summary.database_bytes > 0 and summary.wal_bytes >= 0
+    assert summary.schema_version == 20 and summary.database_bytes > 0 and summary.wal_bytes >= 0
     assert str(database.path) not in repr(summary)
     assert len(summary.stores) == len(Store)
 

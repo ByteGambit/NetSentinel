@@ -375,8 +375,8 @@ def test_migration_from_018_full_chain_and_source_fk_independence(tmp_path):
                          for table in ("alerts", "connection_history", "dns_history", "risk_assessments")}
     new = SQLiteDatabase(path)
     with new.connection() as connection:
-        assert default_migration_runner().current_version(connection) == 19
-        assert [r[0] for r in connection.execute("SELECT version FROM schema_migrations ORDER BY version")] == list(range(1, 20))
+        assert default_migration_runner().current_version(connection) == 20
+        assert [r[0] for r in connection.execute("SELECT version FROM schema_migrations ORDER BY version")] == list(range(1, 21))
         for table, count in source_counts.items():
             assert connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == count
         for table in ("incident_references", "incident_revisions"):

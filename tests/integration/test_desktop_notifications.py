@@ -1,4 +1,4 @@
-"""Actual schema 019 persistence, restart, legacy and risk notification sources."""
+"""Actual schema 020 persistence, restart, legacy and risk notification sources."""
 
 from datetime import timedelta
 from dataclasses import replace
@@ -56,7 +56,7 @@ def test_committed_legacy_then_restart_no_replay_same_alert_and_genuine_future(t
     later, eligible = service2.record(candidate(seconds=121))
     assert eligible and later.occurrence_count == 2 and later.id == first.id
     assert delivery2.drain_one() is Outcome.SUBMITTED_TO_SINK and sink2.attempts == 1
-    assert max(m.version for m in builtin_migrations()) == 19
+    assert max(m.version for m in builtin_migrations()) == 20
 
 
 def test_persistence_failure_produces_zero_intents(tmp_path, monkeypatch):

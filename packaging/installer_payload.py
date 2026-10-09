@@ -39,8 +39,8 @@ def payload_files(bundle: Path) -> tuple[Path, ...]:
     if not any(path.relative_to(bundle).parts[0] == "licenses" for path in files):
         raise ValueError("Third-party licenses missing")
     schemas = [path for path in files if path.suffix == ".sql"]
-    if sorted(path.name[:3] for path in schemas) != [f"{i:03}" for i in range(1, 20)]:
-        raise ValueError("Payload must contain migrations 001 through 019")
+    if sorted(path.name[:3] for path in schemas) != [f"{i:03}" for i in range(1, 21)]:
+        raise ValueError("Payload must contain migrations 001 through 020")
     return tuple(files)
 
 
@@ -50,5 +50,5 @@ def file_digest(path: Path) -> str:
 
 
 def write_manifest(path: Path, bundle: Path, files: tuple[Path, ...], version: str) -> None:
-    path.write_text(json.dumps({"version": version, "schema": 19, "unsigned": True,
+    path.write_text(json.dumps({"version": version, "schema": 20, "unsigned": True,
         "files": [{"path": file.relative_to(bundle).as_posix(), "sha256": file_digest(file)} for file in files]}, indent=2) + "\n", encoding="utf-8")

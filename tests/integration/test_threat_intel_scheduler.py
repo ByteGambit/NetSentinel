@@ -81,7 +81,7 @@ def test_abuseipdb_production_port_cache_write_restart_and_revoke(tmp_path):
         cache = SQLiteThreatIntelCacheRepository(SQLiteDatabase(db_path))
         assert cache.get(ThreatIntelCacheKey.from_result(first.result), datetime.now(UTC)).freshness is F.FRESH
         with SQLiteDatabase(db_path).connection() as connection:
-            assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 19
+            assert connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] == 20
             assert connection.execute("SELECT COUNT(*) FROM threat_intel_cache").fetchone()[0] == 1
             assert not connection.execute("SELECT name FROM sqlite_master WHERE name LIKE '%job%'").fetchall()
         assert cache.get(replace(ThreatIntelCacheKey.from_result(first.result), result_version=3),
