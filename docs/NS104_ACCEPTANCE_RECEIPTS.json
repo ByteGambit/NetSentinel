@@ -1,0 +1,1344 @@
+{
+  "task": "NS-104",
+  "receipts": {
+    "installer-custody-post.result.json": {
+      "sha256": "de5c144ffaa687b8072fdc4d9bf10e07fc4f72a9677b6d57730142c0def12358",
+      "receipt": {
+        "action": "custody-post",
+        "complete_custody_and_audit_preserved": true,
+        "config_sha256": "cc895f04e163e060c592ecce5fa48257e3fcf26f6eed9c5f80d587f1d5216178",
+        "custody_sha256": "ef3e4f876859f89fba5544ec072db836822eea2a7b86cfe23060a0b6b0fcdd6a",
+        "marker_count": 1,
+        "response_counts": {
+          "response_audit": 8,
+          "response_operations": 1,
+          "response_store": 1
+        },
+        "result": "PASS",
+        "schema": 20
+      }
+    },
+    "installer-custody-pre.result.json": {
+      "sha256": "cf691b48a53bdd0ef066f45349b12e33335b86a4d983ab3bfe77442e001d0365",
+      "receipt": {
+        "action": "custody-pre",
+        "config_sha256": "cc895f04e163e060c592ecce5fa48257e3fcf26f6eed9c5f80d587f1d5216178",
+        "custody_sha256": "ef3e4f876859f89fba5544ec072db836822eea2a7b86cfe23060a0b6b0fcdd6a",
+        "marker_count": 1,
+        "response_counts": {
+          "response_audit": 8,
+          "response_operations": 1,
+          "response_store": 1
+        },
+        "result": "PASS",
+        "schema": 20
+      }
+    },
+    "installer-denied-delete.result.json": {
+      "sha256": "00551a67de4e68751c14836a482d974111de7afc7768952bfdb8572eb4aaf624",
+      "receipt": {
+        "action": "denied-delete",
+        "config_sha256": "cc895f04e163e060c592ecce5fa48257e3fcf26f6eed9c5f80d587f1d5216178",
+        "custody_sha256": "201e13958046db4666040cfd7666726d5aaf5de0c8aed10aceffc5ac58a18bb8",
+        "delete_refused": true,
+        "exact_recovery_list": true,
+        "marker_count": 1,
+        "no_false_cleanup": true,
+        "response_counts": {
+          "response_audit": 12,
+          "response_operations": 2,
+          "response_store": 1
+        },
+        "result": "PASS",
+        "schema": 20
+      }
+    },
+    "installer-seed19.result.json": {
+      "sha256": "813a2f90c7eb2f7040e6ebb02f66b26eab0aec5e55e9f691fbdcb0c6dd8540a0",
+      "receipt": {
+        "action": "seed19",
+        "config_sha256": "cc895f04e163e060c592ecce5fa48257e3fcf26f6eed9c5f80d587f1d5216178",
+        "custody_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "marker_count": 1,
+        "response_counts": {},
+        "result": "PASS",
+        "schema": 19
+      }
+    },
+    "installer-status.result.json": {
+      "sha256": "3ae181dd91f7623affd0a86e7b3492935876b4ea657d2ce5a414a255260ef4a4",
+      "receipt": {
+        "action": "status",
+        "config_sha256": "cc895f04e163e060c592ecce5fa48257e3fcf26f6eed9c5f80d587f1d5216178",
+        "custody_sha256": "9689b2e5480e0a33ae1d256671796f75bcd00bc74a718b260d3c2ecdb3b33023",
+        "marker_count": 0,
+        "response_counts": {
+          "response_audit": 0,
+          "response_operations": 0,
+          "response_store": 1
+        },
+        "result": "PASS",
+        "schema": 20
+      }
+    },
+    "installer-upgrade-post.result.json": {
+      "sha256": "f4dc2257d934503f57506a20c7d440eee9af00966adc7d72a83eba90ff87e8d5",
+      "receipt": {
+        "action": "upgrade-post",
+        "config_sha256": "cc895f04e163e060c592ecce5fa48257e3fcf26f6eed9c5f80d587f1d5216178",
+        "custody_sha256": "34827099b908a98977e10ecd645150f93662786478d1743763a01f8a09dbf2ea",
+        "marker_count": 1,
+        "migration_and_data_preserved": true,
+        "response_counts": {
+          "response_audit": 0,
+          "response_operations": 0,
+          "response_store": 1
+        },
+        "result": "PASS",
+        "schema": 20
+      }
+    },
+    "uninstall-ui-DELETE.result.json": {
+      "sha256": "6c11bef843e9594261587e265031485e6008e4b7b959f159f716b0cdce3f2bb4",
+      "receipt": {
+        "completed": true,
+        "data_exists": false,
+        "decision": "DELETE",
+        "program_removed": true,
+        "root_pid": 1240,
+        "steps": [
+          {
+            "buttons": [
+              "Continue"
+            ],
+            "selected": "Continue",
+            "step": 0,
+            "title": "NetSentinel firewall rules - preserved"
+          },
+          {
+            "buttons": [
+              "Yes",
+              "No",
+              "Cancel"
+            ],
+            "selected": "Yes",
+            "step": 1,
+            "title": "Uninstall"
+          },
+          {
+            "buttons": [
+              "OK",
+              "Cancel"
+            ],
+            "selected": "OK",
+            "step": 2,
+            "title": "Uninstall"
+          },
+          {
+            "buttons": [
+              "Yes",
+              "No"
+            ],
+            "selected": "Yes",
+            "step": 3,
+            "title": "NetSentinel Uninstall"
+          },
+          {
+            "buttons": [
+              "OK"
+            ],
+            "selected": "OK",
+            "step": 4,
+            "title": "NetSentinel Uninstall"
+          }
+        ]
+      }
+    },
+    "uninstall-ui-KEEP.result.json": {
+      "sha256": "a5dece35b506229dd44c02e05df53115c9a11acb2d47132bb1f5c59836cdf9df",
+      "receipt": {
+        "completed": true,
+        "data_exists": true,
+        "decision": "KEEP",
+        "program_removed": true,
+        "root_pid": 4916,
+        "steps": [
+          {
+            "buttons": [
+              "Continue"
+            ],
+            "selected": "Continue",
+            "step": 0,
+            "title": "NetSentinel firewall rules - preserved"
+          },
+          {
+            "buttons": [
+              "Yes",
+              "No",
+              "Cancel"
+            ],
+            "selected": "No",
+            "step": 1,
+            "title": "Uninstall"
+          },
+          {
+            "buttons": [
+              "Yes",
+              "No"
+            ],
+            "selected": "Yes",
+            "step": 2,
+            "title": "NetSentinel Uninstall"
+          },
+          {
+            "buttons": [
+              "OK"
+            ],
+            "selected": "OK",
+            "step": 3,
+            "title": "NetSentinel Uninstall"
+          }
+        ]
+      }
+    },
+    "lab-state/001-create.result.json": {
+      "sha256": "0301562f292821fce7b207384ba717813dff2155d60fe40d4492fedab2a818de",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 1,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/002-external-edit.result.json": {
+      "sha256": "3634c10239df83d6b6c36838e2e785984b54322c923d63a4ca6a1c54caecfe77",
+      "receipt": {
+        "action": "external-edit",
+        "custody": "lab",
+        "external_modified_no_repair": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 2,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/003-cleanup-edit.result.json": {
+      "sha256": "8c32242da01984bd044038d71953b7a91d3e49b7b28e301cebdf9abbae453598",
+      "receipt": {
+        "action": "cleanup-edit",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 3,
+        "test_operator_exact_edit_restored": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/004-undo.result.json": {
+      "sha256": "3ca0008e42ae6cb5f9dba47b5d41a6e7c3b36d258e0f23a9e8cb24a9e8d1a201",
+      "receipt": {
+        "action": "undo",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 4,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "lab-state/005-interrupt-create.result.json": {
+      "sha256": "25e704336fb50b0befa5a6856b063a8426e202320a8618fe5b50be697c2a7446",
+      "receipt": {
+        "action": "interrupt-create",
+        "actual_block": true,
+        "custody": "lab",
+        "interruption_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 5,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/006-restart.result.json": {
+      "sha256": "3f81da233e0442fb4fed95540dbf6190f16bb58b9a822c1b02fe215408d2cfd7",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "promoted",
+        "recovered_unknown_add_time": true,
+        "result": "PASS",
+        "sequence": 6,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/007-undo.result.json": {
+      "sha256": "8d202ae47071c5db827561a7f6da0f1e67182bb04ac09ee5f799c8f3711e95fa",
+      "receipt": {
+        "action": "undo",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 7,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "lab-state/008-create.result.json": {
+      "sha256": "face0261662be2f055d7e463a415a446ae6b95f9f31092cb8fd2f910c89a2bdd",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 8,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/009-interrupt-remove.result.json": {
+      "sha256": "e0b1c6f14562cfe031fab368e5b8d96b2550a5e0f23577bedcab9d845b4067b1",
+      "receipt": {
+        "action": "interrupt-remove",
+        "custody": "lab",
+        "durable_remove_status": "os_verified",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "native_read": "absent",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 9,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/010-recover-remove.result.json": {
+      "sha256": "bf12d02a91155fb58e78c08120e3c25aeedbfdde33226b85535edcd887473fa6",
+      "receipt": {
+        "action": "recover-remove",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "outcome": "verified",
+        "owned_count": 0,
+        "reconciliation": "removed",
+        "result": "PASS",
+        "sequence": 10,
+        "status": "verified",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/011-create.result.json": {
+      "sha256": "c18c7f7e365ce1f43254b340bdd1b8a9c9eeec702c57dd904896ba95c34494d8",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 11,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/012-interrupt-before-remove.result.json": {
+      "sha256": "1a8d8f0c00913edc0cc02c3ee63f6bc6f8a19114daa0c8a2d753781711633920",
+      "receipt": {
+        "action": "interrupt-before-remove",
+        "custody": "lab",
+        "durable_remove_status": "prepared",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "native_read": "matched",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 12,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/013-recover-remove.result.json": {
+      "sha256": "6908634e9a2b7d4399889a8f0cf57891864c4077def2913f440e07f436527282",
+      "receipt": {
+        "action": "recover-remove",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "outcome": null,
+        "owned_count": 1,
+        "reconciliation": "pending_remove",
+        "result": "PASS",
+        "sequence": 13,
+        "status": "prepared",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/014-undo.result.json": {
+      "sha256": "528f9fd5e5822a9bc0447b65608576be1481fe89f1a008073235ff0d6473aeb8",
+      "receipt": {
+        "action": "undo",
+        "custody": "lab",
+        "result": "FAIL",
+        "sequence": 14,
+        "verified_rollback": true
+      }
+    },
+    "lab-state/015-observe-cleanup.result.json": {
+      "sha256": "034938d75bdb4303ea3517f7a7eae559092a9cfe991ec0672a2fe3148fdd429b",
+      "receipt": {
+        "action": "observe-cleanup",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 15,
+        "unrelated_count": 476,
+        "verified_absence_restored_connectivity": true
+      }
+    },
+    "lab-state/016-create.result.json": {
+      "sha256": "605d7cf2fdba8a653f6f427eef982aa60977f511539b3ec7b998df2467111a30",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 16,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/017-interrupt-remove-receipt.result.json": {
+      "sha256": "5427d493a14fce5d020fa3a065045673d41da4e4f366ba98c0829c8a279f8e11",
+      "receipt": {
+        "action": "interrupt-remove-receipt",
+        "custody": "lab",
+        "durable_remove_status": "attempt",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "native_read": "absent",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 17,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/018-recover-remove.result.json": {
+      "sha256": "6938baa583b1f08fdde413fe64a2a67ed36ab16580e4e2db178fa5f2a4bc4835",
+      "receipt": {
+        "action": "recover-remove",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "outcome": "outcome_unknown",
+        "owned_count": 0,
+        "reconciliation": "absence_observed",
+        "result": "PASS",
+        "sequence": 18,
+        "status": "unknown",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/019-create.result.json": {
+      "sha256": "abd9914ce71b9895fea03efbc8943b9b541c3549682566efab1c8ca02275614d",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 19,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/020-external-missing.result.json": {
+      "sha256": "c770f602566270e8cad51c2ac5a8589dd5fe035475d84789e388b8ff33294452",
+      "receipt": {
+        "action": "external-missing",
+        "custody": "lab",
+        "external_missing_no_recreate": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 20,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/021-create.result.json": {
+      "sha256": "438b995344db5604818e41e57c7e401ae1de7700b6cfad2bbec3acf1fda6e766",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "elevated": true,
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 21,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/022-undo.result.json": {
+      "sha256": "da2ba465c3e12c2f23d7243ef6649b14516994707928f488a477feecfd1123af",
+      "receipt": {
+        "action": "undo",
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 22,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "lab-state/023-create.result.json": {
+      "sha256": "f9a2d43a97a8570c3eb34e1562b7b6c4abbfb0d8fb39469563f4c750ee376594",
+      "receipt": {
+        "action": "create",
+        "custody": "lab",
+        "elevated": true,
+        "result": "FAIL",
+        "sequence": 23
+      }
+    },
+    "lab-state/024-create.result.json": {
+      "sha256": "dbee51d756a65ca8415a037b585f33025ce30aa16de1d6683f410aa1f72c7393",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "elevated": true,
+        "final_durable": true,
+        "outcome": "verified",
+        "prepared_before_native": true,
+        "reason": "rule_readback_verified",
+        "result": "FAIL",
+        "sequence": 24,
+        "status": "verified"
+      }
+    },
+    "lab-state/024-deny-remove.result.json": {
+      "sha256": "9b882d272564ec452005a445309c09a903a01c223d2927b08a22a1125c2569b4",
+      "receipt": {
+        "action": "deny-remove",
+        "custody": "lab",
+        "elevated": false,
+        "result": "FAIL",
+        "sequence": 24
+      }
+    },
+    "lab-state/025-deny-remove.result.json": {
+      "sha256": "dc2e5061297ff660bee955ac0fa187b51c79952e354ace1196a5882017bfb513",
+      "receipt": {
+        "action": "deny-remove",
+        "custody": "lab",
+        "elevated": false,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 25,
+        "typed_denial": "access_denied",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/026-observe-block.result.json": {
+      "sha256": "5bbfa7d243d45b7a7911ac1673f05e3d4eb9fa5f8d17b08b91dcb13b61b63f92",
+      "receipt": {
+        "action": "observe-block",
+        "actual_block": true,
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 26,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/027-undo.result.json": {
+      "sha256": "efa96aa266c3c1d54b4777f579486972e90ea56bb2347796b7ee7c0a5637c231",
+      "receipt": {
+        "action": "undo",
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 27,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "lab-state/028-observe-cleanup.result.json": {
+      "sha256": "5d330e68252d1264f3f3067acc9297a186d4acd142b321b3eec57e0c64a8d0e6",
+      "receipt": {
+        "action": "observe-cleanup",
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 28,
+        "unrelated_count": 476,
+        "verified_absence_restored_connectivity": true
+      }
+    },
+    "lab-state/cleanup-edit.result.json": {
+      "sha256": "8c32242da01984bd044038d71953b7a91d3e49b7b28e301cebdf9abbae453598",
+      "receipt": {
+        "action": "cleanup-edit",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 3,
+        "test_operator_exact_edit_restored": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/create.result.json": {
+      "sha256": "dbee51d756a65ca8415a037b585f33025ce30aa16de1d6683f410aa1f72c7393",
+      "receipt": {
+        "action": "create",
+        "actual_block": true,
+        "custody": "lab",
+        "elevated": true,
+        "final_durable": true,
+        "outcome": "verified",
+        "prepared_before_native": true,
+        "reason": "rule_readback_verified",
+        "result": "FAIL",
+        "sequence": 24,
+        "status": "verified"
+      }
+    },
+    "lab-state/deny-remove.result.json": {
+      "sha256": "dc2e5061297ff660bee955ac0fa187b51c79952e354ace1196a5882017bfb513",
+      "receipt": {
+        "action": "deny-remove",
+        "custody": "lab",
+        "elevated": false,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 25,
+        "typed_denial": "access_denied",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/external-edit.result.json": {
+      "sha256": "3634c10239df83d6b6c36838e2e785984b54322c923d63a4ca6a1c54caecfe77",
+      "receipt": {
+        "action": "external-edit",
+        "custody": "lab",
+        "external_modified_no_repair": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 2,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/external-missing.result.json": {
+      "sha256": "c770f602566270e8cad51c2ac5a8589dd5fe035475d84789e388b8ff33294452",
+      "receipt": {
+        "action": "external-missing",
+        "custody": "lab",
+        "external_missing_no_recreate": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 20,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/init.result.json": {
+      "sha256": "b59d4baa0bad2d1e1b2971306f86b9d841a9d5338b0f643dea72d7296329c314",
+      "receipt": {
+        "action": "init",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "normal_connectivity": true,
+        "owned_count": 0,
+        "result": "PASS",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/interrupt-before-remove.result.json": {
+      "sha256": "1a8d8f0c00913edc0cc02c3ee63f6bc6f8a19114daa0c8a2d753781711633920",
+      "receipt": {
+        "action": "interrupt-before-remove",
+        "custody": "lab",
+        "durable_remove_status": "prepared",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "native_read": "matched",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 12,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/interrupt-create.result.json": {
+      "sha256": "25e704336fb50b0befa5a6856b063a8426e202320a8618fe5b50be697c2a7446",
+      "receipt": {
+        "action": "interrupt-create",
+        "actual_block": true,
+        "custody": "lab",
+        "interruption_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "result": "PASS",
+        "sequence": 5,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/interrupt-remove-receipt.result.json": {
+      "sha256": "5427d493a14fce5d020fa3a065045673d41da4e4f366ba98c0829c8a279f8e11",
+      "receipt": {
+        "action": "interrupt-remove-receipt",
+        "custody": "lab",
+        "durable_remove_status": "attempt",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "native_read": "absent",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 17,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/interrupt-remove.result.json": {
+      "sha256": "e0b1c6f14562cfe031fab368e5b8d96b2550a5e0f23577bedcab9d845b4067b1",
+      "receipt": {
+        "action": "interrupt-remove",
+        "custody": "lab",
+        "durable_remove_status": "os_verified",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "native_read": "absent",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 9,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/observe-block.result.json": {
+      "sha256": "5bbfa7d243d45b7a7911ac1673f05e3d4eb9fa5f8d17b08b91dcb13b61b63f92",
+      "receipt": {
+        "action": "observe-block",
+        "actual_block": true,
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 26,
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/observe-cleanup.result.json": {
+      "sha256": "5d330e68252d1264f3f3067acc9297a186d4acd142b321b3eec57e0c64a8d0e6",
+      "receipt": {
+        "action": "observe-cleanup",
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 28,
+        "unrelated_count": 476,
+        "verified_absence_restored_connectivity": true
+      }
+    },
+    "lab-state/recover-remove.result.json": {
+      "sha256": "6938baa583b1f08fdde413fe64a2a67ed36ab16580e4e2db178fa5f2a4bc4835",
+      "receipt": {
+        "action": "recover-remove",
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "outcome": "outcome_unknown",
+        "owned_count": 0,
+        "reconciliation": "absence_observed",
+        "result": "PASS",
+        "sequence": 18,
+        "status": "unknown",
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/restart.result.json": {
+      "sha256": "3f81da233e0442fb4fed95540dbf6190f16bb58b9a822c1b02fe215408d2cfd7",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "lab",
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "promoted",
+        "recovered_unknown_add_time": true,
+        "result": "PASS",
+        "sequence": 6,
+        "unrelated_count": 476
+      }
+    },
+    "lab-state/undo.result.json": {
+      "sha256": "efa96aa266c3c1d54b4777f579486972e90ea56bb2347796b7ee7c0a5637c231",
+      "receipt": {
+        "action": "undo",
+        "custody": "lab",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "restored_connectivity": true,
+        "result": "PASS",
+        "sequence": 27,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "install-state/001-init.result.json": {
+      "sha256": "9506985279880a437fb3a5359b424ce0f1f7edacc75841d8af44b3f1a0de7ec9",
+      "receipt": {
+        "action": "init",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "normal_connectivity": true,
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 1,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/002-init.result.json": {
+      "sha256": "d25eaad8e33373ee4384369f1d094387fda1ef4d705dbea89b1aad8d93f5e997",
+      "receipt": {
+        "action": "init",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "normal_connectivity": true,
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 2,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/003-create.result.json": {
+      "sha256": "5f525b4e7a50466f7534fab5e5bb3f58e0513a96ff0f164c132afa1e88ff47cd",
+      "receipt": {
+        "action": "create",
+        "custody": "installed",
+        "elevated": true,
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "outcome": "verified",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "reason": "rule_readback_verified",
+        "result": "PASS",
+        "sequence": 3,
+        "status": "verified",
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/004-restart.result.json": {
+      "sha256": "8cac23f56e13524493229c04fc7f1b762a1154b8a1461787a75669a8b0a03c28",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "exact",
+        "recovered_unknown_add_time": false,
+        "result": "PASS",
+        "sequence": 4,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/005-restart.result.json": {
+      "sha256": "eca4ea5e74a7b1cd09875ee7b8f180d9f836adb457feab8cac1424817128ebf1",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "exact",
+        "recovered_unknown_add_time": false,
+        "result": "PASS",
+        "sequence": 5,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/006-duplicate-add.result.json": {
+      "sha256": "efaf21ab3b47f23c0e30ccefdf751e2d2f3ec373ddcf4c8a7edb48a392c70f22",
+      "receipt": {
+        "action": "duplicate-add",
+        "ambiguous_no_adoption_or_cleanup": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 2,
+        "result": "PASS",
+        "sequence": 6,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/007-duplicate-cleanup.result.json": {
+      "sha256": "3db8013da46425dedb5c7c0a3080b95f2abb49c5cb902acab368da5e1032ab58",
+      "receipt": {
+        "action": "duplicate-cleanup",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 7,
+        "test_operator_literal_internal_duplicate_removed": true,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/008-restart.result.json": {
+      "sha256": "79fa0f7e6c957cbbf6048d58114c34a95af789c05fc9d93a9d71bae76cc95754",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "exact",
+        "recovered_unknown_add_time": false,
+        "result": "PASS",
+        "sequence": 8,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/009-external-edit.result.json": {
+      "sha256": "979b935ee92def591e174f4956aa42e7a85e2bc33fa210e35080da8ead4c54c4",
+      "receipt": {
+        "action": "external-edit",
+        "custody": "installed",
+        "elevated": true,
+        "external_modified_no_repair": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 9,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/010-observe-edited.result.json": {
+      "sha256": "b50f6793ee08fcb82dc989fa5b9a3122921eb22ece0ed6c317e3b2e7a7a89496",
+      "receipt": {
+        "action": "observe-edited",
+        "custody": "installed",
+        "edited_rule_preserved_through_uninstall": true,
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 10,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/011-cleanup-edit.result.json": {
+      "sha256": "d862c2d61680883906c4d7c0a6a6e72bcb3a2c7a61b57244c4d207596289dbf1",
+      "receipt": {
+        "action": "cleanup-edit",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 11,
+        "test_operator_exact_edit_restored": true,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/012-restart.result.json": {
+      "sha256": "0cf42433aeefc28ab284f93a4eebae2481ec093d715c71ac18e3fad20641219e",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "exact",
+        "recovered_unknown_add_time": false,
+        "result": "PASS",
+        "sequence": 12,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/013-deny-remove.result.json": {
+      "sha256": "98316696be1a4a95e052884ff4888ed1adc69fbc3771b90f75548517106ba629",
+      "receipt": {
+        "action": "deny-remove",
+        "custody": "installed",
+        "elevated": false,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 13,
+        "typed_denial": "access_denied",
+        "unrelated_count": 476
+      }
+    },
+    "install-state/014-undo.result.json": {
+      "sha256": "f431bcfe1abc7614b246c170eace6413e94c7869b5e881ddb57e2721b1ec957d",
+      "receipt": {
+        "action": "undo",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 14,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "install-state/cleanup-edit.result.json": {
+      "sha256": "d862c2d61680883906c4d7c0a6a6e72bcb3a2c7a61b57244c4d207596289dbf1",
+      "receipt": {
+        "action": "cleanup-edit",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 11,
+        "test_operator_exact_edit_restored": true,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/create.result.json": {
+      "sha256": "5f525b4e7a50466f7534fab5e5bb3f58e0513a96ff0f164c132afa1e88ff47cd",
+      "receipt": {
+        "action": "create",
+        "custody": "installed",
+        "elevated": true,
+        "final_durable": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "outcome": "verified",
+        "owned_count": 1,
+        "prepared_before_native": true,
+        "reason": "rule_readback_verified",
+        "result": "PASS",
+        "sequence": 3,
+        "status": "verified",
+        "unrelated_control": true,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/deny-remove.result.json": {
+      "sha256": "98316696be1a4a95e052884ff4888ed1adc69fbc3771b90f75548517106ba629",
+      "receipt": {
+        "action": "deny-remove",
+        "custody": "installed",
+        "elevated": false,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 13,
+        "typed_denial": "access_denied",
+        "unrelated_count": 476
+      }
+    },
+    "install-state/duplicate-add.result.json": {
+      "sha256": "efaf21ab3b47f23c0e30ccefdf751e2d2f3ec373ddcf4c8a7edb48a392c70f22",
+      "receipt": {
+        "action": "duplicate-add",
+        "ambiguous_no_adoption_or_cleanup": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 2,
+        "result": "PASS",
+        "sequence": 6,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/duplicate-cleanup.result.json": {
+      "sha256": "3db8013da46425dedb5c7c0a3080b95f2abb49c5cb902acab368da5e1032ab58",
+      "receipt": {
+        "action": "duplicate-cleanup",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 7,
+        "test_operator_literal_internal_duplicate_removed": true,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/external-edit.result.json": {
+      "sha256": "979b935ee92def591e174f4956aa42e7a85e2bc33fa210e35080da8ead4c54c4",
+      "receipt": {
+        "action": "external-edit",
+        "custody": "installed",
+        "elevated": true,
+        "external_modified_no_repair": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 9,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/init.result.json": {
+      "sha256": "d25eaad8e33373ee4384369f1d094387fda1ef4d705dbea89b1aad8d93f5e997",
+      "receipt": {
+        "action": "init",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "normal_connectivity": true,
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 2,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/observe-edited.result.json": {
+      "sha256": "b50f6793ee08fcb82dc989fa5b9a3122921eb22ece0ed6c317e3b2e7a7a89496",
+      "receipt": {
+        "action": "observe-edited",
+        "custody": "installed",
+        "edited_rule_preserved_through_uninstall": true,
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "result": "PASS",
+        "sequence": 10,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/restart.result.json": {
+      "sha256": "0cf42433aeefc28ab284f93a4eebae2481ec093d715c71ac18e3fad20641219e",
+      "receipt": {
+        "action": "restart",
+        "create_audit_not_replayed": true,
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 1,
+        "reconciliation": "exact",
+        "recovered_unknown_add_time": false,
+        "result": "PASS",
+        "sequence": 12,
+        "unrelated_count": 476
+      }
+    },
+    "install-state/undo.result.json": {
+      "sha256": "f431bcfe1abc7614b246c170eace6413e94c7869b5e881ddb57e2721b1ec957d",
+      "receipt": {
+        "action": "undo",
+        "custody": "installed",
+        "elevated": true,
+        "inventory_sha256": "dd21de4500264cf0e961f11d370631894eb0f8b148ebb21bada4afe9a854bdc1",
+        "owned_count": 0,
+        "result": "PASS",
+        "sequence": 14,
+        "unrelated_count": 476,
+        "verified_rollback": true
+      }
+    },
+    "clean-self-test.json": {
+      "sha256": "fea87c60b5cc3190a60a6af2201d1854c1560e3b5e672b05b56706654265b36e",
+      "receipt": {
+        "gui_exit": 0,
+        "icon": true,
+        "migrations": 20,
+        "ok": true,
+        "old_schema_version": 18,
+        "onboarding_saved": true,
+        "onboarding_visible": true,
+        "qt": true,
+        "schema_version": 20,
+        "sqlite": true,
+        "upgraded_schema_version": 20,
+        "version": "0.1.0"
+      }
+    },
+    "previous-self-test-final.json": {
+      "sha256": "b23cd22233eed12cf5f7dbf40c536ed49622d621b891748c19bb961bf3e091c5",
+      "receipt": {
+        "gui_exit": 0,
+        "icon": true,
+        "migrations": 19,
+        "ok": true,
+        "old_schema_version": 18,
+        "onboarding_saved": true,
+        "onboarding_visible": true,
+        "qt": true,
+        "schema_version": 19,
+        "sqlite": true,
+        "upgraded_schema_version": 19,
+        "version": "0.1.0"
+      }
+    },
+    "upgrade-self-test-final.json": {
+      "sha256": "4412fead0c6501d0d2fbe0079dd74842651fb7cc590fa49a8802b635e3fe9bdf",
+      "receipt": {
+        "gui_exit": 0,
+        "icon": true,
+        "migrations": 20,
+        "ok": true,
+        "old_schema_version": 18,
+        "onboarding_saved": true,
+        "onboarding_visible": false,
+        "qt": true,
+        "schema_version": 20,
+        "sqlite": true,
+        "upgraded_schema_version": 20,
+        "version": "0.1.0"
+      }
+    },
+    "restart-owned-self-test.json": {
+      "sha256": "4412fead0c6501d0d2fbe0079dd74842651fb7cc590fa49a8802b635e3fe9bdf",
+      "receipt": {
+        "gui_exit": 0,
+        "icon": true,
+        "migrations": 20,
+        "ok": true,
+        "old_schema_version": 18,
+        "onboarding_saved": true,
+        "onboarding_visible": false,
+        "qt": true,
+        "schema_version": 20,
+        "sqlite": true,
+        "upgraded_schema_version": 20,
+        "version": "0.1.0"
+      }
+    },
+    "post-denial-monitoring-self-test.json": {
+      "sha256": "4412fead0c6501d0d2fbe0079dd74842651fb7cc590fa49a8802b635e3fe9bdf",
+      "receipt": {
+        "gui_exit": 0,
+        "icon": true,
+        "migrations": 20,
+        "ok": true,
+        "old_schema_version": 18,
+        "onboarding_saved": true,
+        "onboarding_visible": false,
+        "qt": true,
+        "schema_version": 20,
+        "sqlite": true,
+        "upgraded_schema_version": 20,
+        "version": "0.1.0"
+      }
+    },
+    "restricted-thread.json": {
+      "sha256": "ab3515011b36f5c65b25398d272bb942493013b723037054126946a2b1afbed3",
+      "receipt": {
+        "effective_admin": false,
+        "admin_sid_deny_only": true,
+        "privileges_disabled": true,
+        "security_bypass": false,
+        "restored_original_thread_token": true,
+        "remaining_rules_explicitly_listed": true
+      }
+    },
+    "final-install-state.json": {
+      "sha256": "47f81e82e811283dae048e1be3a8e1e1fe6d55e545085e4464ef6fccba1cf5c8",
+      "receipt": {
+        "OriginalCandidateRestored": true,
+        "OriginalDataAbsenceRestored": true,
+        "AppRunning": 0,
+        "Services": 0,
+        "Tasks": 0,
+        "UninstallerProcesses": 0,
+        "MatchingFirewallCount": 0,
+        "SinglePerUserRegistration": true,
+        "InstallVersion": "0.1.0",
+        "ExecutionPolicy": "Restricted",
+        "AutostartPresent": false
+      }
+    }
+  },
+  "operator_cleanup": {
+    "provenance": "Observed global VMware MCP guest commands and status; host VMX readback",
+    "windows_temporary_root_removed": true,
+    "original_candidate_restored": true,
+    "original_data_absence_restored": true,
+    "kali_listener_pid_start_ticks_command_hash_checked": true,
+    "listener_stopped_endpoint_absent_files_removed": true,
+    "both_guests_stopped": true,
+    "both_single_nics_restored": "nat",
+    "host_firewall_mutation": false,
+    "temporary_credentials_created": false
+  },
+  "package_verification": {
+    "task": "NS-104",
+    "installer_sha256": "b46502c9f5cc7ded621e92edbd75c627915a9b32b62d3f8b8c9f7d654ddeb954",
+    "size": 37638469,
+    "schema": 20,
+    "payload_count": 1120,
+    "payload_hash_mismatches": 0,
+    "installer_application_execution_levels": [
+      "asInvoker",
+      "asInvoker"
+    ],
+    "private_driver_test_payload_absent": true,
+    "manifest_sidecar_policy_equal": true,
+    "authenticode": "NotSigned"
+  },
+  "quality": {
+    "targeted_passed": 224,
+    "targeted_seconds": "37.26",
+    "full_offline_passed": 4711,
+    "live_deselected": 9,
+    "full_seconds": "695.35",
+    "coverage_percent": "91.32",
+    "ruff": "PASS",
+    "configured_mypy_sources": 38,
+    "additional_mypy_sources": 3,
+    "whitespace": "PASS",
+    "privacy": "PASS"
+  }
+}

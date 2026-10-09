@@ -65,6 +65,10 @@ def _self_test(report: Path) -> int:
 
 
 def main() -> int:
+    if sys.argv[1:] == ["--uninstall-report-firewall"]:
+        from netsentinel.infrastructure.uninstall_response import write_uninstall_response_report
+
+        return write_uninstall_response_report()
     if sys.argv[1:] == ["--uninstall-delete-local-data-confirmed"]:
         from netsentinel.infrastructure.uninstall_data import uninstall_local_data
 

@@ -149,11 +149,58 @@ begin
   end;
 end;
 
+procedure ShowFirewallReport(ReportAvailable: Boolean);
+var
+  Form: TSetupForm;
+  Memo: TNewMemo;
+  Button: TNewButton;
+  Lines: TArrayOfString;
+  ReportText: string;
+  I: Integer;
+begin
+  ReportText := 'Firewall rules are PRESERVED. No cleanup or elevation was attempted.' + #13#10 +
+    'Current firewall state is unknown. KEEP retains ownership/audit; DELETE is refused while rules may remain.' + #13#10 +
+    'Cleanup requires administrator permission and explicit confirmed Undo or review in Windows Defender Firewall with Advanced Security.';
+  if ReportAvailable and LoadStringsFromFile(ExpandConstant('{localappdata}\NetSentinel\firewall-uninstall-report.txt'), Lines) then begin
+    ReportText := '';
+    for I := 0 to GetArrayLength(Lines) - 1 do
+      ReportText := ReportText + Lines[I] + #13#10;
+  end else if not ReportAvailable then
+    ReportText := ReportText + #13#10 + 'UNKNOWN: custody report unavailable. Data deletion will be refused; choose KEEP and repair/review.';
+  Form := CreateCustomForm(ScaleX(680), ScaleY(520), False, True);
+  try
+    Form.Caption := 'NetSentinel firewall rules - preserved';
+    Form.ClientWidth := ScaleX(680);
+    Form.ClientHeight := ScaleY(520);
+    Memo := TNewMemo.Create(Form);
+    Memo.Parent := Form;
+    Memo.Left := ScaleX(12);
+    Memo.Top := ScaleY(12);
+    Memo.Width := Form.ClientWidth - ScaleX(24);
+    Memo.Height := Form.ClientHeight - ScaleY(64);
+    Memo.ReadOnly := True;
+    Memo.ScrollBars := ssVertical;
+    Memo.Text := ReportText;
+    Button := TNewButton.Create(Form);
+    Button.Parent := Form;
+    Button.Left := Form.ClientWidth - ScaleX(112);
+    Button.Top := Form.ClientHeight - ScaleY(40);
+    Button.Width := ScaleX(100);
+    Button.Caption := 'Continue';
+    Button.Default := True;
+    Button.ModalResult := mrOk;
+    Form.ShowModal;
+  finally
+    Form.Free;
+  end;
+end;
+
 function InitializeUninstall(): Boolean;
 var
-  Choice, I: Integer;
+  Choice, I, ReportCode: Integer;
   Inventory: TArrayOfString;
   PathError: string;
+  ReportAvailable: Boolean;
 begin
   Result := False;
   DeleteLocalData := False;
@@ -181,16 +228,27 @@ begin
     Exit;
   end;
   CreateMutex('Global\NetSentinel.Setup');  // Prevent app startup until uninstaller exits.
+  ReportAvailable := Exec(ExpandConstant('{app}\NetSentinel.exe'), '--uninstall-report-firewall',
+    ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ReportCode);
+  ReportAvailable := ReportAvailable and (ReportCode = 0);
+  Log('Firewall rules preserved; no cleanup/elevation attempted. Recovery list: ' +
+    ExpandConstant('{localappdata}\NetSentinel\firewall-uninstall-report.txt'));
   if UninstallSilent then begin
     Result := True;  // Silent uninstall always KEEP, no deletion switch.
     Exit;
   end;
+  ShowFirewallReport(ReportAvailable);
   Choice := MsgBox('Uninstall NetSentinel. KEEP local data is the default.' + #13#10 +
     'Delete my local NetSentinel data instead?' + #13#10 +
     'Includes monitoring history, alerts/incidents, config/preferences, profiles/trust, reputation cache and local logs.' + #13#10 +
+    'Firewall rules are preserved separately. DELETE is refused if recorded rules may remain or custody is unavailable.' + #13#10 +
     'Yes = DELETE; No = KEEP; Cancel = cancel uninstall.', mbConfirmation, MB_YESNOCANCEL or MB_DEFBUTTON2);
   if Choice = IDCANCEL then Exit;
   if Choice = IDYES then begin
+    if not ReportAvailable then begin
+      MsgBox('Firewall custody could not be enumerated. DELETE refused. Choose KEEP and repair/review remaining rules.', mbError, MB_OK);
+      Exit;
+    end;
     Choice := MsgBox('Permanently delete local NetSentinel data? NetSentinel cannot restore it. Secure erasure is not guaranteed. Exports outside the owned data folder are preserved.', mbConfirmation, MB_OKCANCEL or MB_DEFBUTTON2);
     if Choice <> IDOK then Exit;
     DeleteLocalData := True;

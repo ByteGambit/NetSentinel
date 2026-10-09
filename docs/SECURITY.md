@@ -899,6 +899,28 @@ M18, **M17 tamamlanmadan, NS-099 gate geçmeden ve explicit response GO kararı 
 
 NetSentinel yalnız kendi oluşturduğu rule ID/manifest üzerinde ownership iddia eder. Duplicate, stale, externally edited ve partial failure durumları reconcile edilir; rollback yalnız owned rules'a uygulanır. Uninstall sırasında yetki yoksa kural kaldırıldı varsayılmaz: kalan owned rules kullanıcıya açıkça listelenir. Unrelated user/system rules hiçbir durumda değiştirilmez. Response audit gizli veri veya raw history yüklemez. Gerçek rule etkisi ancak explicit isolated Windows lab/VM testleriyle doğrulanır.
 
+NS-104 uninstall politikası **preserve-by-default**: per-user installer firewall
+okumaz/değiştirmez veya yetki yükseltmez. Interactive kaldırmadan önce tam ve
+bounded durable custody'den exact rule/scope recovery listesi gösterir; silent
+kaldırma da kuralları/veriyi korur ve mevcut data root'ta
+`firewall-uninstall-report.txt` bırakır. Liste yerel hassas executable path/IP
+içerir; kullanıcı seçimi olmadan paylaşılmaz. Recorded status tarihsel,
+current OS presence UNKNOWN ve cleanup NOT ATTEMPTED olarak açıkça yazılır.
+FINAL + fresh complete equality olmadan yönetilen Undo yoktur. Externally
+modified/duplicate/pending/denied durumlar administrator review gerektirir;
+prefix/group deletion veya delete-anyway yoktur.
+
+Firewall cleanup ve data DELETE ayrı kararlardır. Recorded rule kalabilecekse
+veya custody eksik/bozuk/future/over-budget ise DELETE reddedilir ve KEEP sunulur;
+son ownership/audit kanıtı silinmez. Verified confirmed cleanup sonrası NS-096
+explicit DELETE geçerlidir. AsInvoker desktop privileged write deployment
+**NO_GO** kalır; bu VM acceptance bunu açmaz. Test-only scoped restricted-token
+denial, güvenlik politikası/credential/service/task değişikliği değildir.
+[NS-104 politika, native kanıt ve sınırlar](RESPONSE_UNINSTALL_ACCEPTANCE.md).
+Yerel privileged admin witness'ı okuyup taklit edebilir; malicious-local-admin
+ve tamper-proof ownership iddiası yoktur. Add preflight/compare-to-Remove TOCTOU
+yarışları devam eder; custom driver/WFP kernel uygulaması eklenmez.
+
 ### Public beta ve güncelleme
 
 M17, standard user ve Npcap missing koşullarında temiz install/upgrade/uninstall, VPN, sleep/wake, normal browser/updater, notification/false-positive burden ve storage/privacy davranışını doğrular. Signing/update kararı ayrı spike'tır; otomatik update check veya download varsayılan olarak başlamaz. Gelecekteki update mekanizması artefact bütünlüğünü/imzasını ve downgrade/rollback politikasını doğrulamadan çalıştırmaz; ağ isteği ve gönderilen version/channel bilgisi kullanıcıya açıklanır.

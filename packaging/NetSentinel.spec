@@ -7,8 +7,8 @@ root = Path(SPECPATH).resolve().parent
 schema = root / "src" / "netsentinel" / "infrastructure" / "sqlite" / "schema"
 icon = root / "src" / "netsentinel" / "assets" / "netsentinel.ico"
 sql_files = sorted(schema.glob("[0-9][0-9][0-9]_*.sql"))
-if [int(path.name[:3]) for path in sql_files] != list(range(1, 20)):
-    raise RuntimeError("Expected SQLite migrations 001 through 019")
+if [int(path.name[:3]) for path in sql_files] != list(range(1, 21)):
+    raise RuntimeError("Expected SQLite migrations 001 through 020")
 
 analysis = Analysis(
     [str(root / "packaging" / "entry.py")],

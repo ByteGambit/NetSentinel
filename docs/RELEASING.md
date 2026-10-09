@@ -1,5 +1,26 @@
 # NS-051 — Release readiness checklist
 
+## NS-104 current acceptance candidate — 2026-10-09
+
+Only NS-104 is implemented. Current uncommitted acceptance installer is0.1.0,
+base `7ee0aef71572fb6dc5a257384e6801ed7b6e710b` + NS-104 changes,
+schema001–020, **NotSigned**, **37,638,469 bytes**, SHA-256
+`b46502c9f5cc7ded621e92edbd75c627915a9b32b62d3f8b8c9f7d654ddeb954`.
+Installer preserves firewall rules, lists exact retained custody and refuses
+DELETE while a rule may remain/ownership is unknown. Confirmed native Undo is
+separate; installer adds no firewall mutation or privileged requester.
+[Native lifecycle, upgrade/uninstall, cleanup and exit decision](RESPONSE_UNINSTALL_ACCEPTANCE.md).
+NS-104 **COMPLETE**, M18 **COMPLETE** in the frozen native/installer acceptance
+scope.224 targeted/4711 offline passed,9 live deselected, coverage91.32%; Ruff,
+mypy38+3, whitespace/privacy and1120 payload hashes PASS. Final native rules0,
+476 unrelated rules exact; endpoint/artifacts removed, VMs stopped/NAT restored.
+
+Limited unsigned pilot remains **CONDITIONAL_GO** under NS-097's owner/audience,
+license and distribution conditions. Broad public release remains **NO_GO**;
+unsigned acceptance is not signing/distribution approval. Automatic response is
+deferred; asInvoker in-product privileged writes stay **NO_GO**. No tag/release,
+commit or push. The dated records below retain their earlier artifact scope.
+
 NS-099 final environment closure (2026-10-08): **private native WireGuard VPN PASS**.
 NS-099 **COMPLETE**, M17 **COMPLETE**; accepted8242868 runtime unchanged,
 unsigned0.1.0 candidate SHA256 `39b14fe844c8aaa150a8b09229e0d63aaaf5ecc98b5bc8c54b419140be7749d9`,
@@ -184,7 +205,7 @@ uv audit --locked --python-version 3.12 --python-platform windows
 ## Migration ve paket
 
 - [ ] SQLite migration manifestinin ardışık ve append-only olduğunu kontrol
-  edin. Mevcut manifest 001–019'dur; fresh DB ve 018→019 yükseltmesini aynı
+  edin. Mevcut manifest 001–020'dir; fresh DB ve 018→020 yükseltmesini aynı
   release candidate artifact'ının `--self-test`/smoke raporuyla doğrulayın.
 - [ ] Windows x64 `onedir` artifact'ını üretin; farklı cwd, boşluk/Türkçe
   karakterli çıkarma yolu, Qt, SQLite, icon, onboarding ve kapanışı

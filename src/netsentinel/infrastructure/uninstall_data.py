@@ -72,6 +72,10 @@ def uninstall_local_data() -> int:
     try:
         with stopped_desktop():
             base = windows_local_app_data()
+            from netsentinel.infrastructure.uninstall_response import inspect_response_custody
+
+            if not inspect_response_custody(base).permits_data_delete:
+                return 1  # Preserve recovery custody; never equate data deletion with Undo.
             delete_owned_data(base / APPLICATION_DIRECTORY_NAME, local_app_data=base, confirmed=True)
     except (OSError, UnsafeDataRoot, InstallerSafetyError):
         return 1

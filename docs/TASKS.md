@@ -1190,7 +1190,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-104 — Firewall/uninstall acceptance
 
-- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Durum:** ✅ COMPLETE (2026-10-09). Dedicated Windows11 Home25H2 x64/build26200.9457 native exact owned CREATE/effect/control/restart/confirmed Undo/external edit/missing/duplicate/interrupted CREATE+REMOVE/real effective-token ACCESS_DENIED PASS;476 unrelated rules exact fingerprint unchanged, final matching0. Fresh unsigned0.1.0 installer/schema020 clean install/019→020 data-preserving upgrade/FINAL-preserving repair/real KEEP+DELETE PASS. Preserve-by-default bounded exact custody recovery list; DELETE refuses rules-may-remain/unknown, no installer firewall dispatch or elevation. Targeted224/full4711 passed/9 live deselected, coverage91.32%, Ruff/mypy38+3/whitespace/privacy/package1120 hashes PASS. Both VMs stopped/NAT restored, endpoint/test artifacts removed. [Acceptance/policy/limitations](RESPONSE_UNINSTALL_ACCEPTANCE.md), [bounded native receipts](NS104_ACCEPTANCE_RECEIPTS.json). M18 COMPLETE; asInvoker in-product privileged writes NO_GO unchanged; automatic blocking/helper/service/task/driver/commit/push/tag/release NONE.
 - **Amaç:** Gerçek Windows rule ve uninstall davranışını doğrulamak.
 - **Yapılacaklar:** Owned rule lifecycle, rollback ve installer cleanup için explicit VM acceptance ve doküman ekle.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging/, docs/RELEASING.md, docs/SECURITY.md, tests/integration/.
@@ -1211,5 +1211,5 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | COMPLETE; NS-093–NS-099 COMPLETE — private native VPN PASS, native S3 PASS, OS-policy PASS, human UX8/8; recorded candidate/optional limitations retained |
-| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **IN PROGRESS; NS-100–NS-103 COMPLETE after separate user GO; NS-104 NOT STARTED; in-product privileged writes NO_GO** |
-| **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |
+| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **COMPLETE; NS-100–NS-104 COMPLETE after explicit user GO; native NS-104 gates PASS; in-product privileged writes NO_GO** |
+| **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **53 M11–M18 taskı COMPLETE (NS-068 GO koşullu); automatic response deferred** |
