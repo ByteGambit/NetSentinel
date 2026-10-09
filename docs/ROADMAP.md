@@ -1,5 +1,19 @@
 # Yol haritası
 
+## Post-M18 planning baseline — 2026-10-09
+
+M1–M18 / NS-001–NS-104 **COMPLETE** in their recorded acceptance scopes;
+current planning HEAD `97e214a270a5153d1ffd234cc50707ce52083f7f`, schema020.
+[NS-104 closure](RESPONSE_UNINSTALL_ACCEPTANCE.md) and TASKS are authoritative;
+the earlier progress entries below retain their historical scope. Limited
+unsigned pilot **CONDITIONAL_GO**, broad public release **NO_GO**, asInvoker
+in-product privileged writes **NO_GO**. Automatic blocking/elevation and
+service/helper/task/driver/WFP NONE; tag/release NONE.
+
+The authorized post-M18 work is **planning only**. M19/20 are appended below;
+NS-105–120 **PLANNED / NOT STARTED**, implementation and VMware validation not
+started. [Frozen scope, inventory, matrix and completion gate](M19_M20_PLANNING.md).
+
 NS-103 (2026-10-09): explicit user GO for manual response UI only; Connections
 review/confirmation/Cancel, bounded audit, typed denied/partial and strict
 confirmed Undo **COMPLETE (offline UI/service acceptance)**: targeted295,
@@ -358,3 +372,21 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 - **Ana teslimatlar:** Explicit user action → preview → confirmation → yalnız NetSentinel-owned narrow firewall rule → audit → undo/expiry; permission UX ve uninstall reconciliation.
 - **Açık kapsam dışı:** Automatic blocking, automatic elevation, process termination, unrelated user/system rules'a müdahale, custom WFP driver.
 - **Çıkış ölçütü:** Ownership/idempotency/rollback/izin reddi testleri geçer; unrelated rules korunur; kaldırılamayan owned rules açıkça bildirilir.
+
+## M19 — Localization & Guided Onboarding
+
+- **Durum:** PLANNED / NOT STARTED (2026-10-09); NS-105–NS-110.
+- **Amaç:** Turkish mandatory/English fallback dahil 18 offline UI dili, kalıcı first-launch/Settings dil tercihi ve mevcut M17 rehberinden geliştirilen erişilebilir beginner tour.
+- **Ana teslimatlar:** Qt TS/QM extraction/review/packaging; first-launch language chooser (English Inno installer minimal kalır); coherent runtime retranslation veya NS-105 feasibility gate sonrası explicit restart-required mode; page-aware optional guide/Settings replay/legacy state preservation; RTL/CJK/long-string ve Windows100/125/150/200% acceptance.
+- **Başlatma kapısı:** NS-104 COMPLETE ve gelecekte explicit M19 implementation yetkisi; bugünkü istek planning-only. NS-105 henüz başlamaz.
+- **Açık kapsam dışı:** Yeni detectors, consent değişimi, privileged deployment, installer translations, runtime translation APIs, broad release/signing.
+- **Çıkış ölçütü:** NS-110 frozen matrix ve final18 catalog/reviewer/native UX/resource/state/safety gates PASS; tested switching mode açık. **M19 bitişinde NetSentinel finished ilan edilmez.**
+
+## M20 — Full-System VMware Validation
+
+- **Durum:** PLANNED / NOT STARTED (2026-10-09); NS-111–NS-120.
+- **Amaç:** Installation→telemetry→detection→UI→persistence→lifecycle/uninstall zincirini real owned Windows11/Kali native lab ve benign controls ile doğrulamak.
+- **Ana teslimatlar:** Frozen feature inventory (64 acceptance units, M19 additions planned),56 scenario families/36 benign control families; primary VMware host-only/no-route lab, separate benign NAT/private VPN phase; bounded structured receipts/OS+DB+UI oracles; all actual LAN/DNS/VLAN/process/baseline/risk/alerts/incidents/TI/privacy/response/stability/localization/installer areas.
+- **Başlatma kapısı:** NS-110 COMPLETE ve gelecekte explicit M20 VM execution authorization; NS-111 exact owned environment/hash/caps/oracles freeze'i ve scenario-specific opt-ins. Bu plan attack/VM/build çalıştırmaz.
+- **Açık kapsam dışı:** Yeni detector/automatic incident producer/credential backend, automatic blocking/elevation, privileged persistent service/helper/WFP/driver, malicious-local-admin protection, process termination/updater, public/third-party attacks veya signing/distribution GO.
+- **Çıkış ölçütü:** NS-120 PASS yalnız all required current-candidate receipts/controls/budgets/cleanup ve frozen justified capability alternatives ile. CONDITIONAL_PASS pending conditions bırakır ve işlevsel completion değildir; FAIL defects/unsafe evidence gerektirir. Required missing native evidence PASS sayılamaz. **Functional completion yalnız final M20 PASS sonrası; broad public release ve in-product privileged writes ayrı NO_GO kapılarıdır.**

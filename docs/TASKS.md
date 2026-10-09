@@ -1213,3 +1213,221 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | COMPLETE; NS-093–NS-099 COMPLETE — private native VPN PASS, native S3 PASS, OS-policy PASS, human UX8/8; recorded candidate/optional limitations retained |
 | M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **COMPLETE; NS-100–NS-104 COMPLETE after explicit user GO; native NS-104 gates PASS; in-product privileged writes NO_GO** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **53 M11–M18 taskı COMPLETE (NS-068 GO koşullu); automatic response deferred** |
+
+## M19 — Localization & Guided Onboarding
+
+**Durum:** PLANNED / NOT STARTED (2026-10-09). Bu kayıtlar yalnız planı
+dondurur; NS-105 uygulaması başlamaz. [M19/M20 frozen plan](M19_M20_PLANNING.md)
+mevcut post-M18 mimariyi, 18 dil hedefini, runtime/restart karar kapısını,
+M17 rehberinin genişletilmesini ve kabul matrisini tanımlar. M1–M18 kapanışı
+korunur; in-product privileged writes/broad release NO_GO. M19 bitişi ürünün
+işlevsel tamamlandığı anlamına gelmez; NS-120 PASS ayrıca gerekir.
+
+### NS-105 — Localization architecture & source extraction
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Mevcut hand-built PyQt6 UI için offline Qt localization sözleşmesini ve dürüst runtime/restart davranışını kurmak.
+- **Yapılacaklar:** QTranslator/.ts/.qm, canonical English/context, allowlisted language manifest, extraction/compiler ve placeholder/numerus sözleşmesini uygula; presentation string inventory çıkar ve literal çağrılara dönüştür; domain/application typed codes ile UI metnini ayır. GUI-owned locale generation, raw-record re-render, model header/DisplayRole/accessibility güncellemesi ve açık dialog/late-result sınırını tanımla. English/pseudo/fake catalog ile runtime feasibility gate çalıştır; başarısızsa tüm app için explicit restart-required contract dondur. Date/number display QLocale; UTC/technical evidence/machine export formatlarını koru; hardcoded-string scanner ve reviewed exceptions oluştur.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/i18n/ (yeni), presentation/views/, widgets/, models/, viewmodels.py, process_context.py; tests/gui/, tests/unit/; pyproject.toml/uv.lock yalnız gerekli build-tool kararı; docs/LOCALIZATION.md (yeni).
+- **Bağımlılıklar:** NS-104.
+- **Acceptance criteria:** Domain/application Qt translation import etmez; stable IDs/sort/selection/evidence değişmez; English missing/plural fallback okunabilir; extraction inventory ve placeholders doğrulanır; araç sürümü/build-only dependency açık; load failure sanitized. Açık settings dialog, unsaved input, delayed result, LTR→RTL→LTR feasibility kanıtıyla runtime veya coherent restart mode seçilmiş ve belgelenmiştir; destructive confirmation dili ortasında değişmez. No network/API/external catalog.
+- **Test yöntemi:** Fake translator/load errors, plural/placeholder/extraction fixtures; offscreen selection/filter/focus/dialog/query-generation ve pseudo expansion/RTL; static sink scan/exception review. Native güvenli switching için sonraki NS-110 gate korunur.
+- **Kapsam dışı:** Gerçek target-language çevirileri, SQLite migration, installer rebuild, detector/privacy policy değişimi.
+- **Başlatma kapısı:** NS-104 COMPLETE ve kullanıcıdan gelecekte açık M19 implementation yetkisi; mevcut planning isteği uygulama yetkisi değildir.
+
+### NS-106 — First-launch language selection & persistence
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** İlk launch ve Settings için tekrar değiştirilebilir, kalıcı ve izinlerden bağımsız dil preference akışı sağlamak.
+- **Yapılacaklar:** ui_language/ui_language_confirmed typed bounded config fields, BCP-47→Qt mapping ve atomic reload/merge save ekle. Fresh/legacy kullanıcının bir defalık language-only chooser'ını guide öncesine koy; autonym+English names, explicit Continue/Use English, Cancel/Esc exit; supported OS language yalnız suggestion. Stage/load/save/publish transaction ve Settings Apply/Cancel contract'ını NS-105 mode'a göre uygula; invalid/removed/missing pack English fallback ve current/pending notice; mock catalogs ile permission/setting bağımsızlığını doğrula.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** shared/config.py, presentation/app.py, presentation/i18n/, widgets/language_settings.py (yeni), tests/unit/shared/, tests/gui/; packaging entry self-test sözleşmesi sonraki kabul için.
+- **Bağımlılıklar:** NS-105.
+- **Acceptance criteria:** Explicit choice restart'ta korunur; acknowledged legacy user yalnız dil sorusu alır, rehber tekrar zorlanmaz; X/Esc choice yazmaz; invalid choice sessiz accepted sayılmaz. Apply başarısız load'u persist etmez; save failure eski dil/config'i korur; English recovery reachable. Capture/TI/notification/storage ayarları değişmez; mevcut damaged-config TI fail-closed semantics korunur. Wheel/bundle resource yolu allowlisted; restart mode varsa current/pending açık ve zorunlu auto restart yok.
+- **Test yöntemi:** Fresh/legacy/future/invalid config, atomic save failure/concurrent setting update, load fallback ve repeated fake-catalog switching; offscreen chooser/Apply/Cancel; permission invariants ve restart fixtures.
+- **Kapsam dışı:** Çeviri üretimi, installer language system/handoff, privacy consent verme veya online locale service.
+- **Başlatma kapısı:** NS-105 toolchain ve runtime/restart karar kapısı geçmiş olmalıdır.
+
+### NS-107 — Reviewed translation packs & offline packaging
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** English dahil 18 UI dilini doğrulanmış, bakımı yapılabilir offline kaynaklarla sağlamak.
+- **Yapılacaklar:** Plan language manifest'i: en,tr,de,fr,es,it,pt-BR,nl,pl,ru,uk,ar,ja,ko,zh-Hans,zh-Hant,id,cs. Canonical TS/context/comments ve 17 target catalog; English numerus kaynakları; dört bounded wave A–D için ayrı completeness/load/placeholder/plural/stale/review/screenshot receipt. Arabic RTL/shaping ve CJK font/license/native glyph QA; de/ru+pseudo expansion. Qt standard-widget translations/OS fallback inventory; wheel/PyInstaller resources, payload integrity ve CI checks. Bu task kendi frozen source inventory revision'ını kabul eder; sonraki guide/Settings delta strings tüm pack'lerde aynı quality model ile NS-109'da tamamlanır.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** assets/i18n/, presentation/i18n/, translation source/resources, packaging/NetSentinel.spec, build_windows.py, installer_payload.py; pyproject.toml package-data, .github/workflows/ci.yml; tests/; docs/LOCALIZATION.md.
+- **Bağımlılıklar:** NS-106.
+- **Acceptance criteria:** 18 registry entry ve 17 target pack offline yüklenir; English fallback/English plural testi geçer; required strings missing/unfinished/stale değildir; placeholder/plural/context validation ve inventory digest tutarlıdır. Her wave independent accepted receipt içerir; language-competent reviewer bütün safety/consent/uncertainty/firewall/guide copy'sini ve ordinary UI samples'ı onaylar; AI taslağı tek başına kabul değildir. RTL/CJK/expansion/glyph ve packaged resource evidence vardır; font bundle gerekirse license karar kaydı gerekir. Translation/extraction runtime network istemez.
+- **Test yöntemi:** Catalog validator + compiled load/missing/malformed-child fixtures; all-language offscreen shell/dialog/tour screenshots; manual wording spot checks; wave D native font/RTL evidence; package inventory assertions. Final integration/installer native gate NS-110/119'dadır.
+- **Kapsam dışı:** Installer multilingual strings, pt-PT/extra regional packs, runtime translation/font download veya online API.
+- **Başlatma kapısı:** Her wave kendi quality/reviewer gate'i geçmeden sonraki wave accepted sayılmaz; NS-107 COMPLETE kendi inventory revision'ına bağlıdır, future NS-109'a bağlı değildir. NS-110 final inventory freeze tüm waves ve NS-109 delta reviews'ını kapsar.
+
+### NS-108 — Page-aware first-run guided tour
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Mevcut M17 rehberini beginner-friendly, erişilebilir ve hemen atlanabilir bağlamsal ürün turuna geliştirmek.
+- **Yapılacaklar:** Language bootstrap sonrası MainWindow/core lifecycle'ı tek sefer başlat ve nonmodal coach panel aç; M17 content/state reuse. Stable PageId/objectName target registry ve optional layout-derived highlight; Dashboard/broadcast/VLAN, Connections/process/destination, History, Devices/trust/capture, DNS, baseline/risk/mark-normal, Alerts/notifications, Incidents, TI/privacy, manual response, Diagnostics ve Settings açıklamaları. Next/Back/Skip/Finish, safe Esc/X, keyboard/focus, missing target/data ve resize/DPI handling. Existing completed/dismissed versions+legacy boolean ile version2 semantics ve no-forced-upgrade tour uygula.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** widgets/onboarding.py, presentation/app.py, views/main_window.py, shared/config.py; presentation/i18n/; tests/gui/test_first_run_feedback.py ve yeni guided-tour fixtures; docs/FIRST_RUN_FEEDBACK.md.
+- **Bağımlılıklar:** NS-106, NS-098.
+- **Acceptance criteria:** Never-shown/skipped/completed ayrılır; future versions azalmaz; v1/legacy acknowledgement nonmodal opt-in notice alır, forced tour olmaz. Immediate Skip/Esc navigation'i serbest bırakır; Finish/Skip state atomic ve ayrı; save failure false persistence iddiası yapmadan session continuation sağlar. Tur current language kullanır, missing target text fallback verir; no hardcoded coordinates/focus trap. Core start exactly once, guide replay engine restart yapmaz; optional consents/action writes/query/elevation yok.
+- **Test yöntemi:** Offscreen step/state/version/keyboard/resize/missing-target/RTL fixtures, startup lifecycle counts, Skip/Finish save failure ve restart; consent/network forbidden assertions; synthetic screenshots. Native DPI/novice/Narrator NS-110.
+- **Kapsam dışı:** Yeni telemetry/mock product data, capture Start, TI lookup, trust/save/purge/firewall command tetikleme; tracking analytics.
+- **Başlatma kapısı:** NS-106 language-before-guide flow accepted; NS-105 translation API kullanılmalı. English/pseudo ile başlanabilir; gerçek catalog completeness NS-107/110'a bağlıdır.
+
+### NS-109 — Settings language/replay & surface integration
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Dil değişimi ve turu yeniden gösterme eylemlerini mevcut Settings menu/dialog mimarisinde tamamlamak.
+- **Yapılacaklar:** Settings → Language ve Show guide again actions; existing Help replay uyumu. NS-106 save/mode ve NS-108 tour reuse; current/pending/autonym text, Apply/Cancel ve restart notice. Bütün app-owned open dialog, tray, future notification, tooltips/accessibility, model columns/filters/status/detail ve async render coverage tamamla. Destructive confirmation/command sırasında safe deferral, OS/native dialog/old notification/installer/export exceptions açık; final string inventory çıkar ve NS-108/109 delta strings için her pack'i NS-107 quality/reviewer checks ile güncelle.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** views/main_window.py, presentation/app.py, tray.py, notifications.py, models/, widgets/ ve language/tour coordinators; tests/gui/; docs/LOCALIZATION.md, FIRST_RUN_FEEDBACK.md.
+- **Bağımlılıklar:** NS-107, NS-108.
+- **Acceptance criteria:** Settings'ten repeated language changes ve replay erişilebilir; completion/skip/preferences korunur; change/replay consent veya detection state reset etmez. Tested mode tutarlı; runtime ise eski generation text kalmaz, selection/filter/unsaved input/confirmed command korunur; restart mode açıkça pending gösterir. Tray/future popup current language, old OS-delivered popup replay edilmez; machine evidence/exports canonical kalır. Static exceptions reviewed ve final catalogs güncel.
+- **Test yöntemi:** Offscreen ten-change sequence + restart/Cancel/open-dialog/late-result/command deferral; tray/notification fake sink roles; Settings/Help replay keyboard; catalog/sink coverage and synthetic screenshots.
+- **Kapsam dışı:** Yeni Settings product areas, translated machine schemas, privileged write deployment veya installer translations.
+- **Başlatma kapısı:** NS-107 kendi inventory revision'ı için accepted packs sağlamalı; NS-108 lifecycle/state testleri geçmiş olmalı. Son guide/Settings delta completeness bu taskın çıkış kriteridir; bağımlılık döngüsü oluşturmaz.
+
+### NS-110 — Localization/onboarding acceptance gate
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** M19 dil/tur ürün hedeflerini offline ve gerçek packaged Windows UX kanıtıyla kapatmak.
+- **Yapılacaklar:** [Plan §8](M19_M20_PLANNING.md#8-m19-acceptance-gate--ns-110) tam matrix: clean/legacy upgrade, Turkish/English/all18, ten repeated changes/persistence, malformed/missing pack/save failure, long de/ru, Arabic RTL, CJK glyph, 100/125/150/200% scaling, guide controls/replay/version/restart, dialogs/tray/future popup/accessibility/hardcoded sinks/consent boundaries. Fresh verified candidate hash/catalog manifest ve synthetic/offscreen vs native receipts ayır; required source/packaging quality gates ve docs tutarlılığı doğrula.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** tests/gui/, tests/unit/shared/, screenshot fixtures, packaging smoke/self-test, docs/LOCALIZATION_ACCEPTANCE.md (yeni), FIRST_RUN_FEEDBACK.md, RELEASING.md; future acceptance artifacts.
+- **Bağımlılıklar:** NS-105–NS-109.
+- **Acceptance criteria:** §8 her required row için PASS kanıtı, mode kararı ve reviewer receipts; no unreviewed critical translation/unreachable controls; native DPI/font/Narrator kanıtı offscreen'e eşit sayılmaz. Defaults/privacy/state preservation ve packaged resource completeness geçer. All18 destek iddiası yalnız accepted pack'ler için; eksik mandatory locale/reviewer/native evidence M19 exit'i engeller. M19 COMPLETE ancak explicit gate sonucu; NetSentinel finished/public release GO değildir.
+- **Test yöntemi:** Appropriate unit/integration/offscreen regressions, catalog/placeholder/CI validation, synthetic screenshots + authorized native Windows scaling/font/accessibility/first-run usability acceptance; required quality checks, privacy/diff scan.
+- **Kapsam dışı:** Kali attacks/M20 telemetry lab validation, automatic response, signing/public release veya threshold relaxation.
+- **Başlatma kapısı:** NS-105–109 COMPLETE; native UX için exact owned Windows environment/operator scope ayrıca doğrulanır; M20 başlatılmaz.
+
+## M20 — Full-System VMware Validation
+
+**Durum:** PLANNED / NOT STARTED (2026-10-09). M19 sonrası comprehensive native
+acceptance fazı; yeni detector veya deployment implementasyonu değildir.
+[Frozen feature/scenario/control inventory ve gate](M19_M20_PLANNING.md).
+Her task bounded receipt, benign control, actual capability sınırı, current
+candidate provenance ve cleanup taşır. Missing required native evidence PASS
+sayılmaz. In-product privileged writes ve broad release NO_GO korunur.
+
+### NS-111 — Lab topology, feature inventory & frozen acceptance matrix
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** M1–M19 gerçek feature inventory'sinden güvenli ve ölçülebilir native acceptance protokolü dondurmak.
+- **Yapılacaklar:** F01–64 inventory'yi final M19 code ile reconcile et; S01–56 ve C01–36 ailelerinin exact telemetry/service/alert/incident/UI/persistence oracles'ını, policy prerequisites, rate/count/duration, evidence-mode ve cleanup'ını freeze et. Owned Windows11/Kali VMnet1 host-only/no route ve ayrı benign NAT/WireGuard phase, snapshot/profile/token/Npcap/build/scaling, artifact/catalog/installer hashes ve separate active-test opt-ins doğrula; required sleep/visibility/reviewer/environment alternatifleri ve FP/stability budgets kaydet.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** docs/M20_ACCEPTANCE_PROTOCOL.md (yeni), M19_M20_PLANNING.md; tests/integration/ ve fixtures/m20/ (yeni) guards/receipt validators; current windows_live/lab_live markers/harnesses.
+- **Bağımlılıklar:** NS-110, NS-104.
+- **Acceptance criteria:** Every feature requirement/native need/control mapped, no invented detector; exact aliases/VM ownership/recovery prestate ve isolation guard verified; thresholds results öncesi frozen. N/A/BLOCKED/A-vs-N modes/sleep-VLAN limitations explicit. No third-party target/default live CI; credentials/raw logs receipts'te yok; final gate/release ayrı. Active stimulus yetkisi passive capture opt-in'den ayrı.
+- **Test yöntemi:** Matrix/dependency/receipt schema consistency checks, read-only native environment/prestate verification, guard rejection fixtures; frozen protocol operator review. Stimulus execution sonraki tasks.
+- **Kapsam dışı:** Yeni production feature, saldırı/traffic run, privileged deployment, package release veya önceki acceptance'ı current PASS sayma.
+- **Başlatma kapısı:** NS-110 COMPLETE ve kullanıcıdan gelecekte explicit M20 owned-VM execution yetkisi; planning-only isteği hiçbir VM/network çalışmasını yetkilendirmez.
+
+### NS-112 — Core telemetry & process end-to-end validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Gerçek kontrollü socket/process stimulus'unun collector→history→UI görünürlüğünü ve belirsizliklerini doğrulamak.
+- **Yapılacaklar:** S01–05/C01–05/C09 bounded TCP4/6 where supported, UDP, scan-shaped incoming/outgoing churn, parent/denied/exit, restart/PID-reuse senaryolarını çalıştır. OS fixture identities/socket state ile actual read model/history/checkpoint/session/lifecycle karşılaştır; held connection, filter/sort/pause/stable selection ve no bytes/exact FIN/scan-verdict limits; deterministic reuse/race supplement ayrı.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** tests/integration/test_connection_monitor.py, fixtures/m20/, tests/gui/ telemetry assertions; psutil/tracker/history/process UI read models read-only; docs/M20_ACCEPTANCE_RECEIPTS/ (yeni).
+- **Bağımlılıklar:** NS-111.
+- **Acceptance criteria:** Qualified held sockets correctly visible/persisted; no PID/name merge or unavailable-field invention, startup/gap counts honest, stable UI under churn; no dedicated scan/UDP/malware guarantee. Controls/oracle comparison/cleanup PASS; uncontrollable PID reuse absence explicit, synthetic proof NATIVE PASS diye yazılmaz.
+- **Test yöntemi:** Opt-in exact Windows/Kali/local-loopback listeners/clients, OS+DB+UI assertions, bounded receipts; deterministic identity/race fixture alternative; no public scan.
+- **Kapsam dışı:** Yeni scan detector, ETW, per-flow bytes, parent historical lineage veya packet→PID guarantee.
+- **Başlatma kapısı:** NS-111 frozen candidate/topology/guard ve exact scenario operator opt-in; baseline selection/endpoint/rate caps sonuçlardan önce.
+
+### NS-113 — LAN / ARP / broadcast / VLAN validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Capture→LAN protocol services→detector→alert→UI hattını normal ve suspicious-shaped owned metadata ile ölçmek.
+- **Yapılacaklar:** S08–16: explicit capture/new/known devices, profile/trust/DHCP/random MAC, gateway baseline/change, IP-MAC conflict/correlation, capped broadcast/ARP full-window rate/recovery, VLAN/tag/verification/diversity. C10–18 kontrolleri ve actual packet visibility preflight; window/confirmation/cooldown/dedup/quality/drop/persistence/UI query; no-route isolated gateway context. VMware/NIC tag stripping'i ölç ve native gap+synthetic full-pipeline alternative'ı label et.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** fixtures/packets/, fixtures/devices/, fixtures/m20/, integration ARP/device/broadcast/VLAN pipelines, GUI Dashboard/Devices/Alerts assertions, docs/M20_ACCEPTANCE_RECEIPTS/.
+- **Bağımlılıklar:** NS-112.
+- **Acceptance criteria:** Supported captured evidence produces exact current rule behavior, scoped baseline/persistence and understandable UI; warm-up/DHCP/single gratuitous signal false HIGH yaratmaz; no attack/interception certainty/storm. Native VLAN invisible ise honest visibility limitation plus predefined alternative, no fake native PASS; every control/cleanup receipt complete.
+- **Test yöntemi:** Explicit lab_live capture + distinct authorized bounded active-frame harness, DB/read model/UI, isolated full windows and rate/cooldown records; VLAN/DHCP/race offline supplement separately.
+- **Kapsam dışı:** Gerçek traffic interception/ARP poisoning campaign, production router attack, active-discovery feature veya yeni detector.
+- **Başlatma kapısı:** Owned single-NIC no-route lab, actual capture visibility, declared operator raw-frame privileges ve rate/duration/stop caps; Kali host/public network hedef değildir.
+
+### NS-114 — DNS / destination / executable context validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** DNS/destination/process evidence context'i ve attribution/file-identity sınırlarını gerçek uygulamada doğrulamak.
+- **Yapılacaklar:** S06–07/S17–22: harmless local executable hash/replacement/signer, controlled DNS query/response/timeout/orphan/CNAME/shared-IP/TTL/client scope, repeated Windows DNS set change/reorder/restore, restart/encrypted DNS limitations; no-dataset default and approved local synthetic ASN/country source. C06/07/19–23; OS/DB/canonical refs/selection/detail compare, public lookup injection separate from native private traffic.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** fixtures/m20/, tests/integration DNS/association/signer/history tests, GUI destination/process detail assertions; docs/M20_ACCEPTANCE_RECEIPTS/; local dataset fixtures.
+- **Bağımlılıklar:** NS-112.
+- **Acceptance criteria:** Transactions/IDs/ambiguity/provenance/expiry and old process snapshots correct; DNS changes only current confirmed policy; not causal hostname/PID attribution. Hash/signature safety or loaded-memory guarantee yok; offline signer limits explicit. Default ASN not_configured/private not_applicable, synthetic public match labelled A; no third-party dataset/license or online request assumption. Controls and restored DNS/files PASS.
+- **Test yöntemi:** Native owned resolver/listener/local file fixtures, offline signer opt-in, explicit operator DNS config change, bounded DB/UI receipts; fake public dataset/race/encrypted parsing supplement mode-labelled.
+- **Kapsam dışı:** Universal DoH visibility, TLS interception, real API/file upload, new dataset download/license claim veya production DNS-process event source.
+- **Başlatma kapısı:** NS-111 endpoint scope verified; Windows DNS changes separately operator-admin authorized; only harmless declared local executables and fixture files.
+
+### NS-115 — Baseline / risk / alerts / incidents / notifications validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Gerçek gözlemlerden açıklanabilir risk ve alert sonucu, false-positive control ve existing incident sınırını kanıtlamak.
+- **Yapılacaklar:** S23–34: real timed learning/coverage/restart, novelty/rarity/frequency/diversity/periodicity prerequisites, reset/mark-normal/suppression/revoke, risk revisions, legacy/new alert dedup/ACK/RESOLVE/reopen, incident explicit service/timeline/source expiry, native popup/click/OFF/ON/OS policy. C24–32 + relevant controls. Actual native runtime risk ile API-seeded incident/reassessment/toast test composition ayrı receipt; organic benign vs injected positive burden ayrı.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** fixtures/behavior_risk.py, incident_acceptance.py, beta_native_notifications.py, fixtures/m20/; existing application/repository/query APIs and GUI assertions; docs/M20_ACCEPTANCE_RECEIPTS/.
+- **Bağımlılıklar:** NS-113, NS-114.
+- **Acceptance criteria:** No fake READY/minimum coverage/time windows, policy contributors/explanations/revisions faithful; suppression preference evidence'ı silmez; lifecycle/dedup/replay correct. Normal desktop incident list boş olabilir; automatic producer eklenmez/iddia edilmez; explicit API evidence clearly labelled. Popup actual delivery/click proof vs submission separate; benign budgets/no unsupported HIGH/malware/storm criteria pass; cleanup and persistence verified.
+- **Test yöntemi:** Native held/timed outgoing fixtures+OS/DB/UI, predefined deterministic time/expiry/revision supplement, explicit seeded incident API in isolated profile, native observed toast/click and structured counters; receipts/control classification.
+- **Kapsam dışı:** ML/new detector weights, confirmed C2/malware verdict, automatic incident producer, altering defaults or test-seeded UI as organic runtime evidence.
+- **Başlatma kapısı:** Real baseline/independent windows/sample gates from current code satisfied; missing prerequisite NOT_RUN/insufficient result, threshold lowered to pass değil. Notifications opt-in separately confirmed.
+
+### NS-116 — TI / privacy / storage / offline validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Optional TI ve yerel storage/privacy kontrollerinin offline güvenli/ölçülebilir davranışını doğrulamak.
+- **Yapılacaklar:** S35–38/S50: default OFF/consent Save/explicit private guard/unavailable desktop secret; fake HIT/NO_HIT/stale/timeout/429/revoke/cache/assessment provenance. Offline local detection, zero unauthorized network, storage summary/retention/purge protected state/source expiry, full immutable sanitized export/feedback preview→Save/Cancel/fault/64KiB and canonical data. C33/34 receipts, before/after DB/log/file and no secret/raw-history scan.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** TI/storage fixtures/integration tests, fixtures/m20/, GUI TI/privacy/feedback assertions, docs/M20_ACCEPTANCE_RECEIPTS/; no production secret backend addition.
+- **Bağımlılıklar:** NS-115.
+- **Acceptance criteria:** Production no-credential result honest and Save/selection zero lookup; permitted fake transport labelled not real API acceptance. No default TI/update/history upload; offline detection operational. Protected active/trust/preference/response custody remain; exact preview bytes atomic saved, no credentials/evidence/raw identifiers, schema keys canonical; retention OFF legitimate growth not called leak. Controls/cleanup PASS, observation blind spots recorded.
+- **Test yöntemi:** Native offline/network-scope observation paired forbidden-network assertions, injected provider/transport faults, real local SQLite/UI/export comparison, redaction/atomic failure fixture alternative; bounded receipts.
+- **Kapsam dışı:** Real API key/lookup requirement, online translation, credential backend/key-entry, secure erase or encrypted DB guarantees.
+- **Başlatma kapısı:** Native test profile contains only declared lab data; any optional live_threat_intel requires separate future authorization/subject/credential scope and is not required by M20.
+
+### NS-117 — Manual response / firewall / custody validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Mevcut shipped NO_GO UX ve ayrı native test adapter ownership/effect/Undo güvenliğini tekrar doğrulamak.
+- **Yapılacaklar:** S39–43/C29/30/36: asInvoker UI preview/Cancel/NO_GO/denied/local trust; separately approved NS-101/104 exact test-only adapter create/read/effect/control/confirmed Undo, external edit/missing/duplicate, interrupted CREATE/REMOVE/DB/COM faults/restricted token/restart, custody recovery/uninstall DELETE refusal. Full unrelated rules/profile pre/post inventory and final zero matching test rules; current UI read state/audit compare.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** test_response_firewall_vm.py, fixtures/ns101/, ns102/, ns104/, fixtures/m20/; GUI manual-response tests, docs/M20_ACCEPTANCE_RECEIPTS/; no production write wiring.
+- **Bağımlılıklar:** NS-112, NS-104.
+- **Acceptance criteria:** Shipped app privileged writes remain NO_GO/no automatic UAC; Cancel zero write. Test adapter exact scope effect+independent executable control; fresh full equality/witness only Undo, external/partial/denied truthful; unrelated full inventory/policies untouched. Pending/unknown custody DELETE refuses, KEEP/recovery honest; final cleanup proves no test rule remains. Adapter PASS is not installed UI-to-firewall write PASS.
+- **Test yöntemi:** Explicit Windows/Kali host-only native harness with original narrow guards and pytest-only RFC1918 seam; bounded OS+DB+UI receipts/full inventory digests; deterministic fault supplement; genuine effective-token denial.
+- **Kapsam dışı:** Privileged deployment GO, helper/service/task/WFP, production-IP validation weakening, automatic block/elevation/process termination/unrelated edits.
+- **Başlatma kapısı:** Exact owned VM/snapshot/no-default-route/profile/fixture guards and separately explicit operator admin mutation authority; no host firewall APIs; NS-104 scope preserved.
+
+### NS-118 — Lifecycle / VPN / recovery / native stability validation
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Network/power/restart geçişlerinde ve sustained load altında bounded/stable native monitoring'i doğrulamak.
+- **Yapılacaklar:** S44–49/C03/05/08/09/35: separate benign private WireGuard NAT phase, disconnect/reconnect/context/capture freshness, genuine sleep/OS power proof, three app restarts/controlled app loss/one Windows reboot, tray close/hide/show/quit/unavailable, ≥2h capped soak. Configured queues/state/audit/worker/handle budgets and loss diagnostics, actual CPU/RSS/mainDB/WAL/rows/UI heartbeat/stop/drain/restart samples; restore networking/VPN and stop both VMs.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** fixtures/m20/, existing network-scope/tray/resilience/performance tests; native structured probes/receipts docs; frozen NS-049/092/099 policy sources.
+- **Bağımlılıklar:** NS-112.
+- **Acceptance criteria:** Actual route/handshake/transfer validates tunnel; no context contamination/fake coverage/close/time/alert replay. Genuine sleep proof required; VMware pause not S3. Queue/state/worker/handle counts bounded, losses explicit; UI reachable and no unexplained sustained growth/corruption; logical history growth with retention OFF reported accurately. Current shutdown limits/degraded outcomes respected, no universal CPU/RSS/FPS invention. Missing genuine sleep remains required pending unless predefined approved physical fallback passes.
+- **Test yöntemi:** Native OS/network/power events + DB/diagnostics/UI receipts, capped real-time soak and ≤60s resource samples, current native app/OS restarts; deterministic saturation/unsupported tray supplements, historical evidence only context.
+- **Kapsam dışı:** Power/security override, public attack during NAT, VPN product feature/permanent lab services or unsupported benchmark promise.
+- **Başlatma kapısı:** NS-111 timing/budgets and actual sleep capability verified; operator VPN/admin/network scope explicit, physical fallback only if separately approved; unchanged security policies.
+
+### NS-119 — Installer / localization / onboarding full acceptance
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Aynı final M19 candidate'ın installation→language→guide→ongoing use→upgrade/uninstall döngüsünü native doğrulamak.
+- **Yapılacaklar:** S51–56/C10/29/31/36: fresh standard/Unicode profile, offline hash/payload/catalog/source proof and Npcap missing/present stated scope; supported schema019/020 upgrade/repair, KEEP/reinstall/explicit safe DELETE and external export; all18 load, ten repeated changes/open dialog/late result/corrupt pack, Turkish/English/de/ru/Arabic/CJK/scaling/accessibility/tray/future popup, guide never/legacy/current/future/Next/Back/Skip/Esc/Finish/Settings replay persistence. Compare NS-110 actual runtime/restart mode; installer English exception remains explicit.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** packaging smoke/build verification policy, fixtures/ns104/, fixtures/m20/, GUI/screenshot fixtures and docs/M20_ACCEPTANCE_RECEIPTS/; final candidate installed app readbacks.
+- **Bağımlılıklar:** NS-116, NS-117, NS-118 (NS-110/111 transitively).
+- **Acceptance criteria:** Source/hash/resources/schema/runtime manifest exact; asInvoker/no bundled Npcap/default permissions preserved. Upgrade/repair/KEEP language/data/guide/custody intact; confirmed DELETE only safe owned root/outside export remains, unresolved custody guard tested. All mandatory locale/RTL/CJK/DPI/keyboard/Narrator/guide evidence current candidate PASS; malformed cases only bounded test profile/child. Fresh profile vs pristine OS distinction recorded; no screenshot-only state claims.
+- **Test yöntemi:** Native Windows installed lifecycle/config/DB/resource/inventory readback, screenshots with lab/synthetic data and accessibility observations; separate malformed-resource fixture; offline geometry/catalog tests supplementary.
+- **Kapsam dışı:** Multilingual Inno system, broad release signing, silent cleanup/elevation or installer firewall writes.
+- **Başlatma kapısı:** NS-116–118 complete, final candidate immutable identity; current resource/mode/reviewer inventory from NS-110 preserved; no security-policy bypass to run installer.
+
+### NS-120 — Final adversarial & benign product completion gate
+
+- **Durum:** PLANNED / NOT STARTED.
+- **Amaç:** Mevcut ürün kapsamının işlevsel tamamlanmasını ölçülmüş native/benign evidence üzerinden karara bağlamak.
+- **Yapılacaklar:** F01–64/S01–56/C01–36 receipt coverage, native vs injected/alternative modes, candidate hash, failures/open limitations, FP/notification burden, stability/privacy/storage/installer/localization/response ve cleanup bulgularını aggregate et. [Plan §15](M19_M20_PLANNING.md#15-ns-120-final-completion-gate) PASS/CONDITIONAL_PASS/FAIL uygula; unresolved conditions owner/date, affected-change retest scope ve separate public-release/privileged-deployment decisions yayınla. Yeni exposed feature varsa NS-111 matrix önce güncellenir.
+- **Etkilenecek muhtemel dosyalar/alt sistemler:** docs/M20_FINAL_ACCEPTANCE.md (yeni), M20_ACCEPTANCE_PROTOCOL.md, M20_ACCEPTANCE_RECEIPTS/, TASKS.md/ROADMAP.md/RELEASING.md future gate result; bounded receipt validators.
+- **Bağımlılıklar:** NS-111–NS-119.
+- **Acceptance criteria:** PASS: all exact required criteria/current candidate/control/reviewer/cleanup evidence complete, no unresolved blocker/major/required evidence gap, only frozen justified capability alternatives. CONDITIONAL_PASS: explicit pending environment/reviewer/evidence/minor conditions; NS-120 incomplete, NetSentinel finished ilan edilmez. FAIL: required failure, privacy/secret leak, destructive loss/unrelated write, unsupported security certainty, unbounded storm/growth veya unsafe cleanup. Only PASS closes functional scope; M19 alone never closes project; signing/broad distribution and in-product privileged writes remain separate NO_GO gates.
+- **Test yöntemi:** Structured receipt/coverage/assertion audit, independent source/DB/UI/firewall/cleanup evidence reconciliation, frozen FP/budget review and required quality checks; repeat only changed/failed/uncertain affected native cases with fresh hash, no post-result threshold relaxation.
+- **Kapsam dışı:** New detectors/production features, automatic blocking/elevation/service/driver/updater/termination, public release/tag veya conditional result'i completion sayma.
+- **Başlatma kapısı:** NS-111–119 accepted receipts mevcut olmalı; unresolved mandatory evidence PASS'a dönüştürülemez. Her future implementation/validation authorization ve release approval kendi scope'unda kalır.
+
+## Post-M18 plan özeti
+
+| Milestone | Task aralığı | Sayı | Durum |
+|---|---|---:|---|
+| M19 Localization & Guided Onboarding | NS-105–NS-110 | 6 | PLANNED / NOT STARTED |
+| M20 Full-System VMware Validation | NS-111–NS-120 | 10 | PLANNED / NOT STARTED |
+| Post-M18 plan toplamı | NS-105–NS-120 | 16 | Yalnız planning; implementation/VM execution/commit/push/tag/release NONE |
