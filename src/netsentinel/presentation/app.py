@@ -26,6 +26,7 @@ from netsentinel.presentation.baseline_query import BaselineQueryCoordinator, Ba
 from netsentinel.presentation.incident_query import IncidentQueryCoordinator, IncidentTimelineServiceFactory
 from netsentinel.presentation.risk_query import RiskQueryCoordinator, RiskExplanationServiceFactory
 from netsentinel.presentation.preference_commands import PreferenceCommandCoordinator, PreferenceServiceFactory
+from netsentinel.presentation.response_commands import ResponseCommandCoordinator, ResponseServiceFactory
 from netsentinel.presentation.alert_query import AlertQueryCoordinator, AlertServiceFactory
 from netsentinel.presentation.dns_query import DnsQueryCoordinator, DnsServiceFactory
 from netsentinel.presentation.capability_query import CapabilityCoordinator
@@ -85,6 +86,7 @@ class ApplicationLifecycle:
         incident_queries: tuple[IncidentQueryCoordinator, IncidentQueryCoordinator] | None = None,
         incident_risk_queries: RiskQueryCoordinator | None = None,
         storage_maintenance: StorageMaintenanceWorker | None = None,
+        response_commands: ResponseCommandCoordinator | None = None,
     ) -> None:
         self._engine = engine
         self._bridge = bridge
@@ -93,6 +95,7 @@ class ApplicationLifecycle:
         self._signer_service = signer_service
         self._baseline_queries = baseline_queries
         self._preference_commands = preference_commands
+        self._response_commands = response_commands
         self._incident_queries = incident_queries or ()
         self._incident_risk_queries = incident_risk_queries
         self._risk_queries = risk_queries or ()
@@ -135,6 +138,8 @@ class ApplicationLifecycle:
             risk_query.start()
         if self._preference_commands is not None:
             self._preference_commands.start()
+        if self._response_commands is not None:
+            self._response_commands.start()
         if self._baseline_queries is not None:
             self._baseline_queries.start()
         if self._history_queries is not None:
@@ -178,6 +183,7 @@ class ApplicationLifecycle:
         incident_risk_stopped = True if self._incident_risk_queries is None else self._incident_risk_queries.stop()
         risk_stopped = all(tuple(query.stop() for query in self._risk_queries))
         preferences_stopped = True if self._preference_commands is None else self._preference_commands.stop()
+        response_stopped = True if self._response_commands is None else self._response_commands.stop()
         baseline_stopped = True if self._baseline_queries is None else self._baseline_queries.stop()
         history_stopped = (
             True
@@ -194,7 +200,7 @@ class ApplicationLifecycle:
         profiles_stopped = True if self._device_profiles is None else self._device_profiles.stop()
         capabilities_stopped = True if self._capability_queries is None else self._capability_queries.stop()
         self._bridge.stop()
-        self._shutdown_result = self._engine.stop() and storage_stopped and incident_stopped and incident_risk_stopped and ti_stopped and risk_stopped and preferences_stopped and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
+        self._shutdown_result = self._engine.stop() and response_stopped and storage_stopped and incident_stopped and incident_risk_stopped and ti_stopped and risk_stopped and preferences_stopped and baseline_stopped and history_stopped and destination_stopped and signer_stopped and alerts_stopped and dns_stopped and devices_stopped and profiles_stopped and capabilities_stopped
         return self._shutdown_result
 
 
@@ -250,6 +256,7 @@ def create_application(
     tray_adapter: TrayAdapter | None = None,
     notification_sink: DesktopNotificationSink | None = None,
     storage_maintenance: StorageMaintenanceWorker | None = None,
+    response_service_factory: ResponseServiceFactory | None = None,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -294,11 +301,13 @@ def create_application(
     capability_queries = CapabilityCoordinator(capability_service_factory) if capability_service_factory is not None else None
     baseline_queries = BaselineQueryCoordinator(baseline_service_factory) if baseline_service_factory else None
     preference_commands = PreferenceCommandCoordinator(preference_service_factory) if preference_service_factory else None
+    from netsentinel.application.services.response_ui import ResponseUiService
+    response_commands = ResponseCommandCoordinator(response_service_factory or ResponseUiService)
     risk_queries = (RiskQueryCoordinator(risk_service_factory), RiskQueryCoordinator(risk_service_factory)) if risk_service_factory else None
     incident_queries = (IncidentQueryCoordinator(incident_service_factory), IncidentQueryCoordinator(incident_service_factory)) if incident_service_factory else None
     incident_risk_queries = RiskQueryCoordinator(risk_service_factory) if risk_service_factory and incident_service_factory else None
     ti_lookup = ThreatIntelLookupWidget(threat_intel_scheduler, threat_intel_consent_service, threat_intel_risk_submit)
-    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, ti_lookup, incident_queries, incident_risk_queries, storage_maintenance)
+    lifecycle = ApplicationLifecycle(engine, bridge, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, ti_lookup, incident_queries, incident_risk_queries, storage_maintenance, response_commands)
     window = MainWindow(
         on_close=lifecycle.shutdown,
         statistics=StatisticsService(),
@@ -307,6 +316,7 @@ def create_application(
         signer_service=signer_service,
         baseline_queries=baseline_queries,
         preference_commands=preference_commands,
+        response_commands=response_commands,
         risk_queries=risk_queries,
         incident_queries=incident_queries,
         incident_risk_queries=incident_risk_queries,
@@ -323,6 +333,7 @@ def create_application(
     if incident_risk_queries is not None:
         incident_risk_queries.setParent(window)
     bridge.setParent(window)
+    response_commands.setParent(window)
     for risk_query in risk_queries or ():
         risk_query.setParent(window)
     if preference_commands is not None:
@@ -435,6 +446,7 @@ def run_application(
     capability_service_factory = None
     baseline_service_factory = None
     preference_service_factory = None
+    response_service_factory = None
     risk_service_factory = None
     threat_intel_consent_service = None
     threat_intel_scheduler = None
@@ -460,6 +472,7 @@ def run_application(
             create_risk_explanation_service_factory,
             create_incident_timeline_service_factory,
             create_preference_command_service_factory,
+            create_response_ui_service_factory,
             runtime_config_path,
             create_threat_intel_consent_service,
             create_threat_intel_scheduler,
@@ -486,6 +499,7 @@ def run_application(
         risk_service_factory = create_risk_explanation_service_factory(engine)
         incident_service_factory = create_incident_timeline_service_factory()
         preference_service_factory = create_preference_command_service_factory()
+        response_service_factory = create_response_ui_service_factory()
         capability_service_factory = create_capability_service_factory(
             engine, config=settings, threat_intel=threat_intel_scheduler)
         history_service_factory = create_history_query_service_factory()
@@ -517,6 +531,7 @@ def run_application(
         capability_service_factory=capability_service_factory,
         baseline_service_factory=baseline_service_factory,
         preference_service_factory=preference_service_factory,
+        response_service_factory=response_service_factory,
         risk_service_factory=risk_service_factory,
         incident_service_factory=incident_service_factory,
         threat_intel_consent_service=threat_intel_consent_service,

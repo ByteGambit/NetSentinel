@@ -1138,7 +1138,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ## M18 — Manual Response & Firewall Integration — CONDITIONAL
 
-**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** 2026-10-08 user **GO NS-100** sonrası explicit **RESUME NS-101** yalnız adapter/fake tests ve özel Windows VM testini yetkilendirir. NS-100 COMPLETE; NS-101 COMPLETE (explicit isolated VMware native acceptance PASS); NS-102–NS-104 NOT STARTED. In-product writes NO_GO pending trusted privilege/ownership and later lifecycle/UI gates. Automatic blocking ve automatic elevation kapsam dışıdır.
+**Conditional başlatma kapısı:** M17 tamamlanmış, NS-099 public beta acceptance gate geçmiş ve explicit response GO kararı verilmiş olmalıdır. **Do not start before NS-099 and explicit response GO decision.** 2026-10-08 user **GO NS-100** sonrası explicit **RESUME NS-101** adapter/fake tests ve özel Windows VM testini yetkilendirdi;2026-10-09 ayrı NS-102 ve NS-103 kullanıcı onayları kendi kapsamlarını yetkilendirdi. NS-100–NS-103 COMPLETE; NS-104 NOT STARTED. In-product writes NO_GO pending trusted privileged-write deployment; NS-103 normal runtime custody reads only. Automatic blocking ve automatic elevation kapsam dışıdır.
 
 ### NS-100 — Response command/privilege contract
 
@@ -1178,7 +1178,7 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ### NS-103 — Manual response UI
 
-- **Durum:** ⬜ Conditional plan; başlatma kapısı bekleniyor.
+- **Durum:** ✅ COMPLETE (2026-10-09), offline UI/service acceptance. Connections exact-target/profile/manual-lifetime preview, single-use explicit Confirm/Cancel, typed denied/failure/UNKNOWN/PARTIAL, bounded audit ve accessible strict owned Undo geçti. New54 (GUI26/integration28), targeted295/full4692 passed/9 live deselected; coverage91.31%, Ruff/mypy38+11/whitespace/privacy PASS. Normal asInvoker runtime preserves in-product writes NO_GO and reads custody only; write success uses injected fakes. [Kabul ve deployment sınırı](MANUAL_RESPONSE_UI_ACCEPTANCE.md). NS-104 NOT STARTED; auto-block/helper/process termination/native mutation/commit/push/tag/release NONE.
 - **Amaç:** Kullanıcıya firewall etkisini görüp onaylama ve undo akışı vermek.
 - **Yapılacaklar:** Target/profile/expiry/rollback preview, explicit confirm/Cancel, permission sonucunu ve audit'i UI'da göster.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/, src/netsentinel/application/services/, tests/gui/.
@@ -1211,5 +1211,5 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 | M15 Optional Threat Intelligence Evidence | NS-084–NS-088 | 5 | ✅ COMPLETE (2026-10-04); kullanıcı için default disabled |
 | M16 Incident Correlation & Timeline | NS-089–NS-092 | 4 | ✅ COMPLETE (2026-10-05) |
 | M17 Public Beta & Product Usability | NS-093–NS-099 | 7 | COMPLETE; NS-093–NS-099 COMPLETE — private native VPN PASS, native S3 PASS, OS-policy PASS, human UX8/8; recorded candidate/optional limitations retained |
-| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **IN PROGRESS; NS-100 COMPLETE after user GO; NS-101–104 NOT STARTED; in-product writes NO_GO** |
+| M18 Manual Response & Firewall Integration | NS-100–NS-104 | 5 | **IN PROGRESS; NS-100–NS-103 COMPLETE after separate user GO; NS-104 NOT STARTED; in-product privileged writes NO_GO** |
 | **Yeni faz toplamı** | **NS-052–NS-104** | **53** | **48 M11–M17 taskı (NS-068 GO koşullu) + 5 M18 conditional** |

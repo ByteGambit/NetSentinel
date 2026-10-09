@@ -552,6 +552,15 @@ def create_preference_command_service_factory(database_path: Path | None = None)
         SQLiteScopedPreferenceRepository(SQLiteDatabase(database_path, busy_timeout_ms=1000))))
 
 
+def create_response_ui_service_factory(database_path: Path | None = None):
+    """Local custody reads only. No native firewall/identity/privilege executor."""
+    from netsentinel.application.services.response_ui import ResponseUiService
+    from netsentinel.infrastructure.sqlite.response_repository import SQLiteResponseLifecycleRepository
+
+    path = database_path or default_database_path()
+    return lambda: ResponseUiService(SQLiteResponseLifecycleRepository(SQLiteDatabase(path, busy_timeout_ms=1000)))
+
+
 def create_baseline_detail_service_factory(engine: MonitoringEngine) -> Callable[[], BaselineDetailService]:
     """Share existing memory owners; no new SQLite connection or detector pipeline."""
     def create() -> BaselineDetailService:

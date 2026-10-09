@@ -1,5 +1,21 @@
 # Güvenlik ve güvenli kullanım
 
+NS-103 (2026-10-09): manual response UI preserves NS-100–102 and asInvoker.
+Normal composition has no native firewall executor or permissive trusted file
+reader; **in-product writes remain NO_GO**. Missing target/provenance/profile or
+trusted identity is explicit unavailable, never scope widening. Confirm binds
+the exact single-use command/generation/deadline; Cancel before dispatch writes
+no operation/intent/ATTEMPT/audit or firewall rule. Selection/evidence changes
+invalidate preview. Dispatched work may finish despite view close/shutdown;
+stale completion cannot overwrite the newer target. Witness/Description/custody
+payload/token/raw exception are not rendered or exported. Undo requires FINAL,
+current permitted lifecycle, persisted manifest, distinct confirmation and the
+unchanged strict fresh-read/equality/remove/absence path. Local trust/feedback
+and monitoring remain independent of denied response. No helper/elevation,
+service/task, automatic block or process termination. Native/uninstall acceptance
+belongs to **NS-104 NOT STARTED**. [UI acceptance and boundaries](MANUAL_RESPONSE_UI_ACCEPTANCE.md).
+Earlier summaries retain their recorded historical scope.
+
 NS-102 (2026-10-09): [lifecycle implementation acceptance](RESPONSE_LIFECYCLE_ACCEPTANCE.md#full-ns-102-implementation--2026-10-09)
 uses the native-verified witness. PREPARED is durable pre-Add provenance, never
 deletion authority. FINAL plus distinct confirmed REMOVE and fresh unique full

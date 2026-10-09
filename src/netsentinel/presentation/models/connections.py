@@ -66,6 +66,7 @@ class ConnectionRole(IntEnum):
     PROCESS_INFO = ROW_ID + 10
     NETWORK_SCOPE = ROW_ID + 11
     LIFECYCLE_ID = ROW_ID + 12
+    RESPONSE_SOURCE = ROW_ID + 13
 
 
 _DISPLAY_FIELDS = (
@@ -92,6 +93,7 @@ _RAW_ROLE_FIELDS = {
     ConnectionRole.PROCESS_INFO: "process_info",
     ConnectionRole.NETWORK_SCOPE: "network_scope",
     ConnectionRole.LIFECYCLE_ID: "lifecycle_id",
+    ConnectionRole.RESPONSE_SOURCE: "response_source",
 }
 
 _CHANGED_ROLES = [
@@ -166,23 +168,24 @@ class ConnectionsTableModel(QAbstractTableModel):
             return None
         return getattr(row, _RAW_ROLE_FIELDS[raw_role])
 
-    def roleNames(self) -> dict[int, bytes]:  # noqa: N802
+    def roleNames(self) -> dict[int, QByteArray]:  # noqa: N802
         names = super().roleNames()
         names.update(
             {
-                int(ConnectionRole.ROW_ID): b"rowId",
-                int(ConnectionRole.RAW_PROTOCOL): b"rawProtocol",
-                int(ConnectionRole.RAW_STATE): b"rawState",
-                int(ConnectionRole.RAW_PROCESS): b"rawProcess",
-                int(ConnectionRole.RAW_PID): b"rawPid",
-                int(ConnectionRole.RAW_LOCAL_ADDRESS): b"rawLocalAddress",
-                int(ConnectionRole.RAW_LOCAL_PORT): b"rawLocalPort",
-                int(ConnectionRole.RAW_REMOTE_ADDRESS): b"rawRemoteAddress",
-                int(ConnectionRole.RAW_REMOTE_PORT): b"rawRemotePort",
-                int(ConnectionRole.DURATION): b"duration",
-                int(ConnectionRole.PROCESS_INFO): b"processInfo",
-                int(ConnectionRole.NETWORK_SCOPE): b"networkScope",
+                int(ConnectionRole.ROW_ID): QByteArray(b"rowId"),
+                int(ConnectionRole.RAW_PROTOCOL): QByteArray(b"rawProtocol"),
+                int(ConnectionRole.RAW_STATE): QByteArray(b"rawState"),
+                int(ConnectionRole.RAW_PROCESS): QByteArray(b"rawProcess"),
+                int(ConnectionRole.RAW_PID): QByteArray(b"rawPid"),
+                int(ConnectionRole.RAW_LOCAL_ADDRESS): QByteArray(b"rawLocalAddress"),
+                int(ConnectionRole.RAW_LOCAL_PORT): QByteArray(b"rawLocalPort"),
+                int(ConnectionRole.RAW_REMOTE_ADDRESS): QByteArray(b"rawRemoteAddress"),
+                int(ConnectionRole.RAW_REMOTE_PORT): QByteArray(b"rawRemotePort"),
+                int(ConnectionRole.DURATION): QByteArray(b"duration"),
+                int(ConnectionRole.PROCESS_INFO): QByteArray(b"processInfo"),
+                int(ConnectionRole.NETWORK_SCOPE): QByteArray(b"networkScope"),
                 int(ConnectionRole.LIFECYCLE_ID): QByteArray(b"lifecycleId"),
+                int(ConnectionRole.RESPONSE_SOURCE): QByteArray(b"responseSource"),
             }
         )
         return names
@@ -230,7 +233,7 @@ class ConnectionsTableModel(QAbstractTableModel):
         row_id = connection_row_id(event.key)
         existing_index = self._row_by_id.get(row_id)
         if existing_index is None:
-            self._insert_row(connection_row_from_snapshot(event.snapshot, lifecycle_id=event.lifecycle_id))
+            self._insert_row(connection_row_from_snapshot(event.snapshot, lifecycle_id=event.lifecycle_id, session_id=event.session_id))
             return
 
         existing = self._rows[existing_index]
@@ -240,6 +243,7 @@ class ConnectionsTableModel(QAbstractTableModel):
             event.snapshot,
             first_seen=existing.first_seen,
             lifecycle_id=event.lifecycle_id,
+            session_id=event.session_id,
         )
         self._replace_row(existing_index, replacement)
 
@@ -252,6 +256,7 @@ class ConnectionsTableModel(QAbstractTableModel):
                     event.current,
                     first_seen=event.previous.observed_at,
                     lifecycle_id=event.lifecycle_id,
+                    session_id=event.session_id,
                 )
             )
             return
@@ -263,6 +268,7 @@ class ConnectionsTableModel(QAbstractTableModel):
             event.current,
             first_seen=existing.first_seen,
             lifecycle_id=event.lifecycle_id,
+            session_id=event.session_id,
         )
         self._replace_row(existing_index, replacement)
 

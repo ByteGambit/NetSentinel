@@ -1,5 +1,16 @@
 # Ürün tanımı
 
+NS-103 (2026-10-09) adds Connections → Selected connection → Manual firewall
+response: explicit single-profile/manual-lifetime review, Confirm/Cancel,
+sanitized results, bounded local ownership/audit and separately confirmed Undo.
+Evidence is not a malware verdict; shared-IP/all-instance/path-replacement
+collateral and DNS/flow attribution limits remain visible. Normal desktop
+composition retains the frozen **in-product writes NO_GO** boundary and reads
+custody only; success/rollback use injected fake infrastructure acceptance.
+No automatic response/elevation/process termination or NS-104 native/uninstall
+work. Schema020 unchanged. [NS-103 behavior and acceptance](MANUAL_RESPONSE_UI_ACCEPTANCE.md).
+Earlier task summaries below retain their historical scope.
+
 NS-100 (2026-10-08): user **GO NS-100** accepted; contract implementation
 **COMPLETE** (205 new tests; full offline4038/8 deselected, coverage91.17%,
 Ruff/configured mypy37/direct3/whitespace/privacy PASS). Pure typed program+literal-IP+transport/port/single-profile

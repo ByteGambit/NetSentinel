@@ -11,6 +11,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from netsentinel.application.services.response_ui import ResponseSelection
+from netsentinel.domain.response import ResponseSource, ResponseSourceStatus
+
 from netsentinel.domain.connections import (
     ConnectionNetworkScope,
     ConnectionKey,
@@ -67,6 +70,14 @@ class ConnectionRow:
     process_info: ProcessInfo
     network_scope: ConnectionNetworkScope
     lifecycle_id: UUID | None = None
+    session_id: UUID | None = None
+
+    @property
+    def response_source(self) -> ResponseSelection:
+        source = (ResponseSource(self.session_id, self.lifecycle_id, self.observed_at,
+            ResponseSourceStatus.AVAILABLE, None) if self.session_id and self.lifecycle_id else None)
+        return ResponseSelection(self.process_info.executable_path, self.remote_address,
+                                 self.protocol, self.remote_port, source)
 
 
 def connection_row_id(key: ConnectionKey) -> ConnectionRowId:
@@ -92,6 +103,7 @@ def connection_row_from_snapshot(
     *,
     first_seen: datetime | None = None,
     lifecycle_id: UUID | None = None,
+    session_id: UUID | None = None,
 ) -> ConnectionRow:
     """Map a portable domain snapshot into presentation-only row values."""
 
@@ -132,6 +144,7 @@ def connection_row_from_snapshot(
         process_info=snapshot.process,
         network_scope=snapshot.network_scope,
         lifecycle_id=lifecycle_id,
+        session_id=session_id,
     )
 
 

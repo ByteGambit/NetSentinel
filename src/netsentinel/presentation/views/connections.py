@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.response_commands import ResponseCommandCoordinator
+
 from collections.abc import Callable
 
 from typing import cast
@@ -67,6 +69,7 @@ class ConnectionsView(QWidget):
         baseline_queries: BaselineQueryCoordinator | None = None,
         risk_queries: RiskQueryCoordinator | None = None,
         preference_commands: PreferenceCommandCoordinator | None = None,
+        response_commands: ResponseCommandCoordinator | None = None,
         threat_intel: ThreatIntelLookupWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -180,7 +183,7 @@ class ConnectionsView(QWidget):
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
-        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries, preference_commands=preference_commands, risk_queries=risk_queries, threat_intel=threat_intel)
+        self.details = ConnectionDetailsWidget(self, baseline_queries=baseline_queries, preference_commands=preference_commands, risk_queries=risk_queries, threat_intel=threat_intel, response_commands=response_commands)
         self.details.signer_button.clicked.connect(self._request_signer)
         self.details.signer_button.setEnabled(signer_service is not None)
 
@@ -538,10 +541,12 @@ class ConnectionsView(QWidget):
     def _destination_ready(self, generation: int, result: object) -> None:
         if (generation == self._destination_generation and self._selected_row_id is not None
                 and isinstance(result, DestinationEvidenceResult)):
+            self.details.response.invalidate_evidence()
             self.details.destination.set_result(result)
 
     def _destination_failed(self, generation: int) -> None:
         if generation == self._destination_generation:
+            self.details.response.invalidate_evidence()
             self.details.destination.clear("Destination evidence unavailable.")
 
     def _find_proxy_row(self, row_id: ConnectionRowId) -> int | None:

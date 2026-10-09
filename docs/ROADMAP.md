@@ -1,5 +1,16 @@
 # Yol haritası
 
+NS-103 (2026-10-09): explicit user GO for manual response UI only; Connections
+review/confirmation/Cancel, bounded audit, typed denied/partial and strict
+confirmed Undo **COMPLETE (offline UI/service acceptance)**: targeted295,
+full4692/9 live deselected, coverage91.31%; Ruff/mypy/whitespace/privacy PASS.
+NS-100–102 remain COMPLETE; **NS-104 NOT STARTED**. In-product privileged writes
+retain their separate **NO_GO** trust boundary; normal runtime reads custody,
+injected fakes exercise writes. No native/uninstall acceptance, helper/elevation,
+automatic blocking, process termination, commit/push/tag/release.
+[NS-103 acceptance](MANUAL_RESPONSE_UI_ACCEPTANCE.md). Older milestone notes
+below are historical.
+
 NS-100 (2026-10-08): explicit user **GO NS-100** authorizes only the contract
 task; **NS-100 COMPLETE** (205 new tests, full4038/8/91.17%, Ruff/mypy37/direct3/
 whitespace/privacy PASS). M17/NS-099 remain COMPLETE. M18 is IN PROGRESS with

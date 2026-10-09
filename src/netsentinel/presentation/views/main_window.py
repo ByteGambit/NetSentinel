@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.response_commands import ResponseCommandCoordinator
+
 from collections.abc import Callable
 from enum import Enum
 from typing import cast
@@ -101,6 +103,7 @@ class MainWindow(QMainWindow):
         baseline_queries: BaselineQueryCoordinator | None = None,
         risk_queries: tuple[RiskQueryCoordinator, RiskQueryCoordinator] | None = None,
         preference_commands: PreferenceCommandCoordinator | None = None,
+        response_commands: ResponseCommandCoordinator | None = None,
         device_inventory: DeviceInventoryCoordinator | None = None,
         device_profiles: DeviceProfileCoordinator | None = None,
         incident_queries: tuple[IncidentQueryCoordinator, IncidentQueryCoordinator] | None = None,
@@ -201,6 +204,7 @@ class MainWindow(QMainWindow):
                 risk_queries=risk_queries[0] if risk_queries else None,
                 threat_intel=threat_intel_lookup,
                 preference_commands=preference_commands,
+                response_commands=response_commands,
                 signer_service=signer_service,
             ),
             PageId.HISTORY: HistoryView(history_queries, destination_queries=destination_queries[1] if destination_queries else None, parent=self.content),

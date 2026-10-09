@@ -1,6 +1,6 @@
 """Shared, plain-text NS-083 panel consuming only an application read model."""
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QFormLayout, QLabel, QPushButton, QScrollArea, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
 )
@@ -14,6 +14,7 @@ from netsentinel.presentation.risk_query import RiskQueryCoordinator
 
 
 class RiskExplanationWidget(QWidget):
+    evidence_changed = pyqtSignal()
     def __init__(self, coordinator: RiskQueryCoordinator | None = None,
                  parent: QWidget | None = None, *, page_flow: bool = False) -> None:
         super().__init__(parent)
@@ -104,6 +105,7 @@ class RiskExplanationWidget(QWidget):
 
     def _failed(self, generation: int) -> None:
         if generation == self._generation and self._request is not None:
+            self.evidence_changed.emit()
             self._pending = False
             self._clear_content()
             self.status.setText("Risk details unavailable. Try Refresh.")
@@ -113,6 +115,7 @@ class RiskExplanationWidget(QWidget):
         self.clear("Risk query service stopped.")
 
     def set_model(self, model: RiskExplanationViewModel) -> None:
+        self.evidence_changed.emit()
         self._clear_content()
         self.status.setText(model.message)
         if model.status is not AssessmentReadStatus.FOUND:
