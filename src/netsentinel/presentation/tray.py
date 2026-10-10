@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import translate
+
 from collections.abc import Callable
 from typing import Protocol
 from weakref import ref
@@ -54,10 +56,10 @@ class QtTrayAdapter:
         if window is None:
             return False
         self.icon = QSystemTrayIcon(icon, window)
-        self.icon.setToolTip("NetSentinel")
+        self.icon.setToolTip(translate('Tray', 'NetSentinel'))
         self.menu = QMenu(window)
-        for title, callback in (("Show NetSentinel", show), ("Hide NetSentinel", hide),
-                                ("Quit", quit_application)):
+        for title, callback in ((translate('Tray', 'Show NetSentinel'), show), (translate('Tray', 'Hide NetSentinel'), hide),
+                                (translate('Tray', 'Quit'), quit_application)):
             action = self.menu.addAction(title)
             assert action is not None
             action.triggered.connect(callback)

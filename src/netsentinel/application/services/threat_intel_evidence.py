@@ -1,5 +1,9 @@
 """Central NS-088 mapping: normalized scheduler outcome to supporting evidence."""
 
+from netsentinel.shared.enum_sources import enum_source
+from netsentinel.shared.source_text import QT_TRANSLATE_NOOP
+
+
 from dataclasses import dataclass, replace
 from hashlib import sha256
 
@@ -65,7 +69,7 @@ class ThreatIntelEvidenceAdapter:
         return ThreatIntelEvidenceMapping(ThreatIntelEvidenceStatus.ATTACHED, context, evidence)
 
 
-TI_DISCLAIMER = "External reputation is supporting context, not a malware verdict."
+TI_DISCLAIMER = QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'External reputation is supporting context, not a malware verdict.')
 
 
 def context_lines(context: ThreatIntelEvidenceContext, *, historical: bool = False) -> tuple[str, ...]:
@@ -73,25 +77,25 @@ def context_lines(context: ThreatIntelEvidenceContext, *, historical: bool = Fal
     key, result = context.key, context.result
     provider = "AbuseIPDB" if key.provider.value == "abuseipdb" else key.provider.value
     facts = result.ip_facts
-    lines = [TI_DISCLAIMER, f"Provider: {provider} ({key.provider.value})",
-        f"Subject: {key.subject.kind.value} {key.subject.value}",
-        f"Result: {result.status.name}; {'freshness at assessment time' if historical else 'lookup freshness'}: {context.freshness.name}",
-        f"Queried at: {result.queried_at.isoformat()} UTC; fetched at: {result.received_at.isoformat()} UTC",
-        f"Result contract: v{key.result_version}; evidence adapter: v1; source reference: {result.request_id}",
-        "Informational evidence; zero risk points; provider metric is separate from NetSentinel confidence and measurement quality."]
+    lines = [TI_DISCLAIMER, QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Provider: {value1} ({value2})').format(value1=provider, value2=key.provider.value),
+        QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Subject: {value1} {value2}').format(value1=key.subject.kind.value, value2=key.subject.value),
+        QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Result: {value1}; {value2}: {value3}').format(value1=enum_source(result.status, 'upper'), value2=QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'freshness at assessment time') if historical else QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'lookup freshness'), value3=enum_source(context.freshness, 'upper')),
+        QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Queried at: {value1} UTC; fetched at: {value2} UTC').format(value1=result.queried_at.isoformat(), value2=result.received_at.isoformat()),
+        QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Result contract: v{value1}; evidence adapter: v1; source reference: {value2}').format(value1=key.result_version, value2=result.request_id),
+        QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Informational evidence; zero risk points; provider metric is separate from NetSentinel confidence and measurement quality.')]
     if result.status is S.NO_HIT:
-        lines.append(f"{'STALE context: ' if context.freshness is F.STALE else ''}Provider returned no reports/context for the queried lookback. This does not establish that the destination is safe.")
+        lines.append(QT_TRANSLATE_NOOP('ThreatIntelEvidence', '{value1}Provider returned no reports/context for the queried lookback. This does not establish that the destination is safe.').format(value1=QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'STALE context: ') if context.freshness is F.STALE else ''))
     if facts is not None and key.provider.value == "abuseipdb":
-        lines += [f"AbuseIPDB mapping: v{facts.mapping_version}; lookback: {facts.lookback_days} days",
-            f"AbuseIPDB abuse confidence score: {facts.abuse_confidence_score} / 100 (provider metric; not malware probability)",
-            f"Reports in provider lookback window: {facts.total_reports}",
-            f"Distinct reporting users: {facts.distinct_users}",
-            f"Last reported at: {facts.last_reported_at.isoformat() + ' UTC' if facts.last_reported_at else 'Not reported'}",
-            f"Provider whitelist context: {facts.is_whitelisted}; does not imply trust or reduce risk."]
+        lines += [QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'AbuseIPDB mapping: v{value1}; lookback: {value2} days').format(value1=facts.mapping_version, value2=facts.lookback_days),
+            QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'AbuseIPDB abuse confidence score: {value1} / 100 (provider metric; not malware probability)').format(value1=facts.abuse_confidence_score),
+            QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Reports in provider lookback window: {value1}').format(value1=facts.total_reports),
+            QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Distinct reporting users: {value1}').format(value1=facts.distinct_users),
+            QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Last reported at: {value1}').format(value1=facts.last_reported_at.isoformat() + ' UTC' if facts.last_reported_at else QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Not reported')),
+            QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Provider whitelist context: {value1}; does not imply trust or reduce risk.').format(value1=facts.is_whitelisted)]
     if context.refresh_error:
-        lines.append(f"STALE cached context; refresh failed: {context.refresh_error.value.replace('_', ' ')}. Local detection continues.")
+        lines.append(QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'STALE cached context; refresh failed: {value1}. Local detection continues.').format(value1=enum_source(context.refresh_error, 'words')))
     if context.cache_unavailable:
-        lines.append("Cache persistence unavailable; provider result remains visible.")
+        lines.append(QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Cache persistence unavailable; provider result remains visible.'))
     if historical:
-        lines.append("Stored historical snapshot; current cache freshness is not inferred and cache changes do not rewrite this revision.")
+        lines.append(QT_TRANSLATE_NOOP('ThreatIntelEvidence', 'Stored historical snapshot; current cache freshness is not inferred and cache changes do not rewrite this revision.'))
     return tuple(lines)

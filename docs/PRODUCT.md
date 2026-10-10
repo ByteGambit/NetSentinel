@@ -1,5 +1,12 @@
 # Ürün tanımı
 
+NS-105 (2026-10-09): yalnız localization foundation tamamlandı. Mevcut
+application UI metinleri English canonical Qt source olarak işaretlendi;
+English katalog olmadan çalışır. Dil seçimi/kaydı, production çeviriler ve yeni
+guided tour eklenmedi. Runtime switching NO_GO; future seçimler bütün uygulamada
+explicit restart gerektirir. Mevcut M17 guide ve tüm izin/response davranışı
+korunur; schema020. NS-106–120 NOT STARTED. [Kabul](LOCALIZATION_ACCEPTANCE.md).
+
 NS-103 (2026-10-09) adds Connections → Selected connection → Manual firewall
 response: explicit single-profile/manual-lifetime review, Confirm/Cancel,
 sanitized results, bounded local ownership/audit and separately confirmed Undo.

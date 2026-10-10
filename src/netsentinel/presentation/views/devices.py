@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import display_enum
+
+from netsentinel.presentation.i18n.text import format_text, render_join, render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from uuid import UUID
 
 from typing import cast
@@ -44,18 +50,18 @@ class DevicesFilterProxyModel(QSortFilterProxyModel):
 
 class DeviceDetailsWidget(QGroupBox):
     def __init__(self, parent=None) -> None:
-        super().__init__("Selected device", parent)
-        self.setAccessibleName("Device details")
+        super().__init__(translate('Devices', 'Selected device'), parent)
+        self.setAccessibleName(translate('Devices', 'Device details'))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         self.values: dict[str, QLabel] = {}
         layout = QFormLayout(self)
-        for key, title in (("mac", "MAC"), ("ip", "Last observed IPv4"),
-                           ("interface", "Network / interface"), ("first", "First seen"),
-                           ("last", "Last seen"), ("local", "Locally administered MAC"),
-                           ("bindings", "Observed IPv4 bindings")):
+        for key, title in (("mac", translate('Devices', 'MAC')), ("ip", translate('Devices', 'Last observed IPv4')),
+                           ("interface", translate('Devices', 'Network / interface')), ("first", translate('Devices', 'First seen')),
+                           ("last", translate('Devices', 'Last seen')), ("local", translate('Devices', 'Locally administered MAC')),
+                           ("bindings", translate('Devices', 'Observed IPv4 bindings'))):
             label = QLabel(MISSING_VALUE, self)
             label.setTextFormat(Qt.TextFormat.PlainText)
-            label.setAccessibleName("IP-MAC binding history" if key == "bindings" else title)
+            label.setAccessibleName(render_text(translate('Devices', 'IP-MAC binding history') if key == 'bindings' else title))
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             if key in ("bindings", "interface"):
                 label.setWordWrap(True)
@@ -64,17 +70,17 @@ class DeviceDetailsWidget(QGroupBox):
 
     def clear(self) -> None:
         for label in self.values.values():
-            label.setText(MISSING_VALUE)
+            label.setText(render_text(MISSING_VALUE))
 
     def set_row(self, row: DeviceRow) -> None:
-        self.values["mac"].setText(row.mac)
-        self.values["ip"].setText(row.current_ip_display)
-        self.values["interface"].setText(f"{row.interface_name} · {row.subnet}")
-        self.values["first"].setText(format_seen(row.first_seen))
-        self.values["last"].setText(format_seen(row.last_seen))
-        self.values["local"].setText("Yes" if row.locally_administered else "No")
-        bindings = [f"{binding.ip_address} (last seen {format_seen(binding.last_seen)})" for binding in row.bindings]
-        self.values["bindings"].setText("\n".join(bindings) if bindings else MISSING_VALUE)
+        self.values['mac'].setText(render_text(row.mac))
+        self.values['ip'].setText(render_text(row.current_ip_display))
+        self.values['interface'].setText(render_text(f'{row.interface_name} · {row.subnet}'))
+        self.values['first'].setText(render_text(format_seen(row.first_seen)))
+        self.values['last'].setText(render_text(format_seen(row.last_seen)))
+        self.values['local'].setText(render_text(translate('Devices', 'Yes') if row.locally_administered else translate('Devices', 'No')))
+        bindings = [format_text(translate('Devices', '{value1} (last seen {value2})'), value1=binding.ip_address, value2=format_seen(binding.last_seen)) for binding in row.bindings]
+        self.values['bindings'].setText(render_text(render_join('\n', bindings) if bindings else MISSING_VALUE))
 
 
 class DevicesView(QWidget):
@@ -84,7 +90,7 @@ class DevicesView(QWidget):
                  profiles: DeviceProfileCoordinator | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("devicesView")
-        self.setAccessibleName("Devices page")
+        self.setAccessibleName(translate('Devices', 'Devices page'))
         self.coordinator = coordinator
         self.profiles = profiles
         self.model = DevicesTableModel(self)
@@ -99,34 +105,34 @@ class DevicesView(QWidget):
         self._stale_notice = False
         self._profile_load_error = False
 
-        title = QLabel("Devices", self)
+        title = QLabel(translate('Devices', 'Devices'), self)
         title.setStyleSheet(PAGE_TITLE)
-        subtitle = QLabel("Passive observations on the selected local network.", self)
+        subtitle = QLabel(translate('Devices', 'Passive observations on the selected local network.'), self)
         subtitle.setStyleSheet(SECONDARY_TEXT)
         self.network_selector = QComboBox(self)
-        self.network_selector.setAccessibleName("Devices network selector")
+        self.network_selector.setAccessibleName(translate('Devices', 'Devices network selector'))
         self.search_edit = QLineEdit(self)
-        self.search_edit.setPlaceholderText("Search MAC, IPv4 or interface")
-        self.search_edit.setAccessibleName("Search devices")
-        self.refresh_button = QPushButton("Refresh", self)
-        self.refresh_button.setAccessibleName("Refresh devices")
-        self.capture_button = QPushButton("Start passive capture", self)
-        self.capture_button.setAccessibleName("Start or stop passive device capture")
+        self.search_edit.setPlaceholderText(translate('Devices', 'Search MAC, IPv4 or interface'))
+        self.search_edit.setAccessibleName(translate('Devices', 'Search devices'))
+        self.refresh_button = QPushButton(translate('Devices', 'Refresh'), self)
+        self.refresh_button.setAccessibleName(translate('Devices', 'Refresh devices'))
+        self.capture_button = QPushButton(translate('Devices', 'Start passive capture'), self)
+        self.capture_button.setAccessibleName(translate('Devices', 'Start or stop passive device capture'))
         self.capture_button.setEnabled(coordinator is not None)
         controls = QHBoxLayout()
         for widget in (self.network_selector, self.search_edit, self.refresh_button, self.capture_button):
             controls.addWidget(widget)
 
-        self.status_label = QLabel("Loading device inventory…" if coordinator else "Passive capture is off. Connect a device source to load saved observations.", self)
+        self.status_label = QLabel(translate('Devices', 'Loading device inventory…') if coordinator else translate('Devices', 'Passive capture is off. Connect a device source to load saved observations.'), self)
         self.status_label.setTextFormat(Qt.TextFormat.PlainText)
-        self.status_label.setAccessibleName("Device inventory status")
+        self.status_label.setAccessibleName(translate('Devices', 'Device inventory status'))
         self.status_label.setWordWrap(True)
         self.event_label = QLabel("", self)
         self.event_label.setTextFormat(Qt.TextFormat.PlainText)
-        self.event_label.setAccessibleName("New device information")
+        self.event_label.setAccessibleName(translate('Devices', 'New device information'))
         self.event_label.hide()
         self.table = QTableView(self)
-        self.table.setAccessibleName("Devices table")
+        self.table.setAccessibleName(translate('Devices', 'Devices table'))
         self.table.setModel(self.proxy_model)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -142,38 +148,38 @@ class DevicesView(QWidget):
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Interactive)
         # Stretch the last section while retaining a readable initial width;
         # Qt can then use table horizontal scrolling when all columns do not fit.
-        self.table.setColumnWidth(4, self.table.fontMetrics().horizontalAdvance("Ethernet · 255.255.255.255/32") + 24)
+        self.table.setColumnWidth(4, self.table.fontMetrics().horizontalAdvance(translate('Devices', 'Ethernet · 255.255.255.255/32')) + 24)
         header.setStretchLastSection(True)
         self.details = DeviceDetailsWidget(self)
-        self.profile_panel = QGroupBox("User-saved profile", self)
-        self.profile_panel.setAccessibleName("Device profile details")
+        self.profile_panel = QGroupBox(translate('Devices', 'User-saved profile'), self)
+        self.profile_panel.setAccessibleName(translate('Devices', 'Device profile details'))
         self.profile_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         profile_layout = QVBoxLayout(self.profile_panel)
-        self.profile_status = QLabel("Select an observed device to view its profile.", self.profile_panel)
+        self.profile_status = QLabel(translate('Devices', 'Select an observed device to view its profile.'), self.profile_panel)
         self.profile_status.setTextFormat(Qt.TextFormat.PlainText)
-        self.profile_status.setAccessibleName("Profile status")
+        self.profile_status.setAccessibleName(translate('Devices', 'Profile status'))
         self.profile_status.setWordWrap(True)
         profile_layout.addWidget(self.profile_status)
         self.profile_values: dict[str, QLabel] = {}
         profile_form = QFormLayout()
-        for key, field_title in (("label", "Label"), ("trust", "User trust designation"),
-                           ("note", "Note"), ("macs", "Expected MACs"),
-                           ("ips", "Expected IPv4"), ("updated", "Last user update"),
-                           ("trust_changed", "Trust changed")):
+        for key, field_title in (("label", translate('Devices', 'Label')), ("trust", translate('Devices', 'User trust designation')),
+                           ("note", translate('Devices', 'Note')), ("macs", translate('Devices', 'Expected MACs')),
+                           ("ips", translate('Devices', 'Expected IPv4')), ("updated", translate('Devices', 'Last user update')),
+                           ("trust_changed", translate('Devices', 'Trust changed'))):
             value = QLabel(MISSING_VALUE, self.profile_panel)
             value.setTextFormat(Qt.TextFormat.PlainText)
-            value.setAccessibleName(f"Profile {field_title.lower()}")
+            value.setAccessibleName(format_text(translate('Devices', 'Profile {value1}'), value1=field_title.lower()))
             value.setWordWrap(True)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             self.profile_values[key] = value
             profile_form.addRow(f"{field_title}:", value)
         profile_layout.addLayout(profile_form)
-        self.profile_edit_button = QPushButton("Create profile", self.profile_panel)
-        self.profile_edit_button.setAccessibleName("Create or edit device profile")
-        self.profile_refresh_button = QPushButton("Reload profile", self.profile_panel)
-        self.profile_refresh_button.setAccessibleName("Reload selected device profile")
-        self.profile_alerts_button = QPushButton("Related identity alerts", self.profile_panel)
-        self.profile_alerts_button.setAccessibleName("Show related device identity alerts")
+        self.profile_edit_button = QPushButton(translate('Devices', 'Create profile'), self.profile_panel)
+        self.profile_edit_button.setAccessibleName(translate('Devices', 'Create or edit device profile'))
+        self.profile_refresh_button = QPushButton(translate('Devices', 'Reload profile'), self.profile_panel)
+        self.profile_refresh_button.setAccessibleName(translate('Devices', 'Reload selected device profile'))
+        self.profile_alerts_button = QPushButton(translate('Devices', 'Related identity alerts'), self.profile_panel)
+        self.profile_alerts_button.setAccessibleName(translate('Devices', 'Show related device identity alerts'))
         profile_actions = QHBoxLayout()
         profile_actions.addWidget(self.profile_edit_button)
         profile_actions.addWidget(self.profile_refresh_button)
@@ -234,41 +240,41 @@ class DevicesView(QWidget):
             self.event_label.clear()
             self.event_label.hide()
         if snapshot.new_devices:
-            self.event_label.setText(f"New device observed: {snapshot.new_devices[-1].device.mac}")
+            self.event_label.setText(format_text(translate('Devices', 'New device observed: {value1}'), value1=snapshot.new_devices[-1].device.mac))
             self.event_label.show()
 
     def _update_status(self, snapshot: DeviceInventorySnapshot) -> None:
         problem = snapshot.problem
         if problem is DeviceInventoryProblem.CONTEXT_PERMISSION:
-            message = "Network interface information is unavailable because access was denied."
+            message = translate('Devices', 'Network interface information is unavailable because access was denied.')
         elif problem is DeviceInventoryProblem.CONTEXT_UNAVAILABLE:
-            message = "Network interface information is temporarily unavailable."
+            message = translate('Devices', 'Network interface information is temporarily unavailable.')
         elif problem is DeviceInventoryProblem.REPOSITORY_UNAVAILABLE:
-            message = "Saved device inventory is unavailable. Try refreshing."
+            message = translate('Devices', 'Saved device inventory is unavailable. Try refreshing.')
         elif problem is DeviceInventoryProblem.OBSERVATION_UNAVAILABLE:
-            message = "Some device observations could not be processed. Saved inventory remains visible."
+            message = translate('Devices', 'Some device observations could not be processed. Saved inventory remains visible.')
         elif problem is DeviceInventoryProblem.ALERT_UNAVAILABLE:
-            message = "Security alerts could not be saved. Device inventory remains visible."
+            message = translate('Devices', 'Security alerts could not be saved. Device inventory remains visible.')
         elif snapshot.selected_fingerprint is None:
-            message = "No active local network context is available."
+            message = translate('Devices', 'No active local network context is available.')
         else:
             health = snapshot.capture
             reason = health.capability.reason if health is not None else CaptureCapabilityReason.NOT_PROBED
             if reason is CaptureCapabilityReason.PERMISSION_DENIED:
-                message = "Passive capture needs permission for this interface. Saved devices remain visible."
+                message = translate('Devices', 'Passive capture needs permission for this interface. Saved devices remain visible.')
             elif reason is CaptureCapabilityReason.DEPENDENCY_UNAVAILABLE:
-                message = "Passive capture is unavailable. Scapy or Npcap may be missing. Saved devices remain visible."
+                message = translate('Devices', 'Passive capture is unavailable. Scapy or Npcap may be missing. Saved devices remain visible.')
             elif reason in (CaptureCapabilityReason.INTERFACE_UNAVAILABLE, CaptureCapabilityReason.NETWORK_CHANGED):
-                message = "The selected network interface changed or is unavailable."
+                message = translate('Devices', 'The selected network interface changed or is unavailable.')
             elif reason is CaptureCapabilityReason.TRANSIENT_FAILURE:
-                message = "Passive capture is temporarily unavailable. Saved devices remain visible."
+                message = translate('Devices', 'Passive capture is temporarily unavailable. Saved devices remain visible.')
             elif health is not None and health.state is CaptureState.RUNNING:
-                message = f"Passive capture active · {len(snapshot.entries)} observed device(s)."
+                message = translate('Devices', 'Passive capture active · %n observed device(s).', None, len(snapshot.entries))
             else:
-                message = "Passive capture is off. Showing saved observations; the list may be incomplete."
-        self.status_label.setText(message)
+                message = translate('Devices', 'Passive capture is off. Showing saved observations; the list may be incomplete.')
+        self.status_label.setText(render_text(message))
         running = snapshot.capture is not None and snapshot.capture.state is CaptureState.RUNNING
-        self.capture_button.setText("Stop passive capture" if running else "Start passive capture")
+        self.capture_button.setText(render_text(translate('Devices', 'Stop passive capture') if running else translate('Devices', 'Start passive capture')))
         self.capture_button.setEnabled(self.coordinator is not None and snapshot.selected_fingerprint is not None)
 
     def _restore_selection(self, row_id: UUID | None) -> None:
@@ -303,32 +309,32 @@ class DevicesView(QWidget):
         self._profile = None
         self._profile_loading = False
         self._profile_load_error = False
-        self.profile_status.setText("Select an observed device to view its profile.")
+        self.profile_status.setText(translate('Devices', 'Select an observed device to view its profile.'))
         for value in self.profile_values.values():
-            value.setText(MISSING_VALUE)
+            value.setText(render_text(MISSING_VALUE))
         self._profile_controls()
 
     def _load_profile(self) -> None:
         self._profile = None
         for value in self.profile_values.values():
-            value.setText(MISSING_VALUE)
+            value.setText(render_text(MISSING_VALUE))
         if self._selected_id is None:
             self._clear_profile()
             return
         if self.profiles is None:
-            self.profile_status.setText("Saved profiles are unavailable.")
+            self.profile_status.setText(translate('Devices', 'Saved profiles are unavailable.'))
             self._profile_controls()
             return
         self._profile_loading = True
         self._profile_load_error = False
-        self.profile_status.setText("Loading user profile…")
+        self.profile_status.setText(translate('Devices', 'Loading user profile…'))
         self._profile_controls()
         try:
             self._profile_generation = self.profiles.load(self._selected_id)
         except RuntimeError:
             self._profile_loading = False
             self._profile_load_error = True
-            self.profile_status.setText("Saved profiles are unavailable. Try selecting this device again.")
+            self.profile_status.setText(translate('Devices', 'Saved profiles are unavailable. Try selecting this device again.'))
             self._profile_controls()
 
     def _profile_loaded(self, generation: int, device_id: object, profile: object) -> None:
@@ -340,18 +346,16 @@ class DevicesView(QWidget):
         self._profile_load_error = False
         self._profile = profile if isinstance(profile, DeviceProfile) else None
         if self._profile is None:
-            self.profile_status.setText("No user profile is saved for this observed device.")
+            self.profile_status.setText(translate('Devices', 'No user profile is saved for this observed device.'))
         else:
-            self.profile_status.setText("Profile changed elsewhere. Latest values loaded; review and retry."
-                                        if self._stale_notice else
-                                        "User-saved expectations; observations do not edit this profile.")
-            self.profile_values["label"].setText(self._profile.label or MISSING_VALUE)
-            self.profile_values["trust"].setText(self._profile.trust.value.title())
-            self.profile_values["note"].setText(self._profile.note or MISSING_VALUE)
-            self.profile_values["macs"].setText(", ".join(map(str, self._profile.expected_macs)) or MISSING_VALUE)
-            self.profile_values["ips"].setText(", ".join(self._profile.expected_ips) or MISSING_VALUE)
-            self.profile_values["updated"].setText(format_seen(self._profile.updated_at))
-            self.profile_values["trust_changed"].setText(format_seen(self._profile.trust_changed_at) if self._profile.trust_changed_at else MISSING_VALUE)
+            self.profile_status.setText(render_text(translate('Devices', 'Profile changed elsewhere. Latest values loaded; review and retry.') if self._stale_notice else translate('Devices', 'User-saved expectations; observations do not edit this profile.')))
+            self.profile_values['label'].setText(render_text(self._profile.label or MISSING_VALUE))
+            self.profile_values['trust'].setText(render_text(display_enum(self._profile.trust, 'title')))
+            self.profile_values['note'].setText(render_text(self._profile.note or MISSING_VALUE))
+            self.profile_values['macs'].setText(render_text(render_join(', ', map(str, self._profile.expected_macs)) or MISSING_VALUE))
+            self.profile_values['ips'].setText(render_text(render_join(', ', self._profile.expected_ips) or MISSING_VALUE))
+            self.profile_values['updated'].setText(render_text(format_seen(self._profile.updated_at)))
+            self.profile_values['trust_changed'].setText(render_text(format_seen(self._profile.trust_changed_at) if self._profile.trust_changed_at else MISSING_VALUE))
         self._stale_notice = False
         self._profile_controls()
 
@@ -362,14 +366,14 @@ class DevicesView(QWidget):
             return
         self._profile_loading = False
         self._profile_load_error = True
-        self.profile_status.setText("Saved profile is unavailable. Try selecting this device again.")
+        self.profile_status.setText(translate('Devices', 'Saved profile is unavailable. Try selecting this device again.'))
         self._profile_controls()
 
     def _profile_controls(self) -> None:
         available = self.profiles is not None and self._selected_id is not None
         self.profile_edit_button.setEnabled(available and not self._profile_loading and not self._profile_busy
                                             and not self._profile_load_error)
-        self.profile_edit_button.setText("Edit profile" if self._profile else "Create profile")
+        self.profile_edit_button.setText(render_text(translate('Devices', 'Edit profile') if self._profile else translate('Devices', 'Create profile')))
         self.profile_refresh_button.setEnabled(available and not self._profile_loading and not self._profile_busy)
         self.profile_alerts_button.setEnabled(self._profile is not None and not self._profile_loading
                                               and not self._profile_busy)
@@ -385,7 +389,7 @@ class DevicesView(QWidget):
         if result != DeviceProfileDialog.DialogCode.Accepted or draft is None:
             return
         self._profile_busy = True
-        self.profile_status.setText("Saving user profile…")
+        self.profile_status.setText(translate('Devices', 'Saving user profile…'))
         self._profile_controls()
         if not self.profiles.save(row.row_id, row.network_fingerprint, self._profile, draft):
             self._profile_save_failed(row.row_id, "unavailable")
@@ -395,7 +399,7 @@ class DevicesView(QWidget):
             return
         self._profile_busy = False
         if device_id == self._selected_id:
-            self.profile_status.setText("Profile saved. Reloading…")
+            self.profile_status.setText(translate('Devices', 'Profile saved. Reloading…'))
             self._load_profile()
         self._request("refresh")
 
@@ -404,13 +408,7 @@ class DevicesView(QWidget):
             return
         self._profile_busy = False
         if device_id == self._selected_id:
-            self.profile_status.setText(
-                "Profile changed elsewhere. Latest values are loading; review and retry."
-                if reason == "stale" else
-                "Profile could not be saved. Review values and try again."
-                if reason == "invalid" else
-                "Profile storage is unavailable. Try again."
-            )
+            self.profile_status.setText(render_text(translate('Devices', 'Profile changed elsewhere. Latest values are loading; review and retry.') if reason == 'stale' else translate('Devices', 'Profile could not be saved. Review values and try again.') if reason == 'invalid' else translate('Devices', 'Profile storage is unavailable. Try again.')))
             if reason == "stale":
                 self._stale_notice = True
                 self._load_profile()
@@ -440,7 +438,7 @@ class DevicesView(QWidget):
 
     def _load_failed(self) -> None:
         if self.coordinator is None or self.coordinator.accepting:
-            self.status_label.setText("Device inventory is unavailable. Try refreshing.")
+            self.status_label.setText(translate('Devices', 'Device inventory is unavailable. Try refreshing.'))
 
 
 __all__ = ("DeviceDetailsWidget", "DevicesFilterProxyModel", "DevicesView")

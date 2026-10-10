@@ -1,5 +1,9 @@
 """Narrow NS-093 close preference dialog; only Save applies a preference."""
 
+from netsentinel.presentation.i18n.buttons import localize_buttons
+
+from netsentinel.presentation.i18n.text import translate
+
 from collections.abc import Callable
 from PyQt6.QtGui import QStandardItemModel
 
@@ -17,14 +21,14 @@ class ApplicationBehaviorDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self._save_preference = save
-        self.setWindowTitle("Application behavior")
-        self.setAccessibleName("Application behavior settings")
+        self.setWindowTitle(translate('ApplicationBehavior', 'Application behavior'))
+        self.setAccessibleName(translate('ApplicationBehavior', 'Application behavior settings'))
         layout = QVBoxLayout(self)
-        label = QLabel("When I close the window:", self)
+        label = QLabel(translate('ApplicationBehavior', 'When I close the window:'), self)
         self.close_behavior = QComboBox(self)
-        self.close_behavior.setAccessibleName("When I close the window")
-        self.close_behavior.addItem("Quit NetSentinel", WindowCloseBehavior.QUIT_APPLICATION)
-        self.close_behavior.addItem("Hide to system tray", WindowCloseBehavior.HIDE_TO_TRAY)
+        self.close_behavior.setAccessibleName(translate('ApplicationBehavior', 'When I close the window'))
+        self.close_behavior.addItem(translate('ApplicationBehavior', 'Quit NetSentinel'), WindowCloseBehavior.QUIT_APPLICATION)
+        self.close_behavior.addItem(translate('ApplicationBehavior', 'Hide to system tray'), WindowCloseBehavior.HIDE_TO_TRAY)
         label.setBuddy(self.close_behavior)
         self.close_behavior.setCurrentIndex(self.close_behavior.findData(behavior))
         if not tray_available:
@@ -35,17 +39,16 @@ class ApplicationBehaviorDialog(QDialog):
             assert item is not None
             item.setEnabled(False)
         self.explanation = QLabel(
-            "Hiding keeps monitoring running. Quit stops monitoring and exits."
+            translate('ApplicationBehavior', 'Hiding keeps monitoring running. Quit stops monitoring and exits.')
             if tray_available else
-            "System tray unavailable; closing the window will quit NetSentinel. "
-            "Your saved preference is preserved.", self,
+            translate('ApplicationBehavior', 'System tray unavailable; closing the window will quit NetSentinel. Your saved preference is preserved.'), self,
         )
         self.explanation.setWordWrap(True)
         self.error = QLabel("", self)
-        self.error.setAccessibleName("Application behavior save status")
-        self.buttons = QDialogButtonBox(
+        self.error.setAccessibleName(translate('ApplicationBehavior', 'Application behavior save status'))
+        self.buttons = localize_buttons(QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self,
-        )
+        ))
         self.buttons.accepted.connect(self._save)
         self.buttons.rejected.connect(self.reject)
         for widget in (label, self.close_behavior, self.explanation, self.error, self.buttons):
@@ -55,6 +58,6 @@ class ApplicationBehaviorDialog(QDialog):
         try:
             self._save_preference(self.close_behavior.currentData())
         except (OSError, ValueError, TypeError):
-            self.error.setText("Application behavior could not be saved. Preference unchanged.")
+            self.error.setText(translate('ApplicationBehavior', 'Application behavior could not be saved. Preference unchanged.'))
             return
         self.accept()

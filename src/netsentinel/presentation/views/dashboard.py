@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import display_number
+
+from netsentinel.presentation.i18n.text import render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import (
     QFrame,
@@ -38,7 +44,7 @@ class DashboardView(QWidget):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("dashboardPage")
-        self.setAccessibleName("Dashboard")
+        self.setAccessibleName(translate('Dashboard', 'Dashboard'))
 
 
         self.connections_model = (
@@ -50,11 +56,11 @@ class DashboardView(QWidget):
             self,
         )
 
-        self.title_label = QLabel("Dashboard", self)
+        self.title_label = QLabel(translate('Dashboard', 'Dashboard'), self)
         self.title_label.setObjectName("pageTitle")
         self.title_label.setStyleSheet(PAGE_TITLE)
         self.subtitle_label = QLabel(
-            "Live connection counts and monitoring health.", self
+            translate('Dashboard', 'Live connection counts and monitoring health.'), self
         )
         self.subtitle_label.setObjectName("pageDescription")
         self.subtitle_label.setStyleSheet(SECONDARY_TEXT)
@@ -63,7 +69,7 @@ class DashboardView(QWidget):
         metrics_grid.setHorizontalSpacing(10)
         metrics_grid.setVerticalSpacing(10)
         self.total_value = self._add_metric_card(
-            metrics_grid, 0, 0, "Active Connections", "activeConnectionsMetric"
+            metrics_grid, 0, 0, translate('Dashboard', 'Active Connections'), "activeConnectionsMetric"
         )
         self.tcp_value = self._add_metric_card(
             metrics_grid, 0, 1, "TCP", "tcpConnectionsMetric"
@@ -72,58 +78,58 @@ class DashboardView(QWidget):
             metrics_grid, 0, 2, "UDP", "udpConnectionsMetric"
         )
         self.listening_value = self._add_metric_card(
-            metrics_grid, 1, 0, "Listening TCP", "listeningConnectionsMetric"
+            metrics_grid, 1, 0, translate('Dashboard', 'Listening TCP'), "listeningConnectionsMetric"
         )
         self.remote_hosts_value = self._add_metric_card(
-            metrics_grid, 1, 1, "Remote Hosts", "remoteHostsMetric"
+            metrics_grid, 1, 1, translate('Dashboard', 'Remote Hosts'), "remoteHostsMetric"
         )
         self.opened_value = self._add_metric_card(
-            metrics_grid, 1, 2, "Opened (last 60s)", "openedEventsMetric"
+            metrics_grid, 1, 2, translate('Dashboard', 'Opened (last 60s)'), "openedEventsMetric"
         )
         self.closed_value = self._add_metric_card(
-            metrics_grid, 2, 2, "Closed (last 60s)", "closedEventsMetric"
+            metrics_grid, 2, 2, translate('Dashboard', 'Closed (last 60s)'), "closedEventsMetric"
         )
 
         traffic_frame = QFrame(self)
         traffic_frame.setObjectName("dashboardTrafficCard")
-        traffic_frame.setAccessibleName("Broadcast and ARP monitoring summary")
+        traffic_frame.setAccessibleName(translate('Dashboard', 'Broadcast and ARP monitoring summary'))
         traffic_frame.setStyleSheet(card_style("dashboardTrafficCard"))
         traffic_layout = QGridLayout(traffic_frame)
         traffic_layout.setContentsMargins(16, 12, 16, 12)
-        traffic_title = QLabel("Broadcast and ARP", traffic_frame)
+        traffic_title = QLabel(translate('Dashboard', 'Broadcast and ARP'), traffic_frame)
         traffic_title.setStyleSheet(CARD_TITLE)
         traffic_layout.addWidget(traffic_title, 0, 0, 1, 2)
-        self.broadcast_rate_label = self._add_traffic_row(traffic_layout, 1, "Broadcast rate", "dashboardBroadcastRate")
-        self.arp_rate_label = self._add_traffic_row(traffic_layout, 2, "ARP rate", "dashboardArpRate")
-        self.broadcast_baseline_label = self._add_traffic_row(traffic_layout, 3, "Broadcast baseline", "dashboardBroadcastBaseline")
-        self.arp_baseline_label = self._add_traffic_row(traffic_layout, 4, "ARP baseline", "dashboardArpBaseline")
-        self.traffic_window_label = self._add_traffic_row(traffic_layout, 5, "Measurement window", "dashboardTrafficWindow")
-        self.traffic_threshold_label = self._add_traffic_row(traffic_layout, 6, "Alert threshold", "dashboardTrafficThreshold")
-        self.traffic_quality_label = self._add_traffic_row(traffic_layout, 7, "Measurement quality", "dashboardTrafficQuality")
-        self.capture_drop_label = self._add_traffic_row(traffic_layout, 8, "Dropped observations in window", "dashboardCaptureDrops")
+        self.broadcast_rate_label = self._add_traffic_row(traffic_layout, 1, translate('Dashboard', 'Broadcast rate'), "dashboardBroadcastRate")
+        self.arp_rate_label = self._add_traffic_row(traffic_layout, 2, translate('Dashboard', 'ARP rate'), "dashboardArpRate")
+        self.broadcast_baseline_label = self._add_traffic_row(traffic_layout, 3, translate('Dashboard', 'Broadcast baseline'), "dashboardBroadcastBaseline")
+        self.arp_baseline_label = self._add_traffic_row(traffic_layout, 4, translate('Dashboard', 'ARP baseline'), "dashboardArpBaseline")
+        self.traffic_window_label = self._add_traffic_row(traffic_layout, 5, translate('Dashboard', 'Measurement window'), "dashboardTrafficWindow")
+        self.traffic_threshold_label = self._add_traffic_row(traffic_layout, 6, translate('Dashboard', 'Alert threshold'), "dashboardTrafficThreshold")
+        self.traffic_quality_label = self._add_traffic_row(traffic_layout, 7, translate('Dashboard', 'Measurement quality'), "dashboardTrafficQuality")
+        self.capture_drop_label = self._add_traffic_row(traffic_layout, 8, translate('Dashboard', 'Dropped observations in window'), "dashboardCaptureDrops")
         self.traffic_capture_label = QLabel(traffic_frame)
         self.traffic_capture_label.setObjectName("dashboardTrafficCapture")
-        self.traffic_capture_label.setAccessibleName("Traffic capture status")
+        self.traffic_capture_label.setAccessibleName(translate('Dashboard', 'Traffic capture status'))
         traffic_layout.addWidget(self.traffic_capture_label, 9, 0, 1, 2)
 
         vlan_frame = QFrame(self)
         vlan_frame.setObjectName("dashboardVlanCard")
-        vlan_frame.setAccessibleName("Selected network VLAN observations")
+        vlan_frame.setAccessibleName(translate('Dashboard', 'Selected network VLAN observations'))
         vlan_frame.setStyleSheet(card_style("dashboardVlanCard"))
         vlan_layout = QVBoxLayout(vlan_frame)
         vlan_layout.setContentsMargins(16, 12, 16, 12)
-        vlan_title = QLabel("VLAN observations", vlan_frame)
+        vlan_title = QLabel(translate('Dashboard', 'VLAN observations'), vlan_frame)
         vlan_title.setStyleSheet(CARD_TITLE)
         vlan_layout.addWidget(vlan_title)
         self.vlan_labels = {}
-        for key, name in (("scope", "VLAN scope"), ("status", "VLAN observation status"),
-                          ("baseline", "VLAN baseline state"), ("observed", "Observed VLAN IDs"),
-                          ("reference", "Learned or verified reference IDs"),
-                          ("counts", "VLAN category counts"), ("times", "VLAN first and last seen"),
-                          ("visibility", "VLAN capture visibility limitation")):
+        for key, name in (("scope", translate('Dashboard', 'VLAN scope')), ("status", translate('Dashboard', 'VLAN observation status')),
+                          ("baseline", translate('Dashboard', 'VLAN baseline state')), ("observed", translate('Dashboard', 'Observed VLAN IDs')),
+                          ("reference", translate('Dashboard', 'Learned or verified reference IDs')),
+                          ("counts", translate('Dashboard', 'VLAN category counts')), ("times", translate('Dashboard', 'VLAN first and last seen')),
+                          ("visibility", translate('Dashboard', 'VLAN capture visibility limitation'))):
             label = QLabel(vlan_frame)
             label.setObjectName(f"dashboardVlan_{key}")
-            label.setAccessibleName(name)
+            label.setAccessibleName(render_text(name))
             label.setTextFormat(Qt.TextFormat.PlainText)
             label.setWordWrap(True)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -131,7 +137,7 @@ class DashboardView(QWidget):
             self.vlan_labels[key] = label
         self.vlan_rows = QPlainTextEdit(vlan_frame)
         self.vlan_rows.setObjectName("dashboardVlanRows")
-        self.vlan_rows.setAccessibleName("Observed VLAN ID counts and first and last seen")
+        self.vlan_rows.setAccessibleName(translate('Dashboard', 'Observed VLAN ID counts and first and last seen'))
         self.vlan_rows.setReadOnly(True)
         self.vlan_rows.setMaximumHeight(150)
         vlan_layout.insertWidget(7, self.vlan_rows)
@@ -139,48 +145,48 @@ class DashboardView(QWidget):
 
         health_frame = QFrame(self)
         health_frame.setObjectName("dashboardHealthCard")
-        health_frame.setAccessibleName("Monitoring health summary")
+        health_frame.setAccessibleName(translate('Dashboard', 'Monitoring health summary'))
         health_frame.setFrameShape(QFrame.Shape.StyledPanel)
         health_frame.setStyleSheet(card_style("dashboardHealthCard"))
-        health_title = QLabel("Monitoring Status", health_frame)
+        health_title = QLabel(translate('Dashboard', 'Monitoring Status'), health_frame)
         health_title.setStyleSheet(
             CARD_TITLE
         )
-        self.status_label = QLabel("● Waiting", health_frame)
+        self.status_label = QLabel(translate('Dashboard', '● Waiting'), health_frame)
         self.status_label.setObjectName("dashboardMonitoringStatus")
-        self.status_label.setAccessibleName("Monitoring status")
+        self.status_label.setAccessibleName(translate('Dashboard', 'Monitoring status'))
         self.status_label.setStyleSheet("font-weight: 600; " + SECONDARY_TEXT)
         self.health_detail_label = QLabel(
-            "Waiting for monitoring status.", health_frame
+            translate('Dashboard', 'Waiting for monitoring status.'), health_frame
         )
         self.health_detail_label.setObjectName("dashboardHealthDetail")
-        self.health_detail_label.setAccessibleName("Monitoring health detail")
+        self.health_detail_label.setAccessibleName(translate('Dashboard', 'Monitoring health detail'))
         self.health_detail_label.setStyleSheet(SECONDARY_TEXT)
         self.capability_label = QLabel(
-            "Capability status is not available yet.", health_frame
+            translate('Dashboard', 'Capability status is not available yet.'), health_frame
         )
         self.capability_label.setObjectName("dashboardCapability")
-        self.capability_label.setAccessibleName("Monitoring capability")
+        self.capability_label.setAccessibleName(translate('Dashboard', 'Monitoring capability'))
         self.capability_label.setStyleSheet(SECONDARY_TEXT)
         self.diagnostic_label = QLabel(
-            "No monitoring status has been received.", health_frame
+            translate('Dashboard', 'No monitoring status has been received.'), health_frame
         )
         self.diagnostic_label.setObjectName("dashboardDiagnostic")
-        self.diagnostic_label.setAccessibleName("Monitoring diagnostic")
+        self.diagnostic_label.setAccessibleName(translate('Dashboard', 'Monitoring diagnostic'))
         self.diagnostic_label.setWordWrap(True)
         self.diagnostic_label.setStyleSheet(SECONDARY_TEXT)
 
-        poll_caption = QLabel("Last successful poll", health_frame)
+        poll_caption = QLabel(translate('Dashboard', 'Last successful poll'), health_frame)
         poll_caption.setStyleSheet(SECONDARY_TEXT)
         self.last_poll_label = QLabel("—", health_frame)
         self.last_poll_label.setObjectName("dashboardLastSuccessfulPoll")
-        self.last_poll_label.setAccessibleName("Last successful poll")
+        self.last_poll_label.setAccessibleName(translate('Dashboard', 'Last successful poll'))
         self.last_poll_label.setStyleSheet(SECONDARY_TEXT)
-        dropped_caption = QLabel("Dropped UI events", health_frame)
+        dropped_caption = QLabel(translate('Dashboard', 'Dropped UI events'), health_frame)
         dropped_caption.setStyleSheet(SECONDARY_TEXT)
         self.dropped_events_label = QLabel("0", health_frame)
         self.dropped_events_label.setObjectName("dashboardDroppedEvents")
-        self.dropped_events_label.setAccessibleName("Dropped UI events")
+        self.dropped_events_label.setAccessibleName(translate('Dashboard', 'Dropped UI events'))
         self.dropped_events_label.setStyleSheet(SECONDARY_TEXT)
 
         facts = QGridLayout()
@@ -214,7 +220,7 @@ class DashboardView(QWidget):
 
         scroll = QScrollArea(self)
         scroll.setObjectName("dashboardScrollArea")
-        scroll.setAccessibleName("Dashboard content")
+        scroll.setAccessibleName(translate('Dashboard', 'Dashboard content'))
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(content)
@@ -231,30 +237,30 @@ class DashboardView(QWidget):
 
     @pyqtSlot(DashboardTrafficState)
     def set_traffic(self, traffic: DashboardTrafficState) -> None:
-        self.broadcast_rate_label.setText(traffic.broadcast_rate)
-        self.arp_rate_label.setText(traffic.arp_rate)
-        self.broadcast_baseline_label.setText(traffic.broadcast_baseline)
-        self.arp_baseline_label.setText(traffic.arp_baseline)
-        self.traffic_window_label.setText(traffic.window)
-        self.traffic_threshold_label.setText(traffic.threshold)
-        self.traffic_quality_label.setText(traffic.measurement)
-        self.capture_drop_label.setText(traffic.dropped)
-        self.traffic_capture_label.setText(traffic.capture)
+        self.broadcast_rate_label.setText(render_text(traffic.broadcast_rate))
+        self.arp_rate_label.setText(render_text(traffic.arp_rate))
+        self.broadcast_baseline_label.setText(render_text(traffic.broadcast_baseline))
+        self.arp_baseline_label.setText(render_text(traffic.arp_baseline))
+        self.traffic_window_label.setText(render_text(traffic.window))
+        self.traffic_threshold_label.setText(render_text(traffic.threshold))
+        self.traffic_quality_label.setText(render_text(traffic.measurement))
+        self.capture_drop_label.setText(render_text(traffic.dropped))
+        self.traffic_capture_label.setText(render_text(traffic.capture))
 
     def set_vlan_snapshot(self, inventory: DeviceInventorySnapshot) -> None:
         self.set_vlan_state(vlan_dashboard_state(inventory))
 
     def set_vlan_state(self, state: VlanDashboardState) -> None:
         for key, label in self.vlan_labels.items():
-            label.setText(getattr(state, key))
+            label.setText(render_text(getattr(state, key)))
         if self.vlan_rows.toPlainText() != state.rows:
-            self.vlan_rows.setPlainText(state.rows)
+            self.vlan_rows.setPlainText(render_text(state.rows))
 
     def _add_traffic_row(self, grid: QGridLayout, row: int, title: str, name: str) -> QLabel:
         caption = QLabel(title, self)
         value = QLabel("—", self)
         value.setObjectName(name)
-        value.setAccessibleName(title)
+        value.setAccessibleName(render_text(title))
         value.setTextFormat(Qt.TextFormat.PlainText)
         value.setWordWrap(True)
         grid.addWidget(caption, row, 0)
@@ -263,23 +269,23 @@ class DashboardView(QWidget):
 
     @pyqtSlot(DashboardMetrics)
     def set_metrics(self, metrics: DashboardMetrics) -> None:
-        self.total_value.setText(str(metrics.total_connections))
-        self.tcp_value.setText(str(metrics.tcp_connections))
-        self.udp_value.setText(str(metrics.udp_connections))
-        self.listening_value.setText(str(metrics.listening_connections))
-        self.remote_hosts_value.setText(str(metrics.remote_hosts))
-        self.opened_value.setText(str(metrics.opened_events))
-        self.closed_value.setText(str(metrics.closed_events))
+        self.total_value.setText(display_number(metrics.total_connections))
+        self.tcp_value.setText(display_number(metrics.tcp_connections))
+        self.udp_value.setText(display_number(metrics.udp_connections))
+        self.listening_value.setText(display_number(metrics.listening_connections))
+        self.remote_hosts_value.setText(display_number(metrics.remote_hosts))
+        self.opened_value.setText(display_number(metrics.opened_events))
+        self.closed_value.setText(display_number(metrics.closed_events))
 
     @pyqtSlot(DashboardHealthState)
     def set_health(self, health: DashboardHealthState) -> None:
-        self.status_label.setText(f"● {health.status}")
+        self.status_label.setText(render_text(f'● {health.status}'))
         self.status_label.setStyleSheet("font-weight: 600; " + SECONDARY_TEXT)
-        self.health_detail_label.setText(health.detail)
-        self.capability_label.setText(health.capability)
-        self.diagnostic_label.setText(health.diagnostic)
-        self.last_poll_label.setText(health.last_successful_poll)
-        self.dropped_events_label.setText(str(health.dropped_bridge_events))
+        self.health_detail_label.setText(render_text(health.detail))
+        self.capability_label.setText(render_text(health.capability))
+        self.diagnostic_label.setText(render_text(health.diagnostic))
+        self.last_poll_label.setText(render_text(health.last_successful_poll))
+        self.dropped_events_label.setText(render_text(str(health.dropped_bridge_events)))
 
     def _add_metric_card(
         self,
@@ -297,8 +303,8 @@ class DashboardView(QWidget):
         caption.setStyleSheet(SECONDARY_TEXT)
         value = QLabel("0", card)
         value.setObjectName(object_name)
-        value.setAccessibleName(title)
-        value.setAlignment(Qt.AlignmentFlag.AlignRight)
+        value.setAccessibleName(render_text(title))
+        value.setAlignment(Qt.AlignmentFlag.AlignTrailing)
         value.setStyleSheet(METRIC_VALUE)
         card_layout = QHBoxLayout(card)
         card_layout.setContentsMargins(14, 12, 14, 12)

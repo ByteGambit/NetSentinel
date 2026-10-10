@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import TranslationSequence
+
+from netsentinel.presentation.i18n.text import format_text, render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -50,34 +56,34 @@ FILTER_DEBOUNCE_MS = 300
 class HistoryDetailsWidget(QGroupBox):
     """Safe metadata detail for one selected persisted record."""
 
-    _FIELDS = (
-        ("process", "Process name"),
-        ("pid", "PID"),
+    _FIELDS = TranslationSequence(lambda: (
+        ("process", translate('History', 'Process name')),
+        ("pid", translate('History', 'PID')),
         *PROCESS_CONTEXT_FIELDS,
-        ("protocol", "Protocol"),
-        ("state", "State"),
-        ("local", "Local endpoint"),
-        ("remote", "Remote endpoint"),
-        ("opened", "First seen"),
-        ("last_seen", "Last seen"),
-        ("closed", "Closed"),
-        ("close_reason", "Close reason"),
-        ("duration", "Observed duration"),
-    )
+        ("protocol", translate('History', 'Protocol')),
+        ("state", translate('History', 'State')),
+        ("local", translate('History', 'Local endpoint')),
+        ("remote", translate('History', 'Remote endpoint')),
+        ("opened", translate('History', 'First seen')),
+        ("last_seen", translate('History', 'Last seen')),
+        ("closed", translate('History', 'Closed')),
+        ("close_reason", translate('History', 'Close reason')),
+        ("duration", translate('History', 'Observed duration')),
+    ))
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Selected record", parent)
+        super().__init__(translate('History', 'Selected record'), parent)
         self.setObjectName("historyDetails")
-        self.setAccessibleName("History record details")
+        self.setAccessibleName(translate('History', 'History record details'))
         self.status_label = QLabel(self)
-        self.status_label.setAccessibleName("History details status")
+        self.status_label.setAccessibleName(translate('History', 'History details status'))
         self.values: dict[str, QLabel] = {}
         content = QWidget(self)
         form = QFormLayout(content)
         for key, title in self._FIELDS:
             label = QLabel(MISSING_VALUE, self)
             label.setObjectName(f"historyDetail_{key}")
-            label.setAccessibleName(f"{title} value")
+            label.setAccessibleName(format_text(translate('History', '{value1} value'), value1=title))
             label.setTextFormat(Qt.TextFormat.PlainText)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             label.setWordWrap(key == "executable")
@@ -91,10 +97,10 @@ class HistoryDetailsWidget(QGroupBox):
         self.clear()
 
     def clear(self) -> None:
-        self.status_label.setText("No history record selected.")
+        self.status_label.setText(translate('History', 'No history record selected.'))
         self.status_label.show()
         for label in self.values.values():
-            label.setText(MISSING_VALUE)
+            label.setText(render_text(MISSING_VALUE))
         self.destination.clear()
 
     def set_row(self, row: HistoryRow) -> None:
@@ -112,7 +118,7 @@ class HistoryDetailsWidget(QGroupBox):
             "duration": row.duration_display,
         }
         for key, value in values.items():
-            self.values[key].setText(value)
+            self.values[key].setText(render_text(value))
 
 
 class HistoryView(QWidget):
@@ -128,7 +134,7 @@ class HistoryView(QWidget):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("historyView")
-        self.setAccessibleName("Connection history page")
+        self.setAccessibleName(translate('History', 'Connection history page'))
         self.coordinator = coordinator
         self.destination_queries = destination_queries
         self._destination_generation: int | None = None
@@ -140,49 +146,49 @@ class HistoryView(QWidget):
         self._initial_requested = False
         self._restore_record_id: UUID | None = None
 
-        title = QLabel("History", self)
+        title = QLabel(translate('History', 'History'), self)
         title.setObjectName("historyTitle")
         title.setStyleSheet(PAGE_TITLE)
         subtitle = QLabel(
-            "Review bounded pages of locally stored connection metadata.", self
+            translate('History', 'Review bounded pages of locally stored connection metadata.'), self
         )
         subtitle.setStyleSheet(SECONDARY_TEXT)
 
         self.process_filter = QLineEdit(self)
-        self.process_filter.setPlaceholderText("Process name (exact)")
-        self.process_filter.setAccessibleName("History process filter")
+        self.process_filter.setPlaceholderText(translate('History', 'Process name (exact)'))
+        self.process_filter.setAccessibleName(translate('History', 'History process filter'))
         self.pid_filter = QLineEdit(self)
-        self.pid_filter.setPlaceholderText("PID")
-        self.pid_filter.setAccessibleName("History PID filter")
+        self.pid_filter.setPlaceholderText(translate('History', 'PID'))
+        self.pid_filter.setAccessibleName(translate('History', 'History PID filter'))
         self.endpoint_filter = QLineEdit(self)
-        self.endpoint_filter.setPlaceholderText("Local or remote IP")
-        self.endpoint_filter.setAccessibleName("History endpoint filter")
+        self.endpoint_filter.setPlaceholderText(translate('History', 'Local or remote IP'))
+        self.endpoint_filter.setAccessibleName(translate('History', 'History endpoint filter'))
         self.protocol_filter = QComboBox(self)
-        self.protocol_filter.setAccessibleName("History protocol filter")
-        self.protocol_filter.addItem("All protocols", None)
-        self.protocol_filter.addItem("TCP", TransportProtocol.TCP)
-        self.protocol_filter.addItem("UDP", TransportProtocol.UDP)
+        self.protocol_filter.setAccessibleName(translate('History', 'History protocol filter'))
+        self.protocol_filter.addItem(translate('History', 'All protocols'), None)
+        self.protocol_filter.addItem(translate('History', 'TCP'), TransportProtocol.TCP)
+        self.protocol_filter.addItem(translate('History', 'UDP'), TransportProtocol.UDP)
 
         now = QDateTime.currentDateTime()
-        self.from_enabled = QCheckBox("From", self)
-        self.from_enabled.setAccessibleName("Enable history start time filter")
+        self.from_enabled = QCheckBox(translate('History', 'From'), self)
+        self.from_enabled.setAccessibleName(translate('History', 'Enable history start time filter'))
         self.from_time = QDateTimeEdit(now.addDays(-1), self)
         self.from_time.setCalendarPopup(True)
-        self.from_time.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
-        self.from_time.setAccessibleName("History start time")
+        self.from_time.setDisplayFormat(translate('History', 'yyyy-MM-dd HH:mm:ss'))
+        self.from_time.setAccessibleName(translate('History', 'History start time'))
         self.from_time.setEnabled(False)
-        self.to_enabled = QCheckBox("To", self)
-        self.to_enabled.setAccessibleName("Enable history end time filter")
+        self.to_enabled = QCheckBox(translate('History', 'To'), self)
+        self.to_enabled.setAccessibleName(translate('History', 'Enable history end time filter'))
         self.to_time = QDateTimeEdit(now, self)
         self.to_time.setCalendarPopup(True)
-        self.to_time.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
-        self.to_time.setAccessibleName("History end time")
+        self.to_time.setDisplayFormat(translate('History', 'yyyy-MM-dd HH:mm:ss'))
+        self.to_time.setAccessibleName(translate('History', 'History end time'))
         self.to_time.setEnabled(False)
 
-        self.refresh_button = QPushButton("Refresh", self)
-        self.refresh_button.setAccessibleName("Refresh connection history")
+        self.refresh_button = QPushButton(translate('History', 'Refresh'), self)
+        self.refresh_button.setAccessibleName(translate('History', 'Refresh connection history'))
         self.validation_label = QLabel("", self)
-        self.validation_label.setAccessibleName("History filter validation")
+        self.validation_label.setAccessibleName(translate('History', 'History filter validation'))
         self.validation_label.setStyleSheet("color: #9b2c2c;")
         self.validation_label.hide()
 
@@ -199,14 +205,14 @@ class HistoryView(QWidget):
         time_filters.addWidget(self.to_time)
         time_filters.addStretch(1)
 
-        self.state_label = QLabel("No history records found.", self)
+        self.state_label = QLabel(translate('History', 'No history records found.'), self)
         self.state_label.setObjectName("historyState")
-        self.state_label.setAccessibleName("History loading and result status")
+        self.state_label.setAccessibleName(translate('History', 'History loading and result status'))
         self.state_label.setStyleSheet(SECONDARY_TEXT + " padding: 5px;")
 
         self.table = QTableView(self)
         self.table.setObjectName("historyTable")
-        self.table.setAccessibleName("Connection history records")
+        self.table.setAccessibleName(translate('History', 'Connection history records'))
         self.table.setModel(self.model)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -224,12 +230,12 @@ class HistoryView(QWidget):
         self.table.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        self.previous_button = QPushButton("Previous", self)
-        self.previous_button.setAccessibleName("Previous history page")
-        self.next_button = QPushButton("Next", self)
-        self.next_button.setAccessibleName("Next history page")
-        self.page_label = QLabel("Page 1", self)
-        self.page_label.setAccessibleName("History page number")
+        self.previous_button = QPushButton(translate('History', 'Previous'), self)
+        self.previous_button.setAccessibleName(translate('History', 'Previous history page'))
+        self.next_button = QPushButton(translate('History', 'Next'), self)
+        self.next_button.setAccessibleName(translate('History', 'Next history page'))
+        self.page_label = QLabel(translate('History', 'Page 1'), self)
+        self.page_label.setAccessibleName(translate('History', 'History page number'))
         pagination = QHBoxLayout()
         pagination.addStretch(1)
         pagination.addWidget(self.previous_button)
@@ -339,14 +345,14 @@ class HistoryView(QWidget):
         except (TypeError, ValueError) as error:
             message = str(error)
             if "first_seen_from" in message:
-                message = "From time must not be after To time."
+                message = translate('History', 'From time must not be after To time.')
             elif "endpoint_address" in message:
-                message = "Enter a valid local or remote IP address."
+                message = translate('History', 'Enter a valid local or remote IP address.')
             elif "pid" in message.lower():
-                message = "PID must be a non-negative whole number."
+                message = translate('History', 'PID must be a non-negative whole number.')
             else:
-                message = "Check the history filters and try again."
-            self.validation_label.setText(message)
+                message = translate('History', 'Check the history filters and try again.')
+            self.validation_label.setText(render_text(message))
             self.validation_label.show()
             return
         self.validation_label.hide()
@@ -360,14 +366,14 @@ class HistoryView(QWidget):
         self._destination_generation = None
         self.table.clearSelection()
         self._loading = True
-        self.state_label.setText("Loading history…")
+        self.state_label.setText(translate('History', 'Loading history…'))
         self.state_label.show()
         self._update_pagination()
         try:
             self._latest_generation = self.coordinator.request(query)
         except RuntimeError:
             self._loading = False
-            self.state_label.setText("Unable to load connection history.")
+            self.state_label.setText(translate('History', 'Unable to load connection history.'))
             self._update_pagination()
 
     def _build_query(self) -> ConnectionHistoryQuery:
@@ -421,10 +427,10 @@ class HistoryView(QWidget):
         if page.records:
             self.state_label.hide()
         elif self._filters_active():
-            self.state_label.setText("No records match the current filters.")
+            self.state_label.setText(translate('History', 'No records match the current filters.'))
             self.state_label.show()
         else:
-            self.state_label.setText("No history records found.")
+            self.state_label.setText(translate('History', 'No history records found.'))
             self.state_label.show()
         self._update_pagination()
 
@@ -436,7 +442,7 @@ class HistoryView(QWidget):
         self.model.clear()
         self._restore_record_id = None
         self.details.clear()
-        self.state_label.setText("Unable to load connection history.")
+        self.state_label.setText(translate('History', 'Unable to load connection history.'))
         self.state_label.show()
         self._update_pagination()
 
@@ -451,13 +457,13 @@ class HistoryView(QWidget):
 
     def _request_destination(self, row: HistoryRow) -> None:
         if row.remote_address is None:
-            self.details.destination.clear("No remote destination.")
+            self.details.destination.clear(translate('History', 'No remote destination.'))
             self._destination_generation = None
             return
         if self.destination_queries is None:
-            self.details.destination.clear("Destination evidence unavailable.")
+            self.details.destination.clear(translate('History', 'Destination evidence unavailable.'))
             return
-        self.details.destination.clear("Loading destination evidence…")
+        self.details.destination.clear(translate('History', 'Loading destination evidence…'))
         try:
             self._destination_generation = self.destination_queries.request(
                 DestinationEvidenceRequest(row.remote_address, row.local_address,
@@ -465,7 +471,7 @@ class HistoryView(QWidget):
                                            row.last_seen, historical=True)
             )
         except RuntimeError:
-            self.details.destination.clear("Destination evidence unavailable.")
+            self.details.destination.clear(translate('History', 'Destination evidence unavailable.'))
 
     def _destination_ready(self, generation: int, result: object) -> None:
         from netsentinel.application.services.destination_evidence import DestinationEvidenceResult
@@ -476,7 +482,7 @@ class HistoryView(QWidget):
 
     def _destination_failed(self, generation: int) -> None:
         if generation == self._destination_generation:
-            self.details.destination.clear("Destination evidence unavailable.")
+            self.details.destination.clear(translate('History', 'Destination evidence unavailable.'))
 
     def _filters_active(self) -> bool:
         return bool(
@@ -489,7 +495,7 @@ class HistoryView(QWidget):
         )
 
     def _update_pagination(self) -> None:
-        self.page_label.setText(f"Page {self._page_index + 1}")
+        self.page_label.setText(format_text(translate('History', 'Page {value1}'), value1=self._page_index + 1))
         self.previous_button.setEnabled(not self._loading and self._page_index > 0)
         self.next_button.setEnabled(not self._loading and self._has_next)
 

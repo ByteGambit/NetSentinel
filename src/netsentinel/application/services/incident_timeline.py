@@ -1,6 +1,10 @@
 """NS-091 bounded, read-only historical story; no current telemetry substitution."""
 
-from dataclasses import dataclass
+from netsentinel.shared.enum_sources import enum_source
+from netsentinel.shared.source_text import QT_TRANSLATE_NOOP
+
+
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
 from hashlib import sha256
@@ -37,19 +41,19 @@ KIND_PRIORITY = {kind: index for index, kind in enumerate(TimelineKind)}
 SortKey = tuple[datetime, int, str, str, int, str]
 
 REASONS = {
-    Reason.FIRST_OBSERVATION: "First retained observation; isolated incident seed.",
-    Reason.SAME_CONNECTION_LIFECYCLE: "Same connection lifecycle (exact session and lifecycle reference).",
-    Reason.SAME_CANONICAL_EVIDENCE: "Same canonical evidence reference.",
-    Reason.SAME_ASSESSMENT_LINEAGE: "Same assessment lineage; revisions remain distinct.",
-    Reason.SAME_ALERT_OBSERVATION: "Same alert observation reference; alert lifecycle is separate.",
-    Reason.SAME_PROCESS_AND_DESTINATION: "Same process instance and destination (port/protocol and resolved network scope).",
+    Reason.FIRST_OBSERVATION: QT_TRANSLATE_NOOP('IncidentTimeline', 'First retained observation; isolated incident seed.'),
+    Reason.SAME_CONNECTION_LIFECYCLE: QT_TRANSLATE_NOOP('IncidentTimeline', 'Same connection lifecycle (exact session and lifecycle reference).'),
+    Reason.SAME_CANONICAL_EVIDENCE: QT_TRANSLATE_NOOP('IncidentTimeline', 'Same canonical evidence reference.'),
+    Reason.SAME_ASSESSMENT_LINEAGE: QT_TRANSLATE_NOOP('IncidentTimeline', 'Same assessment lineage; revisions remain distinct.'),
+    Reason.SAME_ALERT_OBSERVATION: QT_TRANSLATE_NOOP('IncidentTimeline', 'Same alert observation reference; alert lifecycle is separate.'),
+    Reason.SAME_PROCESS_AND_DESTINATION: QT_TRANSLATE_NOOP('IncidentTimeline', 'Same process instance and destination (port/protocol and resolved network scope).'),
 }
 SOURCE_TEXT = {
-    Source.AVAILABLE: "Source available now.",
-    Source.SOURCE_EXPIRED_OR_UNAVAILABLE: "Original source record is no longer retained or available; cause of absence is unknown.",
-    Source.UNRESOLVED: "Source reference could not be resolved; retained incident context remains.",
-    Source.CORRUPT: "Original source is corrupt; retained incident context remains.",
-    Source.UNSUPPORTED_VERSION: "Original source version is unsupported; retained incident context remains.",
+    Source.AVAILABLE: QT_TRANSLATE_NOOP('IncidentTimeline', 'Source available now.'),
+    Source.SOURCE_EXPIRED_OR_UNAVAILABLE: QT_TRANSLATE_NOOP('IncidentTimeline', 'Original source record is no longer retained or available; cause of absence is unknown.'),
+    Source.UNRESOLVED: QT_TRANSLATE_NOOP('IncidentTimeline', 'Source reference could not be resolved; retained incident context remains.'),
+    Source.CORRUPT: QT_TRANSLATE_NOOP('IncidentTimeline', 'Original source is corrupt; retained incident context remains.'),
+    Source.UNSUPPORTED_VERSION: QT_TRANSLATE_NOOP('IncidentTimeline', 'Original source version is unsupported; retained incident context remains.'),
 }
 
 
@@ -163,35 +167,35 @@ def map_snapshot(bundle: TimelineSnapshot) -> tuple[tuple[TimelineEntry, ...], t
             observations[obs.reference] = obs.observed_at
         else:
             title = {
-                Observation.CONNECTION_OBSERVED: "Connection observed",
-                Observation.CONNECTION_UPDATED: "Connection observation updated",
-                Observation.CONNECTION_NOT_OBSERVED: "Connection no longer observed (polling)",
-                Observation.EVIDENCE_OBSERVED: "Evidence observed",
-                Observation.ALERT_OBSERVED: "Alert observation reference",
+                Observation.CONNECTION_OBSERVED: QT_TRANSLATE_NOOP('IncidentTimeline', 'Connection observed'),
+                Observation.CONNECTION_UPDATED: QT_TRANSLATE_NOOP('IncidentTimeline', 'Connection observation updated'),
+                Observation.CONNECTION_NOT_OBSERVED: QT_TRANSLATE_NOOP('IncidentTimeline', 'Connection no longer observed (polling)'),
+                Observation.EVIDENCE_OBSERVED: QT_TRANSLATE_NOOP('IncidentTimeline', 'Evidence observed'),
+                Observation.ALERT_OBSERVED: QT_TRANSLATE_NOOP('IncidentTimeline', 'Alert observation reference'),
             }[obs.kind]
             if isinstance(obs.reference, EvidenceReference) and obs.reference.kind is EvidenceReferenceKind.DNS_EVIDENCE:
-                title = "DNS evidence observed"
+                title = QT_TRANSLATE_NOOP('IncidentTimeline', 'DNS evidence observed')
             entries.append(TimelineEntry("observation:" + observation_id, TimelineKind.OBSERVATION,
-                obs.observed_at, "Observation time", title,
-                "Recorded observation; polling does not establish exact OS creation or closure time.",
+                obs.observed_at, QT_TRANSLATE_NOOP('IncidentTimeline', 'Observation time'), title,
+                QT_TRANSLATE_NOOP('IncidentTimeline', 'Recorded observation; polling does not establish exact OS creation or closure time.'),
                 obs.kind.value, source_id, status, observation_time=obs.observed_at))
         matched = ""
         if relation.matched_key:
             key = relation.matched_key
-            matched = " Matched identity: " + source_identity(key.identity)
+            matched = QT_TRANSLATE_NOOP('IncidentTimeline', ' Matched identity: ') + source_identity(key.identity)
             source_kind = {Reason.SAME_CONNECTION_LIFECYCLE: "connection",
                 Reason.SAME_CANONICAL_EVIDENCE: "evidence", Reason.SAME_ALERT_OBSERVATION: "alert"}.get(key.reason)
             if source_kind:
-                matched += " Matched target: " + SOURCE_TEXT[states.get((source_kind, canonical_id(key.identity)), Source.UNRESOLVED)]
+                matched += QT_TRANSLATE_NOOP('IncidentTimeline', ' Matched target: ') + SOURCE_TEXT[states.get((source_kind, canonical_id(key.identity)), Source.UNRESOLVED)]
             elif key.reason is Reason.SAME_ASSESSMENT_LINEAGE:
                 for ref in snapshot.assessments:
                     if ref.assessment_id == key.identity:
-                        matched += f" Matched assessment revision {ref.revision}: " + SOURCE_TEXT[states.get(("assessment", canonical_id(ref)), Source.UNRESOLVED)]
+                        matched += QT_TRANSLATE_NOOP('IncidentTimeline', ' Matched assessment revision {value1}: ').format(value1=ref.revision) + SOURCE_TEXT[states.get(("assessment", canonical_id(ref)), Source.UNRESOLVED)]
             else:
-                matched += " Process/destination identity is retained incident context; original entity links are unresolved."
+                matched += QT_TRANSLATE_NOOP('IncidentTimeline', ' Process/destination identity is retained incident context; original entity links are unresolved.')
         entries.append(TimelineEntry("inference:" + canonical_id(relation), TimelineKind.INFERENCE,
-            obs.observed_at, "Original observation anchor; inference computation time not recorded",
-            "Incident correlation", REASONS[relation.reason] + matched,
+            obs.observed_at, QT_TRANSLATE_NOOP('IncidentTimeline', 'Original observation anchor; inference computation time not recorded'),
+            QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident correlation'), REASONS[relation.reason] + matched,
             obs.kind.value, source_id, status, observation_time=obs.observed_at))
 
     reads = dict(bundle.assessments)
@@ -203,18 +207,16 @@ def map_snapshot(bundle: TimelineSnapshot) -> tuple[tuple[TimelineEntry, ...], t
         fallback = observed or snapshot.first_observed_at
         primary = retained.assessed_at if retained else fallback
         status = states.get(("assessment", canonical_id(reference)), Source.UNRESOLVED)
-        description = "Assessment time and score unavailable; exact retained reference shown."
+        description = QT_TRANSLATE_NOOP('IncidentTimeline', 'Assessment time and score unavailable; exact retained reference shown.')
         if retained:
             risk = retained.snapshot
-            score = "Unavailable / insufficient evidence" if risk.availability is AssessmentAvailability.UNKNOWN else f"{risk.score} / 100"
-            description = (f"Stored score: {score}; {SCORE_SEMANTICS} Effective severity: {human(risk.severity)}; "
-                f"confidence: {human(risk.confidence)}; measurement quality: {human(risk.measurement_quality)}. "
-                "Select this revision for stored contributor, freshness and external reputation context.")
+            score = QT_TRANSLATE_NOOP('IncidentTimeline', 'Unavailable / insufficient evidence') if risk.availability is AssessmentAvailability.UNKNOWN else f"{risk.score} / 100"
+            description = (QT_TRANSLATE_NOOP('IncidentTimeline', 'Stored score: {value1}; {value2} Effective severity: {value3}; confidence: {value4}; measurement quality: {value5}. Select this revision for stored contributor, freshness and external reputation context.').format(value1=score, value2=SCORE_SEMANTICS, value3=human(risk.severity), value4=human(risk.confidence), value5=human(risk.measurement_quality)))
         entries.append(TimelineEntry("assessment:" + canonical_id(reference), TimelineKind.ASSESSMENT,
-            primary, "Assessment time" if retained else
-            ("Assessment time unknown; ordered by original observation" if observed else
-             "Assessment and observation time unknown; ordered by incident observation bound"),
-            f"Risk assessment revision {reference.revision}", description, "assessment",
+            primary, QT_TRANSLATE_NOOP('IncidentTimeline', 'Assessment time') if retained else
+            (QT_TRANSLATE_NOOP('IncidentTimeline', 'Assessment time unknown; ordered by original observation') if observed else
+             QT_TRANSLATE_NOOP('IncidentTimeline', 'Assessment and observation time unknown; ordered by incident observation bound')),
+            QT_TRANSLATE_NOOP('IncidentTimeline', 'Risk assessment revision {value1}').format(value1=reference.revision), description, "assessment",
             reference.assessment_id, status, observation_time=observed,
             assessment_time=retained.assessed_at if retained else None,
             revision=reference.revision, assessment=reference))
@@ -223,30 +225,25 @@ def map_snapshot(bundle: TimelineSnapshot) -> tuple[tuple[TimelineEntry, ...], t
         if event.action not in (IncidentAction.ACKNOWLEDGED, IncidentAction.RESOLVED, IncidentAction.REOPENED):
             continue
         entries.append(TimelineEntry(f"action:{event.revision}", TimelineKind.USER_ACTION,
-            event.changed_at, "Lifecycle action time", f"Incident {event.action.value}",
-            f"Origin: {event.origin.value}; incident state: {event.state.value}. Alert lifecycle is separate.",
+            event.changed_at, QT_TRANSLATE_NOOP('IncidentTimeline', 'Lifecycle action time'), QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident {value1}').format(value1=enum_source(event.action)),
+            QT_TRANSLATE_NOOP('IncidentTimeline', 'Origin: {value1}; incident state: {value2}. Alert lifecycle is separate.').format(value1=enum_source(event.origin), value2=enum_source(event.state)),
             "incident_action", str(record.incident_id), Source.AVAILABLE,
             action_time=event.changed_at, revision=event.revision))
-    limitations = tuple(limitation.value.replace("_", " ") for limitation in snapshot.limitations)
+    limitations = tuple(enum_source(limitation, 'words') for limitation in snapshot.limitations)
     if bundle.history.truncated:
-        limitations += ("Older incident revisions are no longer retained; timeline is incomplete.",)
+        limitations += (QT_TRANSLATE_NOOP('IncidentTimeline', 'Older incident revisions are no longer retained; timeline is incomplete.'),)
     if bundle.history.status is not IncidentStatus.FOUND:
-        limitations += ("Incident action history unavailable: " + bundle.history.status.value,)
-    context = ["Aggregate incident context; exact links/times for these entities were not retained:"]
+        limitations += (QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident action history unavailable: ') + bundle.history.status.value,)
+    context = [QT_TRANSLATE_NOOP('IncidentTimeline', 'Aggregate incident context; exact links/times for these entities were not retained:')]
     for process in snapshot.processes:
-        context.append(f"Process observed: PID {process.identity.pid}; session {process.session_id}; "
-            f"instance create-time (identity only): {process.identity.create_time or 'Unknown'}; name unavailable.")
+        context.append(QT_TRANSLATE_NOOP('IncidentTimeline', 'Process observed: PID {value1}; session {value2}; instance create-time (identity only): {value3}; name unavailable.').format(value1=process.identity.pid, value2=process.session_id, value3=process.identity.create_time or QT_TRANSLATE_NOOP('IncidentTimeline', 'Unknown')))
     for destination in snapshot.destinations:
-        context.append(f"Destination context ({destination.kind.value}): {destination.value}; port "
-            f"{destination.port if destination.port is not None else 'Unknown'}; protocol "
-            f"{destination.protocol.value if destination.protocol else 'Unknown'}.")
+        context.append(QT_TRANSLATE_NOOP('IncidentTimeline', 'Destination context ({value1}): {value2}; port {value3}; protocol {value4}.').format(value1=destination.kind.value, value2=destination.value, value3=destination.port if destination.port is not None else QT_TRANSLATE_NOOP('IncidentTimeline', 'Unknown'), value4=destination.protocol.value if destination.protocol else QT_TRANSLATE_NOOP('IncidentTimeline', 'Unknown')))
     for scope in snapshot.scopes:
-        context.append(f"Scope: {scope.kind.value}; network status "
-            f"{scope.network_status.value if scope.network_status else 'Unknown'}; "
-            f"fingerprint {scope.network_fingerprint or 'Unavailable'}.")
+        context.append(QT_TRANSLATE_NOOP('IncidentTimeline', 'Scope: {value1}; network status {value2}; fingerprint {value3}.').format(value1=scope.kind.value, value2=scope.network_status.value if scope.network_status else QT_TRANSLATE_NOOP('IncidentTimeline', 'Unknown'), value3=scope.network_fingerprint or QT_TRANSLATE_NOOP('IncidentTimeline', 'Unavailable')))
     for source_ref in bundle.incident.references:
         if source_ref.status is not Source.AVAILABLE:
-            context.append(f"{source_ref.link.kind} reference {source_ref.link.identity}: {SOURCE_TEXT[source_ref.status]}")
+            context.append(QT_TRANSLATE_NOOP('IncidentTimeline', '{value1} reference {value2}: {value3}').format(value1=source_ref.link.kind, value2=source_ref.link.identity, value3=SOURCE_TEXT[source_ref.status]))
     # Canonical entries deduplicate retries, and ordering never depends on insertion order.
     return tuple(sorted({e.entry_id: e for e in entries}.values(), key=lambda e: e.sort_key)), limitations, tuple(context)
 
@@ -264,19 +261,24 @@ class IncidentTimelineQueryService:
             bundle = self._repository.read_snapshot(request.incident_id)
             record = bundle.incident.record
             if bundle.incident.status is not IncidentStatus.FOUND or record is None:
-                return TimelinePage(TimelineStatus.UNAVAILABLE, message="Incident details unavailable: " + bundle.incident.status.value)
+                return TimelinePage(TimelineStatus.UNAVAILABLE, message=QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident details unavailable: ') + bundle.incident.status.value)
             if record.incident_id != request.incident_id:
-                return TimelinePage(TimelineStatus.UNAVAILABLE, message="Incident identity unavailable.")
+                return TimelinePage(TimelineStatus.UNAVAILABLE, message=QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident identity unavailable.'))
             entries, limitations, context = map_snapshot(bundle)
-            token = sha256(canonical_incident_json((entries, limitations, context)).encode("ascii")).hexdigest()
+            # The closed domain codec accepts exact machine types. Keep its
+            # English cursor bytes identical; UI recipes never cross this boundary.
+            canonical_entries = tuple(replace(e, time_semantics=str(e.time_semantics),
+                title=str(e.title), explanation=str(e.explanation)) for e in entries)
+            token = sha256(canonical_incident_json((canonical_entries,
+                tuple(map(str, limitations)), tuple(map(str, context)))).encode("ascii")).hexdigest()
             cursor = request.cursor
             if cursor is not None:
                 if not self._valid_cursor(cursor, request.incident_id):
-                    return TimelinePage(TimelineStatus.INVALID_CURSOR, message="Invalid timeline cursor. Refresh.")
+                    return TimelinePage(TimelineStatus.INVALID_CURSOR, message=QT_TRANSLATE_NOOP('IncidentTimeline', 'Invalid timeline cursor. Refresh.'))
                 if cursor.incident_revision != record.revision or cursor.token != token:
-                    return TimelinePage(TimelineStatus.UPDATED, message="Incident or source availability updated — refresh.")
+                    return TimelinePage(TimelineStatus.UPDATED, message=QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident or source availability updated — refresh.'))
                 if cursor.after not in {e.sort_key for e in entries}:
-                    return TimelinePage(TimelineStatus.INVALID_CURSOR, message="Invalid timeline cursor. Refresh.")
+                    return TimelinePage(TimelineStatus.INVALID_CURSOR, message=QT_TRANSLATE_NOOP('IncidentTimeline', 'Invalid timeline cursor. Refresh.'))
                 entries = tuple(e for e in entries if e.sort_key > cursor.after)
             page = entries[:request.limit]
             next_cursor = TimelineCursor(record.incident_id, record.revision, token, page[-1].sort_key) if len(entries) > request.limit else None
@@ -284,7 +286,7 @@ class IncidentTimelineQueryService:
         except Exception:
             if request.incident_id is None:
                 return IncidentPage((IncidentResult(IncidentStatus.UNAVAILABLE),))
-            return TimelinePage(TimelineStatus.UNAVAILABLE, message="Incident timeline unavailable. Try Refresh.")
+            return TimelinePage(TimelineStatus.UNAVAILABLE, message=QT_TRANSLATE_NOOP('IncidentTimeline', 'Incident timeline unavailable. Try Refresh.'))
 
     @staticmethod
     def _valid_cursor(cursor: TimelineCursor, incident_id: UUID) -> bool:

@@ -1,0 +1,437 @@
+[
+  {
+    "file": "src/netsentinel/application/services/incident_timeline.py",
+    "source": "Inference / correlation",
+    "reason": "TimelineKind serialization identity; separate TimelineKind.raw display mapping preserves sort/source identity."
+  },
+  {
+    "file": "src/netsentinel/application/services/incident_timeline.py",
+    "source": "User action / lifecycle",
+    "reason": "TimelineKind serialization identity; separate TimelineKind.raw display mapping preserves sort/source identity."
+  },
+  {
+    "file": "src/netsentinel/application/services/mark_normal.py",
+    "source": "User revoked selected behavior preference",
+    "reason": "Persisted audit reason. Exact canonical string required by the closed domain validation; historical user/audit evidence is rendered verbatim."
+  },
+  {
+    "file": "src/netsentinel/presentation/destination_context.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/destination_context.py",
+    "source": "ASN: AS",
+    "reason": "Canonical technical evidence/example notation; never translate address bytes or ASN prefix."
+  },
+  {
+    "file": "src/netsentinel/presentation/i18n/buttons.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/i18n/buttons.py",
+    "source": "&",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/theme.py",
+    "source": " QLabel { color: palette(window-text); background: transparent; border: 0; }",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/theme.py",
+    "source": " { background: palette(alternate-base); color: palette(window-text); border: 1px solid palette(mid); border-radius: 6px; }QFrame#",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/theme.py",
+    "source": "color: palette(window-text);",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/theme.py",
+    "source": "font-size: 16px; font-weight: 600; color: palette(window-text);",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/theme.py",
+    "source": "font-size: 24px; font-weight: 700; color: palette(window-text);",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/theme.py",
+    "source": "font-size: 25px; font-weight: 700; color: palette(window-text);",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/alerts.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/alerts.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/alerts.py",
+    "source": " ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/alerts.py",
+    "source": "_",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/alerts.py",
+    "source": "title",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/alerts.py",
+    "source": "—",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/connections.py",
+    "source": "; border-radius: 4px; padding: 7px;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/connections.py",
+    "source": "background: #eef4fb; color: #334e68; border-radius: 4px; padding: 7px;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/connections.py",
+    "source": "color: #829ab1; padding: 10px;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/dashboard.py",
+    "source": "0",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/dashboard.py",
+    "source": "—",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/dashboard.py",
+    "source": "● ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": " · ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": ", ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": "bindings",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": "invalid",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": "stale",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/devices.py",
+    "source": "title",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/diagnostics.py",
+    "source": "font-size: 22px; font-weight: 700;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/diagnostics.py",
+    "source": "human",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/diagnostics.py",
+    "source": "none",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/dns.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/dns.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/dns.py",
+    "source": " ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/history.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/incidents.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/incidents.py",
+    "source": "; ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/main_window.py",
+    "source": "QFrame#sidebar { background: #f4f6f8; }",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/main_window.py",
+    "source": "QListWidget { border: 0; background: #f4f6f8; color: #243b53; padding: 8px; }QListWidget::item { border-radius: 5px; color: #243b53; padding: 0 12px; }QListWidget::item:hover:!selected { background: #e7edf3; color: #102a43; }QListWidget::item:selected { background: #dce8f7; color: #163a5f; }",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/main_window.py",
+    "source": "color: #627d98; padding: 0 8px 8px 8px;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/main_window.py",
+    "source": "font-size: 20px; font-weight: 700; color: #102a43; padding: 8px;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/placeholder.py",
+    "source": "color: #52606d; font-size: 14px;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/views/placeholder.py",
+    "source": "font-size: 24px; font-weight: 600;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/application_behavior.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/baseline_detail.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/baseline_detail.py",
+    "source": "\n\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/connection_details.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/connection_details.py",
+    "source": "words",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/device_profile.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/device_profile.py",
+    "source": "00:11:22:33:44:55",
+    "reason": "Canonical technical evidence/example notation; never translate address bytes or ASN prefix."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/device_profile.py",
+    "source": "192.0.2.10",
+    "reason": "Canonical technical evidence/example notation; never translate address bytes or ASN prefix."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/device_profile.py",
+    "source": "title",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/manual_response.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/manual_response.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/manual_response.py",
+    "source": "&",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/manual_response.py",
+    "source": "title",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/mark_normal.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/mark_normal.py",
+    "source": " (",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/mark_normal.py",
+    "source": ")",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/mark_normal.py",
+    "source": "permanent",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/mark_normal.py",
+    "source": "timed",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/notification_settings.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/onboarding.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/onboarding.py",
+    "source": " / ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/onboarding.py",
+    "source": " — ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/onboarding.py",
+    "source": "font-size: 20px; font-weight: 700;",
+    "reason": "Qt stylesheet, not visible text. Directional padding is audited in LOCALIZATION.md."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/risk_explanation.py",
+    "source": "\n\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/storage_privacy.py",
+    "source": "",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/storage_privacy.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/storage_privacy.py",
+    "source": ", ",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/storage_privacy.py",
+    "source": "utf-8",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/threat_intel_consent.py",
+    "source": " (",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/threat_intel_consent.py",
+    "source": ")",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/threat_intel_lookup.py",
+    "source": "\n",
+    "reason": "Empty state reset, numeric seed, mnemonic or punctuation separator; no language words."
+  },
+  {
+    "file": "src/netsentinel/presentation/widgets/threat_intel_lookup.py",
+    "source": "words",
+    "reason": "Internal field/format style/validation/encoding/diagnostic code; surrounding user labels use Qt sources."
+  },
+  {
+    "file": "src/netsentinel/shared/enum_sources.py",
+    "source": "Inference / correlation",
+    "reason": "Persisted enum code inside lookup key; translated display value is a separate QT_TRANSLATE_NOOP descriptor."
+  },
+  {
+    "file": "src/netsentinel/shared/enum_sources.py",
+    "source": "User action / lifecycle",
+    "reason": "Persisted enum code inside lookup key; translated display value is a separate QT_TRANSLATE_NOOP descriptor."
+  },
+  {
+    "file": "src/netsentinel/shared/enum_sources.py",
+    "source": "budget reached; eligible rows may remain",
+    "reason": "Persisted enum code inside lookup key; translated display value is a separate QT_TRANSLATE_NOOP descriptor."
+  },
+  {
+    "file": "src/netsentinel/shared/enum_sources.py",
+    "source": "cancelled; earlier chunks remain committed",
+    "reason": "Persisted enum code inside lookup key; translated display value is a separate QT_TRANSLATE_NOOP descriptor."
+  },
+  {
+    "file": "src/netsentinel/shared/enum_sources.py",
+    "source": "capacity pressure; protected data remains",
+    "reason": "Persisted enum code inside lookup key; translated display value is a separate QT_TRANSLATE_NOOP descriptor."
+  },
+  {
+    "file": "src/netsentinel/shared/enum_sources.py",
+    "source": "partial; storage busy or unavailable",
+    "reason": "Persisted enum code inside lookup key; translated display value is a separate QT_TRANSLATE_NOOP descriptor."
+  },
+  {
+    "file": "src/netsentinel/shared/source_text.py",
+    "source": "… [display truncated]",
+    "reason": "Canonical bounded string compatibility suffix; presentation applies the extracted SourceText truncation label."
+  }
+]

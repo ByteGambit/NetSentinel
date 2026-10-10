@@ -24,6 +24,7 @@ dev = [
 ]
 packaging = ["pyinstaller>=6.22,<7"]
 firewall = ["pywin32==312; sys_platform == 'win32'"]
+i18n-build = ["PySide6-Essentials==6.11.0"]  # Qt lrelease only; never runtime/bundled.
 
 [tool.setuptools.dynamic]
 version = {attr = "netsentinel.version.__version__"}
@@ -35,7 +36,7 @@ netsentinel = "netsentinel.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-netsentinel = ["infrastructure/sqlite/schema/*.sql", "assets/*.ico"]
+netsentinel = ["infrastructure/sqlite/schema/*.sql", "assets/*.ico", "assets/i18n/manifest.json", "assets/i18n/*.qm"]
 
 [tool.pytest.ini_options]
 minversion = "8.3"

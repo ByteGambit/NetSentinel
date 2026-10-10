@@ -1,5 +1,9 @@
 """NS-082 immutable preview and explicit worker-owned local preference commands."""
 
+from netsentinel.shared.enum_sources import enum_source
+from netsentinel.shared.source_text import QT_TRANSLATE_NOOP, join_text
+
+
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -15,16 +19,13 @@ from netsentinel.domain.preferences import (
 from netsentinel.domain.risk_evidence import EvidenceScope, EvidenceSubject, EvidenceSubjectKind
 
 BEHAVIOR_RULES = (
-    ("destination_ip_novelty_rarity", "Destination novelty / rarity"),
-    ("observed_appearance_frequency", "Observed appearance frequency"),
-    ("destination_window_diversity", "Destination window diversity"),
-    ("observed_appearance_periodicity", "Observed appearance periodicity"),
+    ("destination_ip_novelty_rarity", QT_TRANSLATE_NOOP('MarkNormal', 'Destination novelty / rarity')),
+    ("observed_appearance_frequency", QT_TRANSLATE_NOOP('MarkNormal', 'Observed appearance frequency')),
+    ("destination_window_diversity", QT_TRANSLATE_NOOP('MarkNormal', 'Destination window diversity')),
+    ("observed_appearance_periodicity", QT_TRANSLATE_NOOP('MarkNormal', 'Observed appearance periodicity')),
 )
 EFFECT_TEXT = (
-    "This preference suppresses future matching alert/notification eligibility for the selected "
-    "behavior scope while active. It does not declare the application safe, delete evidence, "
-    "change historical risk scores, reset the baseline, or modify the firewall. "
-    "The current alert remains unchanged. Expiry/revoke does not replay past suppressed signals."
+    QT_TRANSLATE_NOOP('MarkNormal', 'This preference suppresses future matching alert/notification eligibility for the selected behavior scope while active. It does not declare the application safe, delete evidence, change historical risk scores, reset the baseline, or modify the firewall. The current alert remains unchanged. Expiry/revoke does not replay past suppressed signals.')
 )
 
 
@@ -45,14 +46,14 @@ def behavior_context(request: BaselineDetailRequest, rule_id: str) -> BehaviorPr
                               revision=app.revision, ip_address=request.remote_ip)
     scope = EvidenceScope.from_connection(request.network)
     network = request.network
-    description = f"{network.status.value}; {network.fingerprint or 'no resolved fingerprint'}"
+    description = QT_TRANSLATE_NOOP('MarkNormal', '{status}; {fingerprint}').format(status=enum_source(network.status), fingerprint=network.fingerprint or QT_TRANSLATE_NOOP('MarkNormal', 'no resolved fingerprint'))
     if network.status.value == "unknown":
-        description += "; Current network could not be resolved."
+        description += QT_TRANSLATE_NOOP('MarkNormal', '; Current network could not be resolved.')
     elif network.status.value == "ambiguous":
-        description += "; Current network scope is ambiguous."
+        description += QT_TRANSLATE_NOOP('MarkNormal', '; Current network scope is ambiguous.')
     if network.interface_id:
-        description += f"; interface {network.interface_id}; index {network.interface_index}"
-        description += "; observed context, not a proven physical network or route"
+        description += QT_TRANSLATE_NOOP('MarkNormal', '; interface {value1}; index {value2}').format(value1=network.interface_id, value2=network.interface_index)
+        description += QT_TRANSLATE_NOOP('MarkNormal', '; observed context, not a proven physical network or route')
     return BehaviorPreferenceContext(PreferenceMatchContext(rule_id, subject, scope),
                                      request.display_name[:256], description)
 
@@ -79,13 +80,7 @@ def scope_choices(context: BehaviorPreferenceContext) -> tuple[PreferenceSelecto
 
 
 def selector_text(selector: PreferenceSelector) -> str:
-    return "\n".join((
-        f"Rule: {selector.rule_id or 'Any'}",
-        f"Application identity: {selector.application.key if selector.application else 'Any'}",
-        f"Revision: {selector.application_revision.digest if selector.application_revision else 'Any revision (exact binary revision unavailable or explicitly omitted)'}",
-        f"Destination: {selector.destination.value if selector.destination else 'Any destination'}",
-        f"Network: {selector.network_fingerprint or 'Any network (host-wide for this selected behavior)'}",
-    ))
+    return join_text('\n', (QT_TRANSLATE_NOOP('MarkNormal', 'Rule: {value1}').format(value1=selector.rule_id or QT_TRANSLATE_NOOP('MarkNormal', 'Any')), QT_TRANSLATE_NOOP('MarkNormal', 'Application identity: {value1}').format(value1=selector.application.key if selector.application else QT_TRANSLATE_NOOP('MarkNormal', 'Any')), QT_TRANSLATE_NOOP('MarkNormal', 'Revision: {value1}').format(value1=selector.application_revision.digest if selector.application_revision else QT_TRANSLATE_NOOP('MarkNormal', 'Any revision (exact binary revision unavailable or explicitly omitted)')), QT_TRANSLATE_NOOP('MarkNormal', 'Destination: {value1}').format(value1=selector.destination.value if selector.destination else QT_TRANSLATE_NOOP('MarkNormal', 'Any destination')), QT_TRANSLATE_NOOP('MarkNormal', 'Network: {value1}').format(value1=selector.network_fingerprint or QT_TRANSLATE_NOOP('MarkNormal', 'Any network (host-wide for this selected behavior)'))))
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,11 +95,11 @@ class MarkNormalPreview:
         expiry = lifetime.expires_at
         warning = ""
         if self.definition.selector != scope_choices(self.context)[0]:
-            warning = "\nBroader scope: this can affect more future behavior than the narrow default."
-        return (f"Selected behavior for: {self.context.display_name}\n" + selector_text(self.definition.selector)
-                + f"\nCurrent network scope: {self.context.network_text}\n"
-                + (f"Expires: {expiry.isoformat()} (UTC)" if expiry else "Lifetime: Permanent (explicit choice)")
-                + f"\nReason: {self.definition.reason}\n{EFFECT_TEXT}" + warning)
+            warning = QT_TRANSLATE_NOOP('MarkNormal', '\nBroader scope: this can affect more future behavior than the narrow default.')
+        return (QT_TRANSLATE_NOOP('MarkNormal', 'Selected behavior for: {value1}\n').format(value1=self.context.display_name) + selector_text(self.definition.selector)
+                + QT_TRANSLATE_NOOP('MarkNormal', '\nCurrent network scope: {value1}\n').format(value1=self.context.network_text)
+                + (QT_TRANSLATE_NOOP('MarkNormal', 'Expires: {value1} (UTC)').format(value1=expiry.isoformat()) if expiry else QT_TRANSLATE_NOOP('MarkNormal', 'Lifetime: Permanent (explicit choice)'))
+                + QT_TRANSLATE_NOOP('MarkNormal', '\nReason: {value1}\n{value2}').format(value1=self.definition.reason, value2=EFFECT_TEXT) + warning)
 
 
 def preview_mark_normal(context: BehaviorPreferenceContext, selector: PreferenceSelector,

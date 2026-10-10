@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import TranslationSequence
+
+from netsentinel.presentation.i18n.text import format_text, render_join, render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from datetime import UTC, datetime
 from ipaddress import ip_address
 from uuid import UUID
@@ -28,45 +34,45 @@ PAGE_SIZE = 50
 
 
 class DnsDetailsWidget(QGroupBox):
-    FIELDS = (("id", "Record ID"), ("time", "Event time"), ("network", "Network"),
-              ("status", "Status"), ("client", "Client"), ("server", "DNS server"),
-              ("transport", "Transport"), ("transaction_id", "DNS transaction ID"),
-              ("rcode", "Result"), ("latency", "Latency"), ("retries", "Retries"),
-              ("truncated", "Truncated"), ("query_time", "Query time"),
-              ("response_time", "Response time"))
+    FIELDS = TranslationSequence(lambda: (("id", translate('Dns', 'Record ID')), ("time", translate('Dns', 'Event time')), ("network", "Network"),
+              ("status", translate('Dns', 'Status')), ("client", translate('Dns', 'Client')), ("server", translate('Dns', 'DNS server')),
+              ("transport", translate('Dns', 'Transport')), ("transaction_id", translate('Dns', 'DNS transaction ID')),
+              ("rcode", translate('Dns', 'Result')), ("latency", translate('Dns', 'Latency')), ("retries", "Retries"),
+              ("truncated", "Truncated"), ("query_time", translate('Dns', 'Query time')),
+              ("response_time", translate('Dns', 'Response time'))))
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Selected DNS record", parent)
-        self.setAccessibleName("DNS record details")
-        self.status_label = QLabel("No DNS record selected.", self)
+        super().__init__(translate('Dns', 'Selected DNS record'), parent)
+        self.setAccessibleName(translate('Dns', 'DNS record details'))
+        self.status_label = QLabel(translate('Dns', 'No DNS record selected.'), self)
         self.values: dict[str, QLabel] = {}
         content = QWidget(self)
         form = QFormLayout()
         for key, label in self.FIELDS:
             value = QLabel(MISSING, self)
             value.setObjectName(f"dnsDetail_{key}")
-            value.setAccessibleName(f"DNS {label.lower()}")
+            value.setAccessibleName(format_text(translate('Dns', 'DNS {value1}'), value1=label.lower()))
             value.setTextFormat(Qt.TextFormat.PlainText)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             value.setWordWrap(True)
             self.values[key] = value
             form.addRow(f"{label}:", value)
         self.questions = FlowTextEdit(self)
-        self.questions.setAccessibleName("DNS questions")
+        self.questions.setAccessibleName(translate('Dns', 'DNS questions'))
         self.questions.setReadOnly(True)
         self.answers = FlowTextEdit(self)
-        self.answers.setAccessibleName("DNS answers")
+        self.answers.setAccessibleName(translate('Dns', 'DNS answers'))
         self.answers.setReadOnly(True)
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         content_layout = QVBoxLayout(content)
         content_layout.addLayout(form)
-        content_layout.addWidget(QLabel("Questions", self))
+        content_layout.addWidget(QLabel(translate('Dns', 'Questions'), self))
         content_layout.addWidget(self.questions)
-        content_layout.addWidget(QLabel("Answers (up to 16 supported records)", self))
+        content_layout.addWidget(QLabel(translate('Dns', 'Answers (up to 16 supported records)'), self))
         content_layout.addWidget(self.answers)
         self.detail_scroll = QScrollArea(self)
-        self.detail_scroll.setAccessibleName("Selected DNS record content")
+        self.detail_scroll.setAccessibleName(translate('Dns', 'Selected DNS record content'))
         self.detail_scroll.setWidgetResizable(True)
         self.detail_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -80,7 +86,7 @@ class DnsDetailsWidget(QGroupBox):
         self.detail_scroll.hide()
         self.setMaximumHeight(self.sizeHint().height())
         for value in self.values.values():
-            value.setText(MISSING)
+            value.setText(render_text(MISSING))
         self.questions.clear()
         self.answers.clear()
 
@@ -91,20 +97,19 @@ class DnsDetailsWidget(QGroupBox):
         self.setMaximumHeight(16777215)
         self.detail_scroll.show()
         values = {"id": str(record.id), "time": format_local_timestamp(event_time(record)),
-                  "network": network_label or "Previously observed network",
+                  "network": network_label or translate('Dns', 'Previously observed network'),
                   "status": STATUS_TEXT[tx.status],
                   "client": format_dns_endpoint(tx.client_ip, tx.client_port),
                   "server": format_dns_endpoint(tx.server_ip, tx.server_port),
                   "transport": tx.transport.value.upper(), "transaction_id": str(tx.transaction_id),
                   "rcode": format_rcode(tx.response_code), "latency": format_latency(tx.latency_seconds),
-                  "retries": str(tx.retry_count), "truncated": "Yes" if tx.truncated else "No",
+                  "retries": str(tx.retry_count), "truncated": translate('Dns', 'Yes') if tx.truncated else translate('Dns', 'No'),
                   "query_time": format_local_timestamp(tx.query_at) if tx.query_at else MISSING,
                   "response_time": format_local_timestamp(tx.response_at) if tx.response_at else MISSING}
         for key, value in values.items():
-            self.values[key].setText(value)
-        self.questions.setPlainText("\n".join(f"{q.name} {format_record_type(q.record_type)}"
-                                              for q in tx.questions[:4]) or MISSING)
-        self.answers.setPlainText("\n".join(answer_lines(record)) or MISSING)
+            self.values[key].setText(render_text(value))
+        self.questions.setPlainText(render_text(render_join('\n', (f'{q.name} {format_record_type(q.record_type)}' for q in tx.questions[:4])) or MISSING))
+        self.answers.setPlainText(render_text(render_join('\n', answer_lines(record)) or MISSING))
         splitter = self.parentWidget()
         if was_empty and isinstance(splitter, QSplitter):
             height = splitter.height()
@@ -117,7 +122,7 @@ class DnsView(QWidget):
     def __init__(self, parent: QWidget | None = None, *, coordinator: DnsQueryCoordinator | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("dnsView")
-        self.setAccessibleName("DNS history page")
+        self.setAccessibleName(translate('Dns', 'DNS history page'))
         self.coordinator = coordinator
         self.model = DnsTableModel(self)
         self._page_index = 0
@@ -130,58 +135,58 @@ class DnsView(QWidget):
         self._capture_running = False
         self._writer_available = True
 
-        title = QLabel("DNS", self)
+        title = QLabel(translate('Dns', 'DNS'), self)
         title.setStyleSheet(PAGE_TITLE)
-        description = QLabel("Locally saved classic DNS metadata. Raw DNS packets and payloads are not stored.", self)
+        description = QLabel(translate('Dns', 'Locally saved classic DNS metadata. Raw DNS packets and payloads are not stored.'), self)
         description.setWordWrap(True)
-        self.capability_label = QLabel("Classic UDP/TCP DNS on port 53 only. Encrypted DoH/DoT content is not visible; mDNS is not included.", self)
-        self.capability_label.setAccessibleName("DNS capture capability and limitations")
+        self.capability_label = QLabel(translate('Dns', 'Classic UDP/TCP DNS on port 53 only. Encrypted DoH/DoT content is not visible; mDNS is not included.'), self)
+        self.capability_label.setAccessibleName(translate('Dns', 'DNS capture capability and limitations'))
         self.capability_label.setWordWrap(True)
-        self.capture_label = QLabel("Capture is off. Saved DNS history remains available.", self)
-        self.capture_label.setAccessibleName("DNS capture status")
+        self.capture_label = QLabel(translate('Dns', 'Capture is off. Saved DNS history remains available.'), self)
+        self.capture_label.setAccessibleName(translate('Dns', 'DNS capture status'))
         self.qname_filter = QLineEdit(self)
-        self.qname_filter.setPlaceholderText("Exact query name")
-        self.qname_filter.setAccessibleName("DNS query name filter")
+        self.qname_filter.setPlaceholderText(translate('Dns', 'Exact query name'))
+        self.qname_filter.setAccessibleName(translate('Dns', 'DNS query name filter'))
         self.type_filter = QComboBox(self)
-        self.type_filter.setAccessibleName("DNS query type filter")
-        self.type_filter.addItem("All types", None)
+        self.type_filter.setAccessibleName(translate('Dns', 'DNS query type filter'))
+        self.type_filter.addItem(translate('Dns', 'All types'), None)
         for kind in DnsRecordType:
             self.type_filter.addItem(kind.name, kind.value)
         self.server_filter = QLineEdit(self)
-        self.server_filter.setPlaceholderText("DNS server IP")
-        self.server_filter.setAccessibleName("DNS server IP filter")
+        self.server_filter.setPlaceholderText(translate('Dns', 'DNS server IP'))
+        self.server_filter.setAccessibleName(translate('Dns', 'DNS server IP filter'))
         self.status_filter = QComboBox(self)
-        self.status_filter.setAccessibleName("DNS status filter")
-        self.status_filter.addItem("All statuses", None)
+        self.status_filter.setAccessibleName(translate('Dns', 'DNS status filter'))
+        self.status_filter.addItem(translate('Dns', 'All statuses'), None)
         for status, label in STATUS_TEXT.items():
             self.status_filter.addItem(label, status)
 
         now = QDateTime.currentDateTime()
-        self.from_enabled = QCheckBox("From", self)
-        self.from_enabled.setAccessibleName("Enable DNS start time filter")
+        self.from_enabled = QCheckBox(translate('Dns', 'From'), self)
+        self.from_enabled.setAccessibleName(translate('Dns', 'Enable DNS start time filter'))
         self.from_time = QDateTimeEdit(now.addDays(-1), self)
-        self.from_time.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
+        self.from_time.setDisplayFormat(translate('Dns', 'yyyy-MM-dd HH:mm:ss'))
         self.from_time.setCalendarPopup(True)
-        self.from_time.setAccessibleName("DNS start time")
+        self.from_time.setAccessibleName(translate('Dns', 'DNS start time'))
         self.from_time.setEnabled(False)
-        self.to_enabled = QCheckBox("To", self)
-        self.to_enabled.setAccessibleName("Enable DNS end time filter")
+        self.to_enabled = QCheckBox(translate('Dns', 'To'), self)
+        self.to_enabled.setAccessibleName(translate('Dns', 'Enable DNS end time filter'))
         self.to_time = QDateTimeEdit(now, self)
-        self.to_time.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
+        self.to_time.setDisplayFormat(translate('Dns', 'yyyy-MM-dd HH:mm:ss'))
         self.to_time.setCalendarPopup(True)
-        self.to_time.setAccessibleName("DNS end time")
+        self.to_time.setAccessibleName(translate('Dns', 'DNS end time'))
         self.to_time.setEnabled(False)
-        self.refresh_button = QPushButton("Refresh", self)
-        self.refresh_button.setAccessibleName("Refresh DNS history")
-        self.alert_button = QPushButton("DNS configuration alerts", self)
-        self.alert_button.setAccessibleName("Show DNS configuration change alerts")
+        self.refresh_button = QPushButton(translate('Dns', 'Refresh'), self)
+        self.refresh_button.setAccessibleName(translate('Dns', 'Refresh DNS history'))
+        self.alert_button = QPushButton(translate('Dns', 'DNS configuration alerts'), self)
+        self.alert_button.setAccessibleName(translate('Dns', 'Show DNS configuration change alerts'))
         self.validation_label = QLabel("", self)
-        self.validation_label.setAccessibleName("DNS filter validation")
+        self.validation_label.setAccessibleName(translate('Dns', 'DNS filter validation'))
         self.validation_label.hide()
-        self.state_label = QLabel("No DNS history yet." if coordinator else "DNS history is unavailable.", self)
-        self.state_label.setAccessibleName("DNS history loading and result status")
+        self.state_label = QLabel(translate('Dns', 'No DNS history yet.') if coordinator else translate('Dns', 'DNS history is unavailable.'), self)
+        self.state_label.setAccessibleName(translate('Dns', 'DNS history loading and result status'))
         self.table = QTableView(self)
-        self.table.setAccessibleName("DNS history records")
+        self.table.setAccessibleName(translate('Dns', 'DNS history records'))
         self.table.setModel(self.model)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -191,12 +196,12 @@ class DnsView(QWidget):
         cast(QHeaderView, self.table.horizontalHeader()).setStretchLastSection(True)
         for column, width in enumerate((190, 145, 190, 65, 155, 155, 90, 100, 95)):
             self.table.setColumnWidth(column, width)
-        self.previous_button = QPushButton("Previous", self)
-        self.previous_button.setAccessibleName("Previous DNS page")
-        self.next_button = QPushButton("Next", self)
-        self.next_button.setAccessibleName("Next DNS page")
-        self.page_label = QLabel("Page 1", self)
-        self.page_label.setAccessibleName("DNS page number")
+        self.previous_button = QPushButton(translate('Dns', 'Previous'), self)
+        self.previous_button.setAccessibleName(translate('Dns', 'Previous DNS page'))
+        self.next_button = QPushButton(translate('Dns', 'Next'), self)
+        self.next_button.setAccessibleName(translate('Dns', 'Next DNS page'))
+        self.page_label = QLabel(translate('Dns', 'Page 1'), self)
+        self.page_label.setAccessibleName(translate('Dns', 'DNS page number'))
         self.details = DnsDetailsWidget(self)
 
         control: QWidget
@@ -281,12 +286,12 @@ class DnsView(QWidget):
 
     def _update_capture_label(self) -> None:
         if not self._writer_available:
-            text = "DNS history writer is unavailable. Saved history remains readable."
+            text = translate('Dns', 'DNS history writer is unavailable. Saved history remains readable.')
         elif self._capture_running:
-            text = "Passive capture is running. New DNS history appears after it is saved."
+            text = translate('Dns', 'Passive capture is running. New DNS history appears after it is saved.')
         else:
-            text = "Capture is off. Saved DNS history remains available. Start passive capture on Devices."
-        self.capture_label.setText(text)
+            text = translate('Dns', 'Capture is off. Saved DNS history remains available. Start passive capture on Devices.')
+        self.capture_label.setText(render_text(text))
 
     def load_initial(self) -> None:
         self._initial_requested = True
@@ -359,29 +364,29 @@ class DnsView(QWidget):
             self.coordinator.invalidate()
             self._generation = None
             self._loading = False
-            self.state_label.setText("Check the DNS filters.")
+            self.state_label.setText(translate('Dns', 'Check the DNS filters.'))
             self.state_label.show()
             self._update_pagination()
             message = str(error)
             if "event_from" in message:
-                message = "From time must not be after To time."
+                message = translate('Dns', 'From time must not be after To time.')
             elif "server_ip" in message:
-                message = "Enter a valid DNS server IP address."
+                message = translate('Dns', 'Enter a valid DNS server IP address.')
             else:
-                message = "Enter a valid DNS query name."
-            self.validation_label.setText(message)
+                message = translate('Dns', 'Enter a valid DNS query name.')
+            self.validation_label.setText(render_text(message))
             self.validation_label.show()
             return
         self.validation_label.hide()
         self._loading = True
-        self.state_label.setText("Loading DNS history…")
+        self.state_label.setText(translate('Dns', 'Loading DNS history…'))
         self.state_label.show()
         self._update_pagination()
         try:
             self._generation = self.coordinator.request(query)
         except RuntimeError:
             self._loading = False
-            self.state_label.setText("DNS history is unavailable. Try Refresh.")
+            self.state_label.setText(translate('Dns', 'DNS history is unavailable. Try Refresh.'))
             self._update_pagination()
 
     def _page_ready(self, generation: int, page: object) -> None:
@@ -404,7 +409,7 @@ class DnsView(QWidget):
         if page.records:
             self.state_label.hide()
         else:
-            self.state_label.setText("No DNS records match these filters." if self._filters_active() else "No DNS history yet.")
+            self.state_label.setText(render_text(translate('Dns', 'No DNS records match these filters.') if self._filters_active() else translate('Dns', 'No DNS history yet.')))
             self.state_label.show()
         self._update_pagination()
 
@@ -416,7 +421,7 @@ class DnsView(QWidget):
         self.model.replace_records(())
         self._selected_id = None
         self.details.clear()
-        self.state_label.setText("DNS history is unavailable. Try Refresh.")
+        self.state_label.setText(translate('Dns', 'DNS history is unavailable. Try Refresh.'))
         self.state_label.show()
         self._update_pagination()
 
@@ -438,6 +443,6 @@ class DnsView(QWidget):
                     or self.from_enabled.isChecked() or self.to_enabled.isChecked())
 
     def _update_pagination(self) -> None:
-        self.page_label.setText(f"Page {self._page_index + 1}")
+        self.page_label.setText(format_text(translate('Dns', 'Page {value1}'), value1=self._page_index + 1))
         self.previous_button.setEnabled(not self._loading and self._page_index > 0)
         self.next_button.setEnabled(not self._loading and self._has_next)

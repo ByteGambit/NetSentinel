@@ -1,5 +1,8 @@
 """NS-094 Qt sink and bounded timer handoff. No worker accesses Qt objects."""
 
+from netsentinel.presentation.i18n.text import translate
+from netsentinel.presentation.i18n.notifications import notification_text
+
 from collections.abc import Callable
 from time import monotonic
 from uuid import UUID
@@ -76,14 +79,15 @@ class QtDesktopNotificationSink(QObject):
             return NotificationDeliveryOutcome.SINK_UNAVAILABLE
         icon = QSystemTrayIcon(self._application.windowIcon(), self)
         try:
-            icon.setToolTip("NetSentinel notification")
+            icon.setToolTip(translate('Notifications', 'NetSentinel notification'))
             icon.messageClicked.connect(lambda: self._click(icon))
             self._handles[icon] = request.alert_id, monotonic() + self.CLICK_LIFETIME
             icon.show()
             message_icon = (QSystemTrayIcon.MessageIcon.Critical if request.severity is RiskSeverity.HIGH
                             else QSystemTrayIcon.MessageIcon.Warning)
             self.submission_attempts += 1
-            icon.showMessage(request.title, request.body, message_icon, 10000)
+            title, body = notification_text(request)
+            icon.showMessage(title, body, message_icon, 10000)
             self._timer.start()
             return NotificationDeliveryOutcome.SUBMITTED_TO_SINK
         except Exception:

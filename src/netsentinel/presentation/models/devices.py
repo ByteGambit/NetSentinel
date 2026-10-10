@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import display_timestamp
+
+from netsentinel.presentation.i18n.text import TranslationSequence, translate
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
@@ -15,7 +19,7 @@ from netsentinel.presentation.viewmodels import MISSING_VALUE
 
 
 def format_seen(value: datetime) -> str:
-    return value.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+    return display_timestamp(value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +65,7 @@ class DeviceColumn(IntEnum):
     NETWORK = 4
 
 
-HEADERS = ("MAC", "Last observed IPv4", "First seen", "Last seen", "Network / interface")
+HEADERS = TranslationSequence(lambda: (translate('DevicesModel', 'MAC'), translate('DevicesModel', 'Last observed IPv4'), translate('DevicesModel', 'First seen'), translate('DevicesModel', 'Last seen'), translate('DevicesModel', 'Network / interface')))
 ROW_ID_ROLE = int(Qt.ItemDataRole.UserRole) + 1
 SEARCH_ROLE = ROW_ID_ROLE + 1
 

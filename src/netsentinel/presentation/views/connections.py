@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import display_enum
+
+from netsentinel.presentation.i18n.text import format_text, render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from netsentinel.presentation.response_commands import ResponseCommandCoordinator
 
 from collections.abc import Callable
@@ -74,7 +80,7 @@ class ConnectionsView(QWidget):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("connectionsPage")
-        self.setAccessibleName("Connections")
+        self.setAccessibleName(translate('Connections', 'Connections'))
 
         self.source_model = (
             ConnectionsTableModel(self) if model is None else model
@@ -99,18 +105,18 @@ class ConnectionsView(QWidget):
         )
         self.proxy_model.setSourceModel(self.source_model)
 
-        self.title_label = QLabel("Connections", self)
+        self.title_label = QLabel(translate('Connections', 'Connections'), self)
         self.title_label.setObjectName("pageTitle")
         self.title_label.setStyleSheet(PAGE_TITLE)
         self.subtitle_label = QLabel(
-            "Active TCP and UDP connections observed by NetSentinel.", self
+            translate('Connections', 'Active TCP and UDP connections observed by NetSentinel.'), self
         )
         self.subtitle_label.setObjectName("pageDescription")
         self.subtitle_label.setStyleSheet(SECONDARY_TEXT)
 
-        self.health_label = QLabel("Waiting for monitoring status…", self)
+        self.health_label = QLabel(translate('Connections', 'Waiting for monitoring status…'), self)
         self.health_label.setObjectName("connectionsHealth")
-        self.health_label.setAccessibleName("Connection monitoring status")
+        self.health_label.setAccessibleName(translate('Connections', 'Connection monitoring status'))
         self.health_label.setWordWrap(True)
         self.health_label.setStyleSheet(
             "background: #eef4fb; color: #334e68; border-radius: 4px; padding: 7px;"
@@ -119,34 +125,34 @@ class ConnectionsView(QWidget):
         self.search_edit = QLineEdit(self)
         self.search_edit.setObjectName("connectionSearch")
         self.search_edit.setPlaceholderText(
-            "Search process, PID, local or remote endpoint"
+            translate('Connections', 'Search process, PID, local or remote endpoint')
         )
         self.search_edit.setClearButtonEnabled(True)
-        self.search_edit.setAccessibleName("Search connections")
+        self.search_edit.setAccessibleName(translate('Connections', 'Search connections'))
 
         self.protocol_filter = QComboBox(self)
         self.protocol_filter.setObjectName("protocolFilter")
-        self.protocol_filter.setAccessibleName("Protocol filter")
-        self.protocol_filter.addItem("All protocols", None)
-        self.protocol_filter.addItem("TCP", TransportProtocol.TCP.value)
-        self.protocol_filter.addItem("UDP", TransportProtocol.UDP.value)
+        self.protocol_filter.setAccessibleName(translate('Connections', 'Protocol filter'))
+        self.protocol_filter.addItem(translate('Connections', 'All protocols'), None)
+        self.protocol_filter.addItem(translate('Connections', 'TCP'), TransportProtocol.TCP.value)
+        self.protocol_filter.addItem(translate('Connections', 'UDP'), TransportProtocol.UDP.value)
 
         self.state_filter = QComboBox(self)
         self.state_filter.setObjectName("stateFilter")
-        self.state_filter.setAccessibleName("Connection state filter")
-        self.state_filter.addItem("All states", None)
+        self.state_filter.setAccessibleName(translate('Connections', 'Connection state filter'))
+        self.state_filter.addItem(translate('Connections', 'All states'), None)
         for state in ConnectionState:
             self.state_filter.addItem(_state_label(state), state.value)
 
-        self.pause_button = QPushButton("Pause view", self)
+        self.pause_button = QPushButton(translate('Connections', 'Pause view'), self)
         self.pause_button.setObjectName("pauseConnectionsView")
-        self.pause_button.setAccessibleName("Pause connection updates")
+        self.pause_button.setAccessibleName(translate('Connections', 'Pause connection updates'))
         self.pause_button.setCheckable(True)
         self.pause_button.setToolTip(
-            "Freeze painting while monitoring continues in the background"
+            translate('Connections', 'Freeze painting while monitoring continues in the background')
         )
         self.pause_notice = QLabel(
-            "View paused; monitoring continues in the background.", self
+            translate('Connections', 'View paused; monitoring continues in the background.'), self
         )
         self.pause_notice.setObjectName("connectionsPauseNotice")
         self.pause_notice.setStyleSheet("color: #8d5b00;")
@@ -154,7 +160,7 @@ class ConnectionsView(QWidget):
 
         self.table = EndpointTableView(self)
         self.table.setObjectName("connectionsTable")
-        self.table.setAccessibleName("Active connections")
+        self.table.setAccessibleName(translate('Connections', 'Active connections'))
         self.table.setModel(self.proxy_model)
         self.table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
@@ -177,9 +183,9 @@ class ConnectionsView(QWidget):
         )
         self.table.configure_columns((14, 6, 8, 24, 24, 12, 9), (1, 2, 5, 6))
 
-        self.empty_label = QLabel("No active connections.", self)
+        self.empty_label = QLabel(translate('Connections', 'No active connections.'), self)
         self.empty_label.setObjectName("connectionsEmptyState")
-        self.empty_label.setAccessibleName("Connections empty state")
+        self.empty_label.setAccessibleName(translate('Connections', 'Connections empty state'))
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #829ab1; padding: 10px;")
 
@@ -248,43 +254,38 @@ class ConnectionsView(QWidget):
         )
 
         if health.engine.state is EngineState.STOPPING:
-            message = "Connection monitoring is stopping."
+            message = translate('Connections', 'Connection monitoring is stopping.')
             severity = "warning"
         elif health.engine.state is EngineState.STOPPED:
-            message = "Connection monitoring is stopped."
+            message = translate('Connections', 'Connection monitoring is stopped.')
             severity = "warning"
         elif connection_status is CapabilityStatus.UNAVAILABLE:
             message = (
-                "Connection monitoring is unavailable. Check Windows permissions "
-                "and monitoring diagnostics."
+                translate('Connections', 'Connection monitoring is unavailable. Check Windows permissions and monitoring diagnostics.')
             )
             severity = "error"
         elif connection_status is CapabilityStatus.DEGRADED:
             message = (
-                "Connection monitoring is degraded; some active connections may "
-                "be unavailable."
+                translate('Connections', 'Connection monitoring is degraded; some active connections may be unavailable.')
             )
             severity = "warning"
         elif health.engine.last_error is not None:
             message = (
-                "Connection monitoring reported an error; displayed data may be "
-                "incomplete. Review monitoring diagnostics."
+                translate('Connections', 'Connection monitoring reported an error; displayed data may be incomplete. Review monitoring diagnostics.')
             )
             severity = "error"
         elif process_status is not CapabilityStatus.AVAILABLE:
             message = (
-                "Process metadata is limited; unavailable process values are "
-                "shown as —."
+                translate('Connections', 'Process metadata is limited; unavailable process values are shown as —.')
             )
             severity = "warning"
         else:
-            message = "Connection monitoring is active."
+            message = translate('Connections', 'Connection monitoring is active.')
             severity = "normal"
 
         if health.dropped_events:
             message += (
-                f" {health.dropped_events} UI update event(s) were dropped; "
-                "the view may be incomplete."
+                format_text(translate('Connections', ' {value1} UI update event(s) were dropped; the view may be incomplete.'), value1=health.dropped_events)
             )
             severity = "error"
 
@@ -294,7 +295,7 @@ class ConnectionsView(QWidget):
             "error": ("#fff0f0", "#9b2c2c"),
         }
         background, foreground = colors[severity]
-        self.health_label.setText(message)
+        self.health_label.setText(render_text(message))
         self.health_label.setStyleSheet(
             f"background: {background}; color: {foreground}; "
             "border-radius: 4px; padding: 7px;"
@@ -311,7 +312,7 @@ class ConnectionsView(QWidget):
         self._paused = paused
         if self.pause_button.isChecked() != paused:
             self.pause_button.setChecked(paused)
-        self.pause_button.setText("Resume view" if paused else "Pause view")
+        self.pause_button.setText(render_text(translate('Connections', 'Resume view') if paused else translate('Connections', 'Pause view')))
         self.pause_notice.setVisible(paused)
         self.search_edit.setEnabled(not paused)
         self.protocol_filter.setEnabled(not paused)
@@ -405,7 +406,7 @@ class ConnectionsView(QWidget):
         if not isinstance(process, ProcessInfo):
             return
         self._signer_submission = self.signer_service.request(process)
-        self.details.signer_text.setText("Checking local disk file…")
+        self.details.signer_text.setText(translate('Connections', 'Checking local disk file…'))
         self._signer_timer.start()
         self._poll_signer()
 
@@ -520,23 +521,23 @@ class ConnectionsView(QWidget):
         first = index.siblingAtColumn(0)
         remote = self.proxy_model.data(first, int(ConnectionRole.RAW_REMOTE_ADDRESS))
         if not isinstance(remote, str):
-            self.details.destination.clear("No remote destination.")
+            self.details.destination.clear(translate('Connections', 'No remote destination.'))
             self._destination_generation = None
             return
         if self.destination_queries is None:
-            self.details.destination.clear("Destination evidence unavailable.")
+            self.details.destination.clear(translate('Connections', 'Destination evidence unavailable.'))
             return
         local = self.proxy_model.data(first, int(ConnectionRole.RAW_LOCAL_ADDRESS))
         scope = self.proxy_model.data(first, int(ConnectionRole.NETWORK_SCOPE))
         if not isinstance(scope, ConnectionNetworkScope):
             scope = ConnectionNetworkScope.unknown()
-        self.details.destination.clear("Loading destination evidence…")
+        self.details.destination.clear(translate('Connections', 'Loading destination evidence…'))
         try:
             self._destination_generation = self.destination_queries.request(
                 live_request(remote, local if isinstance(local, str) else None, scope)
             )
         except RuntimeError:
-            self.details.destination.clear("Destination evidence unavailable.")
+            self.details.destination.clear(translate('Connections', 'Destination evidence unavailable.'))
 
     def _destination_ready(self, generation: int, result: object) -> None:
         if (generation == self._destination_generation and self._selected_row_id is not None
@@ -547,7 +548,7 @@ class ConnectionsView(QWidget):
     def _destination_failed(self, generation: int) -> None:
         if generation == self._destination_generation:
             self.details.response.invalidate_evidence()
-            self.details.destination.clear("Destination evidence unavailable.")
+            self.details.destination.clear(translate('Connections', 'Destination evidence unavailable.'))
 
     def _find_proxy_row(self, row_id: ConnectionRowId) -> int | None:
         for row in range(self.proxy_model.rowCount()):
@@ -559,19 +560,19 @@ class ConnectionsView(QWidget):
     def _update_empty_state(self) -> None:
         empty = self.proxy_model.rowCount() == 0
         if self._monitoring_unavailable:
-            text = "Connection monitoring is unavailable."
+            text = translate('Connections', 'Connection monitoring is unavailable.')
         elif self.source_model.rowCount() and empty:
-            text = "No connections match the current filters."
+            text = translate('Connections', 'No connections match the current filters.')
         else:
-            text = "No active connections."
-        self.empty_label.setText(text)
+            text = translate('Connections', 'No active connections.')
+        self.empty_label.setText(render_text(text))
         self.empty_label.setVisible(empty)
 
 
 def _state_label(state: ConnectionState) -> str:
     if state is ConnectionState.NONE:
-        return "Not applicable (UDP)"
-    return state.value.replace("_", " ").title()
+        return translate('Connections', 'Not applicable (UDP)')
+    return display_enum(state, 'title')
 
 
 __all__ = ("ConnectionsView",)

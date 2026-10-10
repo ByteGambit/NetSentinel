@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import format_text
+
+from netsentinel.presentation.i18n.text import TranslationMapping, translate
+from dataclasses import field
+
 from dataclasses import dataclass, replace
 from datetime import datetime
 from math import ceil, isfinite
@@ -39,10 +44,10 @@ class DashboardMetrics:
 class DashboardHealthState:
     """User-facing health text with no raw diagnostic payload."""
 
-    status: str = "Waiting"
-    detail: str = "Waiting for monitoring status."
-    capability: str = "Capability status is not available yet."
-    diagnostic: str = "No monitoring status has been received."
+    status: str = field(default_factory=lambda: translate('DashboardModel', 'Waiting'))
+    detail: str = field(default_factory=lambda: translate('DashboardModel', 'Waiting for monitoring status.'))
+    capability: str = field(default_factory=lambda: translate('DashboardModel', 'Capability status is not available yet.'))
+    diagnostic: str = field(default_factory=lambda: translate('DashboardModel', 'No monitoring status has been received.'))
     last_successful_poll: str = "—"
     dropped_bridge_events: int = 0
     tone: str = "neutral"
@@ -58,38 +63,38 @@ class DashboardTrafficState:
     arp_baseline: str = "—"
     window: str = "—"
     threshold: str = "—"
-    measurement: str = "Unknown"
-    capture: str = "Capture off — rates are unavailable."
+    measurement: str = field(default_factory=lambda: translate('DashboardModel', 'Unknown'))
+    capture: str = field(default_factory=lambda: translate('DashboardModel', 'Capture off — rates are unavailable.'))
     dropped: str = "—"
 
 
-_DIAGNOSTIC_TEXT: dict[DiagnosticCode, str] = {
+_DIAGNOSTIC_TEXT = TranslationMapping(lambda: {
     DiagnosticCode.COLLECTOR_PERMISSION_DENIED: (
-        "Connection access is restricted by Windows permissions."
+        translate('DashboardModel', 'Connection access is restricted by Windows permissions.')
     ),
     DiagnosticCode.COLLECTOR_TRANSIENT_ERROR: (
-        "Connection monitoring is temporarily unavailable."
+        translate('DashboardModel', 'Connection monitoring is temporarily unavailable.')
     ),
     DiagnosticCode.COLLECTOR_UNEXPECTED_ERROR: (
-        "Connection monitoring encountered an unexpected problem."
+        translate('DashboardModel', 'Connection monitoring encountered an unexpected problem.')
     ),
     DiagnosticCode.PROCESS_ENRICHMENT_ERROR: (
-        "Process details could not be refreshed."
+        translate('DashboardModel', 'Process details could not be refreshed.')
     ),
     DiagnosticCode.PROCESS_METADATA_DEGRADED: (
-        "Some process details are unavailable."
+        translate('DashboardModel', 'Some process details are unavailable.')
     ),
-    DiagnosticCode.TRACKER_ERROR: "Connection state could not be updated.",
-    DiagnosticCode.DISPATCHER_ERROR: "Monitoring updates could not be delivered.",
+    DiagnosticCode.TRACKER_ERROR: translate('DashboardModel', 'Connection state could not be updated.'),
+    DiagnosticCode.DISPATCHER_ERROR: translate('DashboardModel', 'Monitoring updates could not be delivered.'),
     DiagnosticCode.SUBSCRIBER_ERROR: (
-        "One monitoring consumer could not process an update."
+        translate('DashboardModel', 'One monitoring consumer could not process an update.')
     ),
     DiagnosticCode.POLLING_OVERRUN: (
-        "A monitoring refresh took longer than expected."
+        translate('DashboardModel', 'A monitoring refresh took longer than expected.')
     ),
-    DiagnosticCode.SHUTDOWN_TIMEOUT: "Monitoring is taking longer to stop.",
-    DiagnosticCode.WORKER_ERROR: "The monitoring worker encountered a problem.",
-}
+    DiagnosticCode.SHUTDOWN_TIMEOUT: translate('DashboardModel', 'Monitoring is taking longer to stop.'),
+    DiagnosticCode.WORKER_ERROR: translate('DashboardModel', 'The monitoring worker encountered a problem.'),
+})
 
 
 class DashboardViewModel(QObject):
@@ -156,29 +161,15 @@ class DashboardViewModel(QObject):
         else:
             quality = metric.confidence
             measurement = {
-                MeasurementConfidence.UNKNOWN: "Unknown — capture quality not established",
-                MeasurementConfidence.COMPLETE: "Complete",
-                MeasurementConfidence.REDUCED: "Reduced — capture queue dropped observations",
-            }.get(quality, "Unknown — capture quality not established")
+                MeasurementConfidence.UNKNOWN: translate('DashboardModel', 'Unknown — capture quality not established'),
+                MeasurementConfidence.COMPLETE: translate('DashboardModel', 'Complete'),
+                MeasurementConfidence.REDUCED: translate('DashboardModel', 'Reduced — capture queue dropped observations'),
+            }.get(quality, translate('DashboardModel', 'Unknown — capture quality not established'))
             policy = inventory.traffic_policy
             threshold = "—" if policy is None else (
-                f"Broadcast >{_format_number(policy.broadcast_floor_pps)} pkt/s; "
-                f"ARP >{_format_number(policy.arp_floor_pps)} pkt/s, and "
-                f">{_format_number(policy.baseline_multiplier)}× learned baseline; "
-                f"{policy.minimum_samples} high samples across the window."
+                format_text(translate('DashboardModel', 'Broadcast >{value1} pkt/s; ARP >{value2} pkt/s, and >{value3}× learned baseline; {value4} high samples across the window.'), value1=_format_number(policy.broadcast_floor_pps), value2=_format_number(policy.arp_floor_pps), value3=_format_number(policy.baseline_multiplier), value4=policy.minimum_samples)
             )
-            state = DashboardTrafficState(
-                broadcast_rate=_format_rate(metric.broadcast.packets_per_second),
-                arp_rate=_format_rate(metric.arp.packets_per_second),
-                broadcast_baseline=_format_baseline(metric.broadcast.baseline),
-                arp_baseline=_format_baseline(metric.arp.baseline),
-                window=f"Last {metric.window_seconds} s rolling window",
-                threshold=threshold,
-                measurement=measurement,
-                capture=("Passive capture running — observed packets only." if capture_running
-                         else "Capture off — last rates may be stale."),
-                dropped=str(metric.dropped_observations),
-            )
+            state = DashboardTrafficState(broadcast_rate=_format_rate(metric.broadcast.packets_per_second), arp_rate=_format_rate(metric.arp.packets_per_second), broadcast_baseline=_format_baseline(metric.broadcast.baseline), arp_baseline=_format_baseline(metric.arp.baseline), window=format_text(translate('DashboardModel', 'Last {value1} s rolling window'), value1=metric.window_seconds), threshold=threshold, measurement=measurement, capture=translate('DashboardModel', 'Passive capture running — observed packets only.') if capture_running else translate('DashboardModel', 'Capture off — last rates may be stale.'), dropped=str(metric.dropped_observations))
         if state != self._traffic:
             self._traffic = state
             self.traffic_changed.emit(state)
@@ -261,16 +252,16 @@ def _health_state(snapshot: BridgeHealthSnapshot) -> DashboardHealthState:
     process = engine.capabilities.process_metadata
 
     if engine.state is EngineState.STOPPING:
-        status = "Stopping"
-        detail = "Monitoring is stopping."
+        status = translate('DashboardModel', 'Stopping')
+        detail = translate('DashboardModel', 'Monitoring is stopping.')
         tone = "warning"
     elif engine.state is EngineState.STOPPED:
-        status = "Stopped"
-        detail = "Monitoring is stopped."
+        status = translate('DashboardModel', 'Stopped')
+        detail = translate('DashboardModel', 'Monitoring is stopped.')
         tone = "neutral"
     elif connection is CapabilityStatus.UNAVAILABLE:
-        status = "Unavailable"
-        detail = "Connection monitoring is unavailable."
+        status = translate('DashboardModel', 'Unavailable')
+        detail = translate('DashboardModel', 'Connection monitoring is unavailable.')
         tone = "error"
     elif (
         connection is CapabilityStatus.DEGRADED
@@ -278,37 +269,36 @@ def _health_state(snapshot: BridgeHealthSnapshot) -> DashboardHealthState:
         or engine.last_error is not None
         or snapshot.dropped_events > 0
     ):
-        status = "Degraded"
-        detail = "Connection monitoring is degraded."
+        status = translate('DashboardModel', 'Degraded')
+        detail = translate('DashboardModel', 'Connection monitoring is degraded.')
         tone = "warning"
     else:
-        status = "Healthy"
-        detail = "Monitoring healthy."
+        status = translate('DashboardModel', 'Healthy')
+        detail = translate('DashboardModel', 'Monitoring healthy.')
         tone = "healthy"
 
     if connection is CapabilityStatus.UNAVAILABLE:
-        capability = "Active connection visibility is unavailable."
+        capability = translate('DashboardModel', 'Active connection visibility is unavailable.')
     elif connection is CapabilityStatus.DEGRADED:
-        capability = "Active connection visibility may be incomplete."
+        capability = translate('DashboardModel', 'Active connection visibility may be incomplete.')
     elif process is CapabilityStatus.UNAVAILABLE:
-        capability = "Connections are available; process details are unavailable."
+        capability = translate('DashboardModel', 'Connections are available; process details are unavailable.')
     elif process is CapabilityStatus.DEGRADED:
-        capability = "Connections are available; some process details are limited."
+        capability = translate('DashboardModel', 'Connections are available; some process details are limited.')
     else:
-        capability = "Connection and process monitoring are available."
+        capability = translate('DashboardModel', 'Connection and process monitoring are available.')
 
     diagnostic = (
-        "No monitoring issues reported."
+        translate('DashboardModel', 'No monitoring issues reported.')
         if engine.last_error is None
         else _DIAGNOSTIC_TEXT.get(
             engine.last_error.code,
-            "Monitoring reported an issue.",
+            translate('DashboardModel', 'Monitoring reported an issue.'),
         )
     )
     if snapshot.dropped_events:
         diagnostic = (
-            f"{snapshot.dropped_events} UI update event(s) were dropped; "
-            "displayed connection data may be incomplete."
+            translate('DashboardModel', '%n UI update event(s) were dropped; displayed connection data may be incomplete.', None, snapshot.dropped_events)
         )
 
     return DashboardHealthState(
@@ -338,13 +328,13 @@ def _format_rate(value: float) -> str:
     if not isfinite(value) or value < 0:
         return "—"
     if value == 0:
-        return "0 pkt/s"
-    return f"{value:.2f} pkt/s" if value < 0.1 else f"{value:.1f} pkt/s"
+        return translate('DashboardModel', '0 pkt/s')
+    return format_text(translate('DashboardModel', '{value1:.2f} pkt/s'), value1=value) if value < 0.1 else format_text(translate('DashboardModel', '{value1:.1f} pkt/s'), value1=value)
 
 
 def _format_baseline(baseline: object) -> str:
     if getattr(baseline, "state", None) is not BaselineState.LEARNED:
-        return "Learning baseline"
+        return translate('DashboardModel', 'Learning baseline')
     value = getattr(baseline, "packets_per_second", None)
     return _format_rate(value) if isinstance(value, (int, float)) else "—"
 

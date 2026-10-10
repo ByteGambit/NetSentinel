@@ -1,5 +1,13 @@
 # Mimari
 
+NS-105 (2026-10-09): startup'ta GUI-owned LocalizationManager, PyQt6 QTranslator,
+bundled allowlisted QM ve canonical English fallback eklenir. Qt-free shared
+source recipes, mevcut application read/preview projection'larını GUI render'ına
+kadar dil bağımsız tutar; domain/serialization kimlikleri değişmez. Manager tüm
+UI/worker oluşturulmadan seal edilir: runtime **NO_GO / whole-app restart required**.
+Schema020; selector/config persistence ve production packs yoktur.
+[Sözleşme](LOCALIZATION.md), [kabul](LOCALIZATION_ACCEPTANCE.md).
+
 NS-100 (2026-10-08): user **GO NS-100** accepted; contract implementation
 **COMPLETE**. `domain.response` contains pure frozen scope/provenance/file
 snapshot/confirmation/result values and a bounded strict local codec.

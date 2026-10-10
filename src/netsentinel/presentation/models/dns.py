@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import format_text, render_join
+
+from netsentinel.presentation.i18n.text import TranslationMapping, TranslationSequence, translate
+
 from ipaddress import ip_address
 from uuid import UUID
 
@@ -11,14 +15,14 @@ from netsentinel.domain.dns import DnsHistoryRecord, DnsTransactionStatus, DnsRe
 from netsentinel.presentation.models.history import format_local_timestamp
 
 MISSING = "—"
-HEADERS = ("Time", "Status", "Query name", "Type", "Client", "DNS server",
-           "Transport", "Result", "Latency", "Answers")
-STATUS_TEXT = {
-    DnsTransactionStatus.COMPLETED: "Response matched",
-    DnsTransactionStatus.TIMED_OUT: "Timed out",
-    DnsTransactionStatus.EVICTED: "Query evicted",
-    DnsTransactionStatus.UNMATCHED_RESPONSE: "Unmatched response",
-}
+HEADERS = TranslationSequence(lambda: (translate('DnsModel', 'Time'), translate('DnsModel', 'Status'), translate('DnsModel', 'Query name'), translate('DnsModel', 'Type'), translate('DnsModel', 'Client'), translate('DnsModel', 'DNS server'),
+           translate('DnsModel', 'Transport'), translate('DnsModel', 'Result'), translate('DnsModel', 'Latency'), translate('DnsModel', 'Answers')))
+STATUS_TEXT = TranslationMapping(lambda: {
+    DnsTransactionStatus.COMPLETED: translate('DnsModel', 'Response matched'),
+    DnsTransactionStatus.TIMED_OUT: translate('DnsModel', 'Timed out'),
+    DnsTransactionStatus.EVICTED: translate('DnsModel', 'Query evicted'),
+    DnsTransactionStatus.UNMATCHED_RESPONSE: translate('DnsModel', 'Unmatched response'),
+})
 RCODE_TEXT = {0: "NOERROR", 1: "FORMERR", 2: "SERVFAIL", 3: "NXDOMAIN",
               4: "NOTIMP", 5: "REFUSED"}
 
@@ -35,7 +39,7 @@ def format_rcode(value: int | None) -> str:
 
 
 def format_latency(value: float | None) -> str:
-    return MISSING if value is None else f"{max(0.0, value) * 1000:.1f} ms"
+    return MISSING if value is None else format_text(translate('DnsModel', '{value1:.1f} ms'), value1=max(0.0, value) * 1000)
 
 
 def format_dns_endpoint(ip: str | None, port: int | None) -> str:
@@ -51,8 +55,7 @@ def event_time(record: DnsHistoryRecord):
 
 
 def answer_lines(record: DnsHistoryRecord) -> tuple[str, ...]:
-    return tuple(f"{answer.name} {answer.record_type.name} {answer.value} (TTL {answer.ttl}s)"
-                 for answer in record.transaction.answers[:16])
+    return tuple((format_text(translate('DnsModel', '{value1} {value2} {value3} (TTL {value4}s)'), value1=answer.name, value2=answer.record_type.name, value3=answer.value, value4=answer.ttl) for answer in record.transaction.answers[:16]))
 
 
 class DnsTableModel(QAbstractTableModel):
@@ -105,6 +108,6 @@ class DnsTableModel(QAbstractTableModel):
             format_dns_endpoint(tx.client_ip, tx.client_port),
             format_dns_endpoint(tx.server_ip, tx.server_port), tx.transport.value.upper(),
             format_rcode(tx.response_code), format_latency(tx.latency_seconds),
-            "; ".join(answers) if answers else MISSING,
+            render_join('; ', answers) if answers else MISSING,
         )
         return values[index.column()]

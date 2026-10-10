@@ -1216,8 +1216,10 @@ offline doğrulama [NS-083 kabul raporunda](RISK_EXPLANATION_UI.md) kayıtlıdı
 
 ## M19 — Localization & Guided Onboarding
 
-**Durum:** PLANNED / NOT STARTED (2026-10-09). Bu kayıtlar yalnız planı
-dondurur; NS-105 uygulaması başlamaz. [M19/M20 frozen plan](M19_M20_PLANNING.md)
+**Durum:** IN PROGRESS (2026-10-09); explicit kullanıcı yetkisiyle yalnız
+NS-105 COMPLETE. NS-106–NS-110 PLANNED / NOT STARTED. [NS-105 kabulü](LOCALIZATION_ACCEPTANCE.md)
+runtime switching **NO_GO / whole-app restart required** kararını dondurur.
+[M19/M20 frozen plan](M19_M20_PLANNING.md)
 mevcut post-M18 mimariyi, 18 dil hedefini, runtime/restart karar kapısını,
 M17 rehberinin genişletilmesini ve kabul matrisini tanımlar. M1–M18 kapanışı
 korunur; in-product privileged writes/broad release NO_GO. M19 bitişi ürünün
@@ -1225,7 +1227,7 @@ işlevsel tamamlandığı anlamına gelmez; NS-120 PASS ayrıca gerekir.
 
 ### NS-105 — Localization architecture & source extraction
 
-- **Durum:** PLANNED / NOT STARTED.
+- **Durum:** COMPLETE (2026-10-09); offline source/toolchain/restart-mode acceptance. Targeted52; GUI/tooling697; full4760 PASS + sandbox junction fixture retry3 PASS, 9 live deselected; coverage91.40%, 85% gate korunur. Ruff/mypy/whitespace/privacy/extraction PASS. [Sözleşme](LOCALIZATION.md), [kabul](LOCALIZATION_ACCEPTANCE.md). Commit/push/tag/release NONE.
 - **Amaç:** Mevcut hand-built PyQt6 UI için offline Qt localization sözleşmesini ve dürüst runtime/restart davranışını kurmak.
 - **Yapılacaklar:** QTranslator/.ts/.qm, canonical English/context, allowlisted language manifest, extraction/compiler ve placeholder/numerus sözleşmesini uygula; presentation string inventory çıkar ve literal çağrılara dönüştür; domain/application typed codes ile UI metnini ayır. GUI-owned locale generation, raw-record re-render, model header/DisplayRole/accessibility güncellemesi ve açık dialog/late-result sınırını tanımla. English/pseudo/fake catalog ile runtime feasibility gate çalıştır; başarısızsa tüm app için explicit restart-required contract dondur. Date/number display QLocale; UTC/technical evidence/machine export formatlarını koru; hardcoded-string scanner ve reviewed exceptions oluştur.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** src/netsentinel/presentation/i18n/ (yeni), presentation/views/, widgets/, models/, viewmodels.py, process_context.py; tests/gui/, tests/unit/; pyproject.toml/uv.lock yalnız gerekli build-tool kararı; docs/LOCALIZATION.md (yeni).
@@ -1428,6 +1430,6 @@ sayılmaz. In-product privileged writes ve broad release NO_GO korunur.
 
 | Milestone | Task aralığı | Sayı | Durum |
 |---|---|---:|---|
-| M19 Localization & Guided Onboarding | NS-105–NS-110 | 6 | PLANNED / NOT STARTED |
+| M19 Localization & Guided Onboarding | NS-105–NS-110 | 6 | IN PROGRESS; NS-105 COMPLETE, NS-106–110 PLANNED / NOT STARTED |
 | M20 Full-System VMware Validation | NS-111–NS-120 | 10 | PLANNED / NOT STARTED |
-| Post-M18 plan toplamı | NS-105–NS-120 | 16 | Yalnız planning; implementation/VM execution/commit/push/tag/release NONE |
+| Post-M18 plan toplamı | NS-105–NS-120 | 16 | Yalnız NS-105 implementation COMPLETE; NS-106–120 NOT STARTED; VM execution/commit/push/tag/release NONE |

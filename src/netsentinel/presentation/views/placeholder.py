@@ -27,7 +27,7 @@ class PlaceholderPage(QWidget):
         description_label.setObjectName("pageDescription")
         description_label.setWordWrap(True)
         description_label.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            Qt.AlignmentFlag.AlignLeading | Qt.AlignmentFlag.AlignTop
         )
         description_label.setStyleSheet("color: #52606d; font-size: 14px;")
 

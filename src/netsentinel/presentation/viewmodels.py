@@ -7,6 +7,8 @@ observation delivered to the presentation model and is not wall-clock driven.
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import display_enum
+
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -161,7 +163,7 @@ def format_state(state: ConnectionState) -> str:
 
     if state is ConnectionState.NONE:
         return MISSING_VALUE
-    return state.value.replace("_", " ").title()
+    return display_enum(state, 'title')
 
 
 def format_duration(seconds: float) -> str:

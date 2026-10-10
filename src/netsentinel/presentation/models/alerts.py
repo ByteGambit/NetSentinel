@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import display_enum
+
+from netsentinel.presentation.i18n.text import TranslationMapping, TranslationSequence, translate
+
 from enum import IntEnum
 from uuid import UUID
 
@@ -21,49 +25,49 @@ class AlertColumn(IntEnum):
     OCCURRENCES = 6
 
 
-HEADERS = ("Last seen", "Status", "Severity", "Confidence", "Type", "Entity", "Occurrences")
-RULE_TITLES = {
-    "ip_mac_conflict": "IP-MAC identity conflict observed",
-    "gateway_mac_change": "Gateway MAC differs from expected baseline",
-    "new_device": "New device observed",
-    "dns_server_set_change": "DNS server configuration changed",
-    "device_mac_identity_change": "Device MAC differs from saved identity",
-    "device_identity_context_mismatch": "Device seen at another profile's expected IP",
-    "device_ip_churn": "Device IP addresses changed repeatedly",
-    "vlan_previously_unobserved_vid": "Previously unobserved VLAN ID observed",
-    "vlan_device_tag_change": "Device VLAN tag behavior changed",
-    "vlan_unusual_diversity": "Short-term VLAN ID diversity observed",
-}
-RULE_EXPLANATIONS = {
-    "ip_mac_conflict": "A different sender MAC was observed for an IP recently associated with another MAC. Normal network changes can also cause this signal.",
-    "gateway_mac_change": "A gateway sender MAC differs from the stored expected baseline. Review the network and baseline context before drawing conclusions.",
-    "new_device": "A device identity was first observed after the initial learning period. Its trust has not been verified.",
-    "dns_server_set_change": "The Windows DNS server set changed after repeated consistent readings. Review the previous and current configuration; this alone does not imply an attack.",
-    "device_mac_identity_change": "A passive MAC observation differs from a user-saved expectation. Review recent bindings and possible address randomization; this is not proof of spoofing.",
-    "device_identity_context_mismatch": "A saved MAC appeared at an IP expected for another profile in this network. DHCP reassignment may explain it.",
-    "device_ip_churn": "A saved MAC used three distinct unexpected IPs within five minutes. DHCP and interface changes can explain this low-severity signal.",
-    "vlan_previously_unobserved_vid": "A VLAN ID outside the user-accepted observed reference appeared repeatedly. Capture visibility is limited; this is not proof of VLAN hopping.",
-    "vlan_device_tag_change": "A passively observed device used a different VLAN ID repeatedly. This does not establish switch configuration or intent.",
-    "vlan_unusual_diversity": "Several previously unobserved VLAN IDs appeared in a short window. Review the evidence and capture limitations.",
-}
-SCORE_EXPLANATIONS = {
-    "identity_conflict": "Identity conflict",
-    "repeated_observation": "Repeated observation",
-    "verified_gateway": "Verified gateway baseline",
-    "combined_targets": "Multiple affected targets",
-}
+HEADERS = TranslationSequence(lambda: (translate('AlertsModel', 'Last seen'), translate('AlertsModel', 'Status'), translate('AlertsModel', 'Severity'), translate('AlertsModel', 'Confidence'), translate('AlertsModel', 'Type'), translate('AlertsModel', 'Entity'), translate('AlertsModel', 'Occurrences')))
+RULE_TITLES = TranslationMapping(lambda: {
+    "ip_mac_conflict": translate('AlertsModel', 'IP-MAC identity conflict observed'),
+    "gateway_mac_change": translate('AlertsModel', 'Gateway MAC differs from expected baseline'),
+    "new_device": translate('AlertsModel', 'New device observed'),
+    "dns_server_set_change": translate('AlertsModel', 'DNS server configuration changed'),
+    "device_mac_identity_change": translate('AlertsModel', 'Device MAC differs from saved identity'),
+    "device_identity_context_mismatch": translate('AlertsModel', "Device seen at another profile's expected IP"),
+    "device_ip_churn": translate('AlertsModel', 'Device IP addresses changed repeatedly'),
+    "vlan_previously_unobserved_vid": translate('AlertsModel', 'Previously unobserved VLAN ID observed'),
+    "vlan_device_tag_change": translate('AlertsModel', 'Device VLAN tag behavior changed'),
+    "vlan_unusual_diversity": translate('AlertsModel', 'Short-term VLAN ID diversity observed'),
+})
+RULE_EXPLANATIONS = TranslationMapping(lambda: {
+    "ip_mac_conflict": translate('AlertsModel', 'A different sender MAC was observed for an IP recently associated with another MAC. Normal network changes can also cause this signal.'),
+    "gateway_mac_change": translate('AlertsModel', 'A gateway sender MAC differs from the stored expected baseline. Review the network and baseline context before drawing conclusions.'),
+    "new_device": translate('AlertsModel', 'A device identity was first observed after the initial learning period. Its trust has not been verified.'),
+    "dns_server_set_change": translate('AlertsModel', 'The Windows DNS server set changed after repeated consistent readings. Review the previous and current configuration; this alone does not imply an attack.'),
+    "device_mac_identity_change": translate('AlertsModel', 'A passive MAC observation differs from a user-saved expectation. Review recent bindings and possible address randomization; this is not proof of spoofing.'),
+    "device_identity_context_mismatch": translate('AlertsModel', 'A saved MAC appeared at an IP expected for another profile in this network. DHCP reassignment may explain it.'),
+    "device_ip_churn": translate('AlertsModel', 'A saved MAC used three distinct unexpected IPs within five minutes. DHCP and interface changes can explain this low-severity signal.'),
+    "vlan_previously_unobserved_vid": translate('AlertsModel', 'A VLAN ID outside the user-accepted observed reference appeared repeatedly. Capture visibility is limited; this is not proof of VLAN hopping.'),
+    "vlan_device_tag_change": translate('AlertsModel', 'A passively observed device used a different VLAN ID repeatedly. This does not establish switch configuration or intent.'),
+    "vlan_unusual_diversity": translate('AlertsModel', 'Several previously unobserved VLAN IDs appeared in a short window. Review the evidence and capture limitations.'),
+})
+SCORE_EXPLANATIONS = TranslationMapping(lambda: {
+    "identity_conflict": translate('AlertsModel', 'Identity conflict'),
+    "repeated_observation": translate('AlertsModel', 'Repeated observation'),
+    "verified_gateway": translate('AlertsModel', 'Verified gateway baseline'),
+    "combined_targets": translate('AlertsModel', 'Multiple affected targets'),
+})
 
 
 def entity_text(alert: Alert) -> str:
     latest = alert.evidence[-1]
     if alert.rule_id.startswith("vlan_"):
         details = dict(latest.details)
-        return f"VID {details['vid']}" if "vid" in details else "Observed VLAN behavior"
+        return f"VID {details['vid']}" if "vid" in details else translate('AlertsModel', 'Observed VLAN behavior')
     if latest.ip_address:
         return latest.ip_address
     if latest.observed_mac is not None:
         return str(latest.observed_mac)
-    return "Other observed entity"
+    return translate('AlertsModel', 'Other observed entity')
 
 
 class AlertsTableModel(QAbstractTableModel):
@@ -108,7 +112,7 @@ class AlertsTableModel(QAbstractTableModel):
             return alert.id
         if role != Qt.ItemDataRole.DisplayRole:
             return None
-        values = (format_local_timestamp(alert.last_seen), alert.status.value,
+        values = (format_local_timestamp(alert.last_seen), display_enum(alert.status),
                   alert.severity, alert.confidence, RULE_TITLES.get(alert.rule_id, alert.rule_id.replace("_", " ")),
                   entity_text(alert), str(alert.occurrence_count))
         return values[index.column()]

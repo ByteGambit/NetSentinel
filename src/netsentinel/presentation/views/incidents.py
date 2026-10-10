@@ -1,5 +1,10 @@
 """NS-091 local read-only incident list, detail and paginated timeline."""
 
+from netsentinel.presentation.i18n.text import translate
+
+from netsentinel.presentation.i18n.text import display_enum, format_text, render_join, render_text
+
+
 from uuid import UUID
 
 from PyQt6.QtCore import QModelIndex, QSignalBlocker, Qt
@@ -26,7 +31,7 @@ class IncidentsView(QWidget):
                  risk_queries: RiskQueryCoordinator | None = None):
         super().__init__(parent)
         self.setObjectName("incidentsView")
-        self.setAccessibleName("Local incident history")
+        self.setAccessibleName(translate('Incidents', 'Local incident history'))
         self.queries = queries
         self.model = IncidentTableModel(self)
         self.timeline_model = TimelineTableModel(self)
@@ -44,29 +49,29 @@ class IncidentsView(QWidget):
         self._stopped = False
         self._append = False
 
-        self.title = QLabel("Incidents", self)
+        self.title = QLabel(translate('Incidents', 'Incidents'), self)
         self.title.setStyleSheet(PAGE_TITLE)
-        self.help = QLabel("Timeline order shows recorded times and does not prove causality. Local application history is not a tamper-proof forensic record.", self)
+        self.help = QLabel(translate('Incidents', 'Timeline order shows recorded times and does not prove causality. Local application history is not a tamper-proof forensic record.'), self)
         self.help.setWordWrap(True)
         self.help.setTextFormat(Qt.TextFormat.PlainText)
-        self.refresh_button = self._button("Refresh", "Refresh incident list and selected timeline", self.refresh)
-        self.cancel_button = self._button("Cancel queries", "Cancel pending incident queries", self.cancel)
-        self.state = self._label("No incidents loaded.", "Incident list loading status")
-        self.detail_state = self._label("No incident selected.", "Incident timeline loading status")
-        self.table = self._table(self.model, "Persisted incident records")
-        self.timeline = self._table(self.timeline_model, "Incident timeline; chronological order")
-        self.previous_button = self._button("Previous", "Previous incident list page", self.previous_page)
-        self.next_button = self._button("Next", "Next incident list page", self.next_page)
-        self.more_button = self._button("Load more", "Load next timeline page", self.load_more)
-        self.detail_refresh_button = self._button("Refresh timeline", "Refresh selected incident timeline", self.refresh_detail)
-        self.summary = self._text("Selected incident summary and limitations")
-        self.row_detail = self._text("Selected timeline entry semantic times and references")
+        self.refresh_button = self._button(translate('Incidents', 'Refresh'), translate('Incidents', 'Refresh incident list and selected timeline'), self.refresh)
+        self.cancel_button = self._button(translate('Incidents', 'Cancel queries'), translate('Incidents', 'Cancel pending incident queries'), self.cancel)
+        self.state = self._label(translate('Incidents', 'No incidents loaded.'), translate('Incidents', 'Incident list loading status'))
+        self.detail_state = self._label(translate('Incidents', 'No incident selected.'), translate('Incidents', 'Incident timeline loading status'))
+        self.table = self._table(self.model, translate('Incidents', 'Persisted incident records'))
+        self.timeline = self._table(self.timeline_model, translate('Incidents', 'Incident timeline; chronological order'))
+        self.previous_button = self._button(translate('Incidents', 'Previous'), translate('Incidents', 'Previous incident list page'), self.previous_page)
+        self.next_button = self._button(translate('Incidents', 'Next'), translate('Incidents', 'Next incident list page'), self.next_page)
+        self.more_button = self._button(translate('Incidents', 'Load more'), translate('Incidents', 'Load next timeline page'), self.load_more)
+        self.detail_refresh_button = self._button(translate('Incidents', 'Refresh timeline'), translate('Incidents', 'Refresh selected incident timeline'), self.refresh_detail)
+        self.summary = self._text(translate('Incidents', 'Selected incident summary and limitations'))
+        self.row_detail = self._text(translate('Incidents', 'Selected timeline entry semantic times and references'))
         self.risk = RiskExplanationWidget(risk_queries, self)
         self.tabs = QTabWidget(self)
-        self.tabs.setAccessibleName("Incident detail sections")
-        self.tabs.addTab(self.summary, "Summary / context")
-        self.tabs.addTab(self.row_detail, "Selected timeline entry")
-        self.tabs.addTab(self.risk, "Risk explanation")
+        self.tabs.setAccessibleName(translate('Incidents', 'Incident detail sections'))
+        self.tabs.addTab(self.summary, translate('Incidents', 'Summary / context'))
+        self.tabs.addTab(self.row_detail, translate('Incidents', 'Selected timeline entry'))
+        self.tabs.addTab(self.risk, translate('Incidents', 'Risk explanation'))
         self.tabs.setTabVisible(2, False)
 
         controls = QHBoxLayout()
@@ -128,7 +133,7 @@ class IncidentsView(QWidget):
             for query in queries:
                 query.stopped.connect(self._worker_stopped)
         else:
-            self.state.setText("Incident queries unavailable. Try Refresh.")
+            self.state.setText(translate('Incidents', 'Incident queries unavailable. Try Refresh.'))
         self._controls()
 
     def _show_detail(self, selected: bool) -> None:
@@ -144,24 +149,24 @@ class IncidentsView(QWidget):
         label = QLabel(text, self)
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
-        label.setAccessibleName(name)
+        label.setAccessibleName(render_text(name))
         return label
 
     def _button(self, text, name, callback):
         button = QPushButton(text, self)
-        button.setAccessibleName(name)
+        button.setAccessibleName(render_text(name))
         button.clicked.connect(callback)
         return button
 
     def _text(self, name):
         text = QTextEdit(self)
         text.setReadOnly(True)
-        text.setAccessibleName(name)
+        text.setAccessibleName(render_text(name))
         return text
 
     def _table(self, model, name):
         table = QTableView(self)
-        table.setAccessibleName(name)
+        table.setAccessibleName(render_text(name))
         table.setModel(model)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -206,13 +211,13 @@ class IncidentsView(QWidget):
             for query in self.queries:
                 query.invalidate()
         if self._list_loading:
-            self.state.setText("Incident list query cancelled. Refresh to retry.")
+            self.state.setText(translate('Incidents', 'Incident list query cancelled. Refresh to retry.'))
         if self._detail_loading:
-            self.detail_state.setText("Timeline query cancelled. Refresh to retry.")
+            self.detail_state.setText(translate('Incidents', 'Timeline query cancelled. Refresh to retry.'))
             self._timeline_cursor = None
         self._list_generation = self._detail_generation = None
         self._list_loading = self._detail_loading = False
-        self.risk.clear("Incident query cancelled.")
+        self.risk.clear(translate('Incidents', 'Incident query cancelled.'))
         self.tabs.setTabVisible(2, False)
         self._controls()
 
@@ -235,11 +240,11 @@ class IncidentsView(QWidget):
         try:
             self._list_generation = self.queries[0].request(request)
         except RuntimeError:
-            self.state.setText("Incident queries unavailable. Try Refresh.")
+            self.state.setText(translate('Incidents', 'Incident queries unavailable. Try Refresh.'))
             return
         self._list_request = request
         self._list_loading = True
-        self.state.setText("Loading incidents…")
+        self.state.setText(translate('Incidents', 'Loading incidents…'))
         self._controls()
 
     def next_page(self):
@@ -266,9 +271,9 @@ class IncidentsView(QWidget):
                 if entry.record is not None and entry.record.incident_id == self._selected_id:
                     self.table.selectRow(row)
                     break
-        self.state.setText("No incidents yet." if not page.entries else f"{len(page.entries)} incident records on this page; ordered by stable ID.")
+        self.state.setText(render_text(translate('Incidents', 'No incidents yet.') if not page.entries else format_text(translate('Incidents', '{value1} incident records on this page; ordered by stable ID.'), value1=len(page.entries))))
         if any(e.record is None for e in page.entries):
-            self.state.setText(self.state.text() + " Some incident records are unavailable; see row status.")
+            self.state.setText(render_text(self.state.text() + translate('Incidents', ' Some incident records are unavailable; see row status.')))
         self._controls()
 
     def _selected(self, current: QModelIndex, previous: QModelIndex):
@@ -293,9 +298,9 @@ class IncidentsView(QWidget):
         self.timeline_model.set_entries(())
         self.summary.clear()
         self.row_detail.clear()
-        self.risk.clear("No assessment selected.")
+        self.risk.clear(translate('Incidents', 'No assessment selected.'))
         self.tabs.setTabVisible(2, False)
-        self.detail_state.setText("No incident selected.")
+        self.detail_state.setText(translate('Incidents', 'No incident selected.'))
         if self._selected_id is not None:
             self._request_detail(False)
         self._controls()
@@ -312,12 +317,12 @@ class IncidentsView(QWidget):
         try:
             self._detail_generation = self.queries[1].request(request)
         except RuntimeError:
-            self.detail_state.setText("Incident timeline unavailable. Try Refresh.")
+            self.detail_state.setText(translate('Incidents', 'Incident timeline unavailable. Try Refresh.'))
             return
         self._detail_request = request
         self._detail_loading = True
         self._append = append
-        self.detail_state.setText("Loading timeline…")
+        self.detail_state.setText(translate('Incidents', 'Loading timeline…'))
         self._controls()
 
     def _detail_ready(self, generation, page):
@@ -326,7 +331,7 @@ class IncidentsView(QWidget):
         self._detail_loading = False
         if page.status is not TimelineStatus.FOUND or page.record is None:
             self._timeline_cursor = None
-            self.detail_state.setText(page.message or "Incident timeline unavailable. Try Refresh.")
+            self.detail_state.setText(render_text(page.message or translate('Incidents', 'Incident timeline unavailable. Try Refresh.')))
             self._controls()
             return
         if page.record.incident_id != self._selected_id:
@@ -336,36 +341,23 @@ class IncidentsView(QWidget):
         self._timeline_cursor = page.next_cursor
         r, s = page.record, page.record.snapshot
         def stamp(t):
-            return format_local_timestamp(t) if t else "Unknown / not recorded"
-        self.summary.setPlainText("\n".join((
-            f"Incident ID: {r.incident_id}", f"Incident state: {r.state.value}; incident revision: {r.revision}",
-            f"First observed (local): {stamp(s.first_observed_at)}", f"Last observed (local): {stamp(s.last_observed_at)}",
-            f"Acknowledged (local): {stamp(r.acknowledged_at)}", f"Resolved (local): {stamp(r.resolved_at)}",
-            f"Reopened (local): {stamp(r.reopened_at)}", f"Persistence created / updated (local): {stamp(r.created_at)} / {stamp(r.updated_at)}",
-            f"Correlation policy version: {r.correlation_version}; fixed UTC bucket: {s.cohort.isoformat()}; window: {r.correlation_policy.window}",
-            f"Observation relations: {len(s.relations)}; evidence refs: {len(s.evidence)}; assessment refs: {len(s.assessments)}; alert refs: {len(s.alerts)} (separate lifecycle)",
-            "Limitations: " + ("; ".join(page.limitations) or "No additional persisted limitations; source/attribution uncertainty still applies."),
-            *page.context,
-        )))
-        self.detail_state.setText(f"{len(entries)} timeline rows loaded; oldest first.")
+            return format_local_timestamp(t) if t else translate('Incidents', 'Unknown / not recorded')
+        self.summary.setPlainText(render_join('\n', (format_text(translate('Incidents', 'Incident ID: {value1}'), value1=r.incident_id), format_text(translate('Incidents', 'Incident state: {value1}; incident revision: {value2}'), value1=display_enum(r.state), value2=r.revision), format_text(translate('Incidents', 'First observed (local): {value1}'), value1=stamp(s.first_observed_at)), format_text(translate('Incidents', 'Last observed (local): {value1}'), value1=stamp(s.last_observed_at)), format_text(translate('Incidents', 'Acknowledged (local): {value1}'), value1=stamp(r.acknowledged_at)), format_text(translate('Incidents', 'Resolved (local): {value1}'), value1=stamp(r.resolved_at)), format_text(translate('Incidents', 'Reopened (local): {value1}'), value1=stamp(r.reopened_at)), format_text(translate('Incidents', 'Persistence created / updated (local): {value1} / {value2}'), value1=stamp(r.created_at), value2=stamp(r.updated_at)), format_text(translate('Incidents', 'Correlation policy version: {value1}; fixed UTC bucket: {value2}; window: {value3}'), value1=r.correlation_version, value2=s.cohort.isoformat(), value3=r.correlation_policy.window), format_text(translate('Incidents', 'Observation relations: {value1}; evidence refs: {value2}; assessment refs: {value3}; alert refs: {value4} (separate lifecycle)'), value1=len(s.relations), value2=len(s.evidence), value3=len(s.assessments), value4=len(s.alerts)), translate('Incidents', 'Limitations: ') + (render_join('; ', page.limitations) or translate('Incidents', 'No additional persisted limitations; source/attribution uncertainty still applies.')), *page.context)))
+        self.detail_state.setText(format_text(translate('Incidents', '{value1} timeline rows loaded; oldest first.'), value1=len(entries)))
         if len(entries) >= MAX_LOADED_ROWS and page.next_cursor is not None:
-            self.detail_state.setText(f"Display limit reached ({MAX_LOADED_ROWS} rows). Further retained entries are not displayed; refresh starts the bounded view again.")
+            self.detail_state.setText(format_text(translate('Incidents', 'Display limit reached ({value1} rows). Further retained entries are not displayed; refresh starts the bounded view again.'), value1=MAX_LOADED_ROWS))
         self._controls()
 
     def _row_selected(self, current, previous):
-        self.risk.clear("No assessment selected.")
+        self.risk.clear(translate('Incidents', 'No assessment selected.'))
         self.tabs.setTabVisible(2, False)
         if not current.isValid():
             self.row_detail.clear()
             return
         e = self.timeline_model.entries[current.row()]
         def stamp(t):
-            return t.isoformat(timespec="microseconds") + " (UTC)" if t else "Unknown / not recorded"
-        self.row_detail.setPlainText("\n".join((e.title, e.kind.value, e.explanation,
-            f"Primary ordering time: {stamp(e.primary_time)}; {e.time_semantics}",
-            f"Observation time: {stamp(e.observation_time)}", f"Assessment time: {stamp(e.assessment_time)}",
-            f"Action time: {stamp(e.action_time)}", f"Source kind: {e.source_kind}; reference: {e.source_id}",
-            SOURCE_TEXT[e.source_status], f"Entry revision (assessment or incident action): {e.revision or 'Not applicable'}")))
+            return t.isoformat(timespec="microseconds") + " (UTC)" if t else translate('Incidents', 'Unknown / not recorded')
+        self.row_detail.setPlainText(render_join('\n', (e.title, display_enum(e.kind), e.explanation, format_text(translate('Incidents', 'Primary ordering time: {value1}; {value2}'), value1=stamp(e.primary_time), value2=e.time_semantics), format_text(translate('Incidents', 'Observation time: {value1}'), value1=stamp(e.observation_time)), format_text(translate('Incidents', 'Assessment time: {value1}'), value1=stamp(e.assessment_time)), format_text(translate('Incidents', 'Action time: {value1}'), value1=stamp(e.action_time)), format_text(translate('Incidents', 'Source kind: {value1}; reference: {value2}'), value1=e.source_kind, value2=e.source_id), SOURCE_TEXT[e.source_status], format_text(translate('Incidents', 'Entry revision (assessment or incident action): {value1}'), value1=e.revision or translate('Incidents', 'Not applicable')))))
         self.tabs.setCurrentIndex(1)
         if e.assessment:
             self.tabs.setTabVisible(2, True)
@@ -374,12 +366,12 @@ class IncidentsView(QWidget):
     def _list_failed(self, generation):
         if generation == self._list_generation:
             self._list_loading = False
-            self.state.setText("Incident list unavailable. Try Refresh.")
+            self.state.setText(translate('Incidents', 'Incident list unavailable. Try Refresh.'))
             self._controls()
 
     def _detail_failed(self, generation):
         if generation == self._detail_generation:
             self._detail_loading = False
             self._timeline_cursor = None
-            self.detail_state.setText("Incident timeline unavailable. Try Refresh.")
+            self.detail_state.setText(translate('Incidents', 'Incident timeline unavailable. Try Refresh.'))
             self._controls()

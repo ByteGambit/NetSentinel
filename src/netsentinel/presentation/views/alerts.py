@@ -1,6 +1,12 @@
 """Bounded persisted-alert browser and acknowledge command."""
 
 from __future__ import annotations
+
+from netsentinel.presentation.i18n.text import TranslationSequence, display_enum
+
+from netsentinel.presentation.i18n.text import format_text, render_join, render_text
+
+from netsentinel.presentation.i18n.text import translate
 from uuid import UUID
 
 from typing import cast
@@ -29,34 +35,34 @@ ALERT_PAGE_SIZE = 50
 
 
 class AlertDetailsWidget(QGroupBox):
-    FIELDS = (("type", "Type"), ("rule", "Rule ID"), ("status", "Status"),
-              ("severity", "Severity"), ("confidence", "Confidence"),
-              ("entity", "Affected entity"), ("network", "Network context"),
-              ("expected", "Expected MAC"), ("observed", "Observed MAC"),
-              ("first", "First seen"), ("last", "Last seen"),
-              ("count", "Occurrences"), ("updated", "Lifecycle updated"))
+    FIELDS = TranslationSequence(lambda: (("type", translate('Alerts', 'Type')), ("rule", translate('Alerts', 'Rule ID')), ("status", translate('Alerts', 'Status')),
+              ("severity", translate('Alerts', 'Severity')), ("confidence", translate('Alerts', 'Confidence')),
+              ("entity", translate('Alerts', 'Affected entity')), ("network", translate('Alerts', 'Network context')),
+              ("expected", translate('Alerts', 'Expected MAC')), ("observed", translate('Alerts', 'Observed MAC')),
+              ("first", translate('Alerts', 'First seen')), ("last", translate('Alerts', 'Last seen')),
+              ("count", translate('Alerts', 'Occurrences')), ("updated", translate('Alerts', 'Lifecycle updated'))))
 
     def __init__(self, parent: QWidget | None = None, *, risk_queries: RiskQueryCoordinator | None = None) -> None:
-        super().__init__("Selected alert", parent)
-        self.setAccessibleName("Alert details")
-        self.status_label = QLabel("No alert selected.", self)
-        self.status_label.setAccessibleName("Alert detail status")
+        super().__init__(translate('Alerts', 'Selected alert'), parent)
+        self.setAccessibleName(translate('Alerts', 'Alert details'))
+        self.status_label = QLabel(translate('Alerts', 'No alert selected.'), self)
+        self.status_label.setAccessibleName(translate('Alerts', 'Alert detail status'))
         self.values: dict[str, QLabel] = {}
         form = QFormLayout()
         for key, title in self.FIELDS:
             value = QLabel("—", self)
             value.setObjectName(f"alertDetail_{key}")
-            value.setAccessibleName(f"Alert {title.lower()}")
+            value.setAccessibleName(format_text(translate('Alerts', 'Alert {value1}'), value1=title.lower()))
             value.setTextFormat(Qt.TextFormat.PlainText)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             self.values[key] = value
             form.addRow(f"{title}:", value)
         self.explanation = QLabel("", self)
-        self.explanation.setAccessibleName("Alert rule explanation")
+        self.explanation.setAccessibleName(translate('Alerts', 'Alert rule explanation'))
         self.explanation.setTextFormat(Qt.TextFormat.PlainText)
         self.explanation.setWordWrap(True)
         self.evidence = QTextEdit(self)
-        self.evidence.setAccessibleName("Alert evidence and score breakdown")
+        self.evidence.setAccessibleName(translate('Alerts', 'Alert evidence and score breakdown'))
         self.evidence.setReadOnly(True)
         self.evidence.setMaximumHeight(145)
         legacy = QWidget(self)
@@ -69,36 +75,36 @@ class AlertDetailsWidget(QGroupBox):
         scroll.setWidgetResizable(True)
         scroll.setWidget(legacy)
         self.tabs = QTabWidget(self)
-        self.tabs.setAccessibleName("Selected alert detail sections")
-        self.tabs.addTab(scroll, "Alert evidence")
+        self.tabs.setAccessibleName(translate('Alerts', 'Selected alert detail sections'))
+        self.tabs.addTab(scroll, translate('Alerts', 'Alert evidence'))
         self.risk = RiskExplanationWidget(risk_queries, self)
-        self.tabs.addTab(self.risk, "Risk explanation")
+        self.tabs.addTab(self.risk, translate('Alerts', 'Risk explanation'))
         self.tabs.setTabVisible(1, False)
         outer = QVBoxLayout(self)
         outer.addWidget(self.tabs)
 
     def clear(self) -> None:
-        self.status_label.setText("No alert selected.")
+        self.status_label.setText(translate('Alerts', 'No alert selected.'))
         self.status_label.show()
         for value in self.values.values():
             value.setText("—")
         self.explanation.clear()
         self.evidence.clear()
-        self.risk.clear("No alert selected.")
+        self.risk.clear(translate('Alerts', 'No alert selected.'))
         self.tabs.setTabVisible(1, False)
 
     def set_alert(self, alert: Alert, network_label: str | None = None) -> None:
         request = RiskExplanationRequest.for_alert(alert)
         self.tabs.setTabVisible(1, request is not None)
-        self.risk.select(request, empty="Generic assessment not available for this legacy alert.")
+        self.risk.select(request, empty=translate('Alerts', 'Generic assessment not available for this legacy alert.'))
         self.status_label.hide()
         latest = alert.evidence[-1]
         values = {"type": RULE_TITLES.get(alert.rule_id, alert.rule_id.replace("_", " ")),
                   "rule": alert.rule_id, "status": alert.status.value,
                   "severity": alert.severity, "confidence": alert.confidence,
                   "entity": entity_text(alert),
-                  "network": network_label or (f"Previously observed network (scope {alert.network_fingerprint[:8]})"
-                      if alert.network_fingerprint is not None else "Network scope unavailable"),
+                  "network": network_label or (format_text(translate('Alerts', 'Previously observed network (scope {value1})'), value1=alert.network_fingerprint[:8])
+                      if alert.network_fingerprint is not None else translate('Alerts', 'Network scope unavailable')),
                   "expected": str(latest.expected_mac) if latest.expected_mac else "—",
                   "observed": str(latest.observed_mac) if latest.observed_mac else "—",
                   "first": format_local_timestamp(alert.first_seen),
@@ -106,36 +112,36 @@ class AlertDetailsWidget(QGroupBox):
                   "count": str(alert.occurrence_count),
                   "updated": format_local_timestamp(alert.updated_at)}
         for key, value in values.items():
-            self.values[key].setText(value)
-        self.explanation.setText(RULE_EXPLANATIONS.get(alert.rule_id, "Review this observation in its network context."))
+            self.values[key].setText(render_text(value))
+        self.explanation.setText(render_text(RULE_EXPLANATIONS.get(alert.rule_id, translate('Alerts', 'Review this observation in its network context.'))))
         lines: list[str] = []
         for evidence in alert.evidence:
-            lines.append(f"Observed {format_local_timestamp(evidence.observed_at)}")
+            lines.append(format_text(translate('Alerts', 'Observed {value1}'), value1=format_local_timestamp(evidence.observed_at)))
             if evidence.ip_address:
                 lines.append(f"  IP: {evidence.ip_address}")
             if evidence.expected_mac:
-                lines.append(f"  Expected MAC: {evidence.expected_mac}")
+                lines.append(format_text(translate('Alerts', '  Expected MAC: {value1}'), value1=evidence.expected_mac))
             if evidence.observed_mac:
-                lines.append(f"  Observed MAC: {evidence.observed_mac}")
+                lines.append(format_text(translate('Alerts', '  Observed MAC: {value1}'), value1=evidence.observed_mac))
             if evidence.expected_last_seen_at:
-                lines.append(f"  Expected identity last seen: {format_local_timestamp(evidence.expected_last_seen_at)}")
+                lines.append(format_text(translate('Alerts', '  Expected identity last seen: {value1}'), value1=format_local_timestamp(evidence.expected_last_seen_at)))
             if evidence.baseline_status:
-                lines.append(f"  Gateway baseline: {evidence.baseline_status.value}")
+                lines.append(format_text(translate('Alerts', '  Gateway baseline: {value1}'), value1=evidence.baseline_status.value))
             if evidence.score is not None:
-                lines.append(f"  Correlation score: {evidence.score}; observations: {evidence.observation_count}")
+                lines.append(format_text(translate('Alerts', '  Correlation score: {value1}; observations: {value2}'), value1=evidence.score, value2=evidence.observation_count))
             for part in evidence.breakdown:
                 lines.append(f"  {SCORE_EXPLANATIONS.get(part.rule.value, part.rule.value)}: {part.points}")
             for key, value in evidence.details:
                 if key == "visibility" and value == "capture_filter_and_nic_offload_limited":
-                    display_value = "NIC/driver offload and capture filtering can hide VLAN tags."
+                    display_value = translate('Alerts', 'NIC/driver offload and capture filtering can hide VLAN tags.')
                 elif key == "baseline" and value == "verified_observed":
-                    display_value = "User-accepted observed reference; switch configuration is not verified."
+                    display_value = translate('Alerts', 'User-accepted observed reference; switch configuration is not verified.')
                 elif key == "confidence_basis":
                     display_value = value.replace("_", " ")
                 else:
                     display_value = value
                 lines.append(f"  {key.replace('_', ' ')}: {display_value}")
-        self.evidence.setPlainText("\n".join(lines))
+        self.evidence.setPlainText(render_join('\n', lines))
 
 
 class AlertsView(QWidget):
@@ -144,7 +150,7 @@ class AlertsView(QWidget):
                  risk_queries: RiskQueryCoordinator | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("alertsView")
-        self.setAccessibleName("Persisted security alerts")
+        self.setAccessibleName(translate('Alerts', 'Persisted security alerts'))
         self.coordinator = coordinator
         self.model = AlertsTableModel(self)
         self._page_index = 0
@@ -158,47 +164,47 @@ class AlertsView(QWidget):
         self._network_labels: dict[str, str] = {}
         self._linked_profile: tuple[str, str] | None = None
 
-        title = QLabel("Alerts", self)
+        title = QLabel(translate('Alerts', 'Alerts'), self)
         title.setStyleSheet(PAGE_TITLE)
-        subtitle = QLabel("Review locally stored security observations and their supporting evidence.", self)
+        subtitle = QLabel(translate('Alerts', 'Review locally stored security observations and their supporting evidence.'), self)
         subtitle.setStyleSheet(SECONDARY_TEXT)
         self.status_filter = QComboBox(self)
-        self.status_filter.setAccessibleName("Alert status filter")
-        self.status_filter.addItem("All statuses", None)
+        self.status_filter.setAccessibleName(translate('Alerts', 'Alert status filter'))
+        self.status_filter.addItem(translate('Alerts', 'All statuses'), None)
         for status in AlertStatus:
-            self.status_filter.addItem(status.value.title(), status)
+            self.status_filter.addItem(display_enum(status, 'title'), status)
         self.severity_filter = QComboBox(self)
-        self.severity_filter.setAccessibleName("Alert severity filter")
-        self.severity_filter.addItem("All severities", None)
+        self.severity_filter.setAccessibleName(translate('Alerts', 'Alert severity filter'))
+        self.severity_filter.addItem(translate('Alerts', 'All severities'), None)
         for value in ("info", "low", "medium", "high"):
             self.severity_filter.addItem(value.title(), value)
         self.confidence_filter = QComboBox(self)
-        self.confidence_filter.setAccessibleName("Alert confidence filter")
-        self.confidence_filter.addItem("All confidence levels", None)
+        self.confidence_filter.setAccessibleName(translate('Alerts', 'Alert confidence filter'))
+        self.confidence_filter.addItem(translate('Alerts', 'All confidence levels'), None)
         for value in ("passive_observation", "low", "moderate", "high"):
             self.confidence_filter.addItem(value.replace("_", " ").title(), value)
         self.rule_filter = QComboBox(self)
-        self.rule_filter.setAccessibleName("Alert rule filter")
-        self.rule_filter.addItem("All types", None)
+        self.rule_filter.setAccessibleName(translate('Alerts', 'Alert rule filter'))
+        self.rule_filter.addItem(translate('Alerts', 'All types'), None)
         for rule, label in RULE_TITLES.items():
             self.rule_filter.addItem(label, rule)
-        self.refresh_button = QPushButton("Refresh", self)
-        self.refresh_button.setAccessibleName("Refresh alerts")
-        self.linked_profile_label = QLabel("Showing alerts for the selected device profile and network.", self)
-        self.linked_profile_label.setAccessibleName("Related profile alert scope")
+        self.refresh_button = QPushButton(translate('Alerts', 'Refresh'), self)
+        self.refresh_button.setAccessibleName(translate('Alerts', 'Refresh alerts'))
+        self.linked_profile_label = QLabel(translate('Alerts', 'Showing alerts for the selected device profile and network.'), self)
+        self.linked_profile_label.setAccessibleName(translate('Alerts', 'Related profile alert scope'))
         self.linked_profile_label.hide()
-        self.clear_profile_button = QPushButton("Show all alerts", self)
-        self.clear_profile_button.setAccessibleName("Clear related profile alert scope")
+        self.clear_profile_button = QPushButton(translate('Alerts', 'Show all alerts'), self)
+        self.clear_profile_button.setAccessibleName(translate('Alerts', 'Clear related profile alert scope'))
         self.clear_profile_button.hide()
         filters = QHBoxLayout()
         control: QWidget
         for control in (self.status_filter, self.severity_filter, self.confidence_filter, self.rule_filter, self.refresh_button):
             filters.addWidget(control)
 
-        self.state_label = QLabel("No alerts yet." if coordinator is not None else "Alerts are unavailable. Try Refresh.", self)
-        self.state_label.setAccessibleName("Alert loading and result status")
+        self.state_label = QLabel(translate('Alerts', 'No alerts yet.') if coordinator is not None else translate('Alerts', 'Alerts are unavailable. Try Refresh.'), self)
+        self.state_label.setAccessibleName(translate('Alerts', 'Alert loading and result status'))
         self.table = QTableView(self)
-        self.table.setAccessibleName("Persisted alert records")
+        self.table.setAccessibleName(translate('Alerts', 'Persisted alert records'))
         self.table.setModel(self.model)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -206,20 +212,20 @@ class AlertsView(QWidget):
         self.table.setAlternatingRowColors(True)
         cast(QHeaderView, self.table.verticalHeader()).setVisible(False)
         cast(QHeaderView, self.table.horizontalHeader()).setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.previous_button = QPushButton("Previous", self)
-        self.previous_button.setAccessibleName("Previous alert page")
-        self.next_button = QPushButton("Next", self)
-        self.next_button.setAccessibleName("Next alert page")
-        self.page_label = QLabel("Page 1", self)
-        self.page_label.setAccessibleName("Alert page number")
+        self.previous_button = QPushButton(translate('Alerts', 'Previous'), self)
+        self.previous_button.setAccessibleName(translate('Alerts', 'Previous alert page'))
+        self.next_button = QPushButton(translate('Alerts', 'Next'), self)
+        self.next_button.setAccessibleName(translate('Alerts', 'Next alert page'))
+        self.page_label = QLabel(translate('Alerts', 'Page 1'), self)
+        self.page_label.setAccessibleName(translate('Alerts', 'Alert page number'))
         pagination = QHBoxLayout()
         pagination.addStretch()
         for control in (self.previous_button, self.page_label, self.next_button):
             pagination.addWidget(control)
         pagination.addStretch()
         self.details = AlertDetailsWidget(self, risk_queries=risk_queries)
-        self.acknowledge_button = QPushButton("Acknowledge", self)
-        self.acknowledge_button.setAccessibleName("Acknowledge selected alert")
+        self.acknowledge_button = QPushButton(translate('Alerts', 'Acknowledge'), self)
+        self.acknowledge_button.setAccessibleName(translate('Alerts', 'Acknowledge selected alert'))
         cast(QLayout, self.details.layout()).addWidget(self.acknowledge_button)
         table_panel = QWidget(self)
         table_layout = QVBoxLayout(table_panel)
@@ -305,7 +311,7 @@ class AlertsView(QWidget):
         self.model.replace_alerts(())
         self.details.clear()
         self._loading = True
-        self.state_label.setText("Loading notification alert…")
+        self.state_label.setText(translate('Alerts', 'Loading notification alert…'))
         self.state_label.show()
         self._update_controls()
         try:
@@ -325,12 +331,12 @@ class AlertsView(QWidget):
         if isinstance(alert, Alert) and alert.id == target:
             self.model.replace_alerts((alert,))
             self.table.selectRow(0)
-            self.state_label.setText("Notification alert. Refresh to browse all alerts.")
+            self.state_label.setText(translate('Alerts', 'Notification alert. Refresh to browse all alerts.'))
             self.notification_navigation_finished.emit(True)
         else:
             self.model.replace_alerts(())
             self.details.clear()
-            self.state_label.setText("Alert is no longer available.")
+            self.state_label.setText(translate('Alerts', 'Alert is no longer available.'))
             self.notification_navigation_finished.emit(False)
         self.state_label.show()
         self._update_controls()
@@ -386,14 +392,14 @@ class AlertsView(QWidget):
                            network_fingerprint=self._linked_profile[1] if self._linked_profile else None,
                            entity_id=self._linked_profile[0] if self._linked_profile else None)
         self._loading = True
-        self.state_label.setText("Loading alerts…")
+        self.state_label.setText(translate('Alerts', 'Loading alerts…'))
         self.state_label.show()
         self._update_controls()
         try:
             self._generation = self.coordinator.request(query)
         except RuntimeError:
             self._loading = False
-            self.state_label.setText("Alerts are unavailable. Try Refresh.")
+            self.state_label.setText(translate('Alerts', 'Alerts are unavailable. Try Refresh.'))
             self._update_controls()
 
     def _page_ready(self, generation: int, page: object) -> None:
@@ -424,8 +430,7 @@ class AlertsView(QWidget):
         if page.alerts:
             self.state_label.hide()
         else:
-            self.state_label.setText("No identity alerts for this profile." if self._linked_profile else
-                                     "No alerts match the current filters." if self._filters_active() else "No alerts yet.")
+            self.state_label.setText(render_text(translate('Alerts', 'No identity alerts for this profile.') if self._linked_profile else translate('Alerts', 'No alerts match the current filters.') if self._filters_active() else translate('Alerts', 'No alerts yet.')))
             self.state_label.show()
         self._update_controls()
 
@@ -440,7 +445,7 @@ class AlertsView(QWidget):
         self.model.replace_alerts(())
         self._selected_id = None
         self.details.clear()
-        self.state_label.setText("Alerts are unavailable. Try Refresh.")
+        self.state_label.setText(translate('Alerts', 'Alerts are unavailable. Try Refresh.'))
         self.state_label.show()
         self._update_controls()
 
@@ -475,7 +480,7 @@ class AlertsView(QWidget):
 
     def _action_failed(self, _alert_id: object) -> None:
         self._ack_pending = False
-        self.state_label.setText("Unable to acknowledge alert. Try again.")
+        self.state_label.setText(translate('Alerts', 'Unable to acknowledge alert. Try again.'))
         self.state_label.show()
         self._update_controls()
 
@@ -484,7 +489,7 @@ class AlertsView(QWidget):
                    (self.status_filter, self.severity_filter, self.confidence_filter, self.rule_filter))
 
     def _update_controls(self) -> None:
-        self.page_label.setText(f"Page {self._page_index + 1}")
+        self.page_label.setText(format_text(translate('Alerts', 'Page {value1}'), value1=self._page_index + 1))
         self.previous_button.setEnabled(not self._loading and self._page_index > 0)
         self.next_button.setEnabled(not self._loading and self._has_next)
         alert = self._selected_alert()

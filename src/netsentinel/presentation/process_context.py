@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import translate
+
+from netsentinel.presentation.i18n.text import TranslationSequence
+
 from datetime import UTC, datetime
 
 from netsentinel.domain.connections import (
@@ -11,15 +15,15 @@ from netsentinel.domain.connections import (
 )
 
 
-PROCESS_CONTEXT_FIELDS: tuple[tuple[str, str], ...] = (
-    ("process_create_time", "Process created"),
-    ("executable", "Executable path"),
-    ("parent_status", "Observed parent context"),
-    ("parent_name", "Parent name"),
-    ("parent_pid", "Parent PID"),
-    ("parent_create_time", "Parent created"),
-    ("parent_observed_at", "Parent observed at"),
-)
+PROCESS_CONTEXT_FIELDS = TranslationSequence(lambda: (
+    ("process_create_time", translate('ProcessContext', 'Process created')),
+    ("executable", translate('ProcessContext', 'Executable path')),
+    ("parent_status", translate('ProcessContext', 'Observed parent context')),
+    ("parent_name", translate('ProcessContext', 'Parent name')),
+    ("parent_pid", translate('ProcessContext', 'Parent PID')),
+    ("parent_create_time", translate('ProcessContext', 'Parent created')),
+    ("parent_observed_at", translate('ProcessContext', 'Parent observed at')),
+))
 
 
 def _timestamp(value: datetime) -> str:
@@ -28,11 +32,11 @@ def _timestamp(value: datetime) -> str:
 
 def _missing(status: ProcessInfoStatus | None) -> str:
     return {
-        ProcessInfoStatus.ACCESS_DENIED: "Restricted by Windows permissions",
-        ProcessInfoStatus.NOT_FOUND: "Process no longer found",
-        ProcessInfoStatus.UNAVAILABLE: "Not available",
-        None: "Not available",
-    }.get(status, "Not available")
+        ProcessInfoStatus.ACCESS_DENIED: translate('ProcessContext', 'Restricted by Windows permissions'),
+        ProcessInfoStatus.NOT_FOUND: translate('ProcessContext', 'Process no longer found'),
+        ProcessInfoStatus.UNAVAILABLE: translate('ProcessContext', 'Not available'),
+        None: translate('ProcessContext', 'Not available'),
+    }.get(status, translate('ProcessContext', 'Not available'))
 
 
 def format_process_created(value: datetime | None, status: ProcessInfoStatus | None = None) -> str:
@@ -45,10 +49,10 @@ def format_process_created(value: datetime | None, status: ProcessInfoStatus | N
         return _missing(status)
     try:
         if value.tzinfo is None or value.utcoffset() is None or value <= datetime(1970, 1, 1, tzinfo=UTC):
-            return "Not available"
+            return translate('ProcessContext', 'Not available')
         return _timestamp(value)
     except (ValueError, OverflowError, OSError):
-        return "Not available"
+        return translate('ProcessContext', 'Not available')
 
 
 def process_context_text(process: ProcessInfo) -> dict[str, str]:
@@ -59,37 +63,37 @@ def process_context_text(process: ProcessInfo) -> dict[str, str]:
     parent = process.parent
     values = {
         "process": process.name if process.name is not None else _missing(process.name_status),
-        "pid": str(identity.pid) if identity is not None else "Not available",
+        "pid": str(identity.pid) if identity is not None else translate('ProcessContext', 'Not available'),
         "process_create_time": format_process_created(created, process.create_time_status),
         "executable": (
             process.executable_path
             if process.executable_path is not None
             else _missing(process.executable_path_status)
         ),
-        "parent_status": "Not observed",
-        "parent_name": "Not observed",
-        "parent_pid": "Not observed",
-        "parent_create_time": "Not observed",
-        "parent_observed_at": "Not observed",
+        "parent_status": translate('ProcessContext', 'Not observed'),
+        "parent_name": translate('ProcessContext', 'Not observed'),
+        "parent_pid": translate('ProcessContext', 'Not observed'),
+        "parent_create_time": translate('ProcessContext', 'Not observed'),
+        "parent_observed_at": translate('ProcessContext', 'Not observed'),
     }
     if parent is None:
         return values
 
     values["parent_status"] = {
-        ParentProcessStatus.OBSERVED: "Observed; parent instance verified",
-        ParentProcessStatus.ABSENT: "No parent reported",
-        ParentProcessStatus.ACCESS_DENIED: "Restricted by Windows permissions",
-        ParentProcessStatus.NOT_FOUND: "Parent no longer found",
-        ParentProcessStatus.REUSED: "Parent PID may have been reused; instance unverified",
-        ParentProcessStatus.UNAVAILABLE: "Parent context unavailable",
+        ParentProcessStatus.OBSERVED: translate('ProcessContext', 'Observed; parent instance verified'),
+        ParentProcessStatus.ABSENT: translate('ProcessContext', 'No parent reported'),
+        ParentProcessStatus.ACCESS_DENIED: translate('ProcessContext', 'Restricted by Windows permissions'),
+        ParentProcessStatus.NOT_FOUND: translate('ProcessContext', 'Parent no longer found'),
+        ParentProcessStatus.REUSED: translate('ProcessContext', 'Parent PID may have been reused; instance unverified'),
+        ParentProcessStatus.UNAVAILABLE: translate('ProcessContext', 'Parent context unavailable'),
     }[parent.status]
     if parent.status is ParentProcessStatus.ABSENT:
-        values["parent_name"] = "No parent reported"
-        values["parent_pid"] = "No parent reported"
-        values["parent_create_time"] = "No parent reported"
+        values["parent_name"] = translate('ProcessContext', 'No parent reported')
+        values["parent_pid"] = translate('ProcessContext', 'No parent reported')
+        values["parent_create_time"] = translate('ProcessContext', 'No parent reported')
     elif parent.status is ParentProcessStatus.REUSED:
-        values["parent_name"] = "Not verified"
-        values["parent_create_time"] = "Not verified"
+        values["parent_name"] = translate('ProcessContext', 'Not verified')
+        values["parent_create_time"] = translate('ProcessContext', 'Not verified')
     else:
         values["parent_name"] = (
             parent.name if parent.name is not None else _missing(parent.name_status)

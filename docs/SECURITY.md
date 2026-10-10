@@ -1,5 +1,13 @@
 # Güvenlik ve güvenli kullanım
 
+NS-105 (2026-10-09): lokalizasyon yalnız trusted bundled allowlist/size/SHA-256
+kontrollü QM bytes yükler; external/user catalog yolu, runtime translation API
+ve network request yoktur. Load failure yalnız sanitized typed code/English
+fallback verir. Açık destructive confirmation ve pending worker sırasında seal
+edilmiş session dili değişmez. Persisted evidence/audit/user strings ve machine
+exports çevrilmez; detector/risk/consent/firewall/schema020 sözleşmeleri korunur.
+Runtime switching NO_GO; NS-106–120 NOT STARTED. [Sözleşme](LOCALIZATION.md).
+
 NS-103 (2026-10-09): manual response UI preserves NS-100–102 and asInvoker.
 Normal composition has no native firewall executor or permissive trusted file
 reader; **in-product writes remain NO_GO**. Missing target/provenance/profile or

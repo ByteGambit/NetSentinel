@@ -1,5 +1,8 @@
 """NS-103 bounded single I/O owner; Qt signals only carry sanitized projections."""
 
+
+from netsentinel.presentation.i18n.text import translate
+
 from collections.abc import Callable
 from datetime import datetime
 from threading import Event, RLock, Thread
@@ -48,7 +51,7 @@ class ResponseCommandCoordinator(QObject):
             if dropped is not None:
                 serial, generation, kind, _ = dropped
                 self.completed.emit(serial, generation, kind, ResponseUiReply(
-                    "Cancelled before dispatch: no firewall write, response intent or ATTEMPT."))
+                    translate('ResponseCommands', 'Cancelled before dispatch: no firewall write, response intent or ATTEMPT.')))
             return self._generation
 
     def _submit(self, kind: str, args: tuple) -> int | None:

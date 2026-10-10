@@ -1,6 +1,13 @@
 """NS-091 bounded tables with textual, accessible timeline semantics."""
 
+from netsentinel.presentation.i18n.text import TranslationSequence
+
+from netsentinel.presentation.i18n.text import display_enum, format_text, render_join
+
+from netsentinel.presentation.i18n.text import translate
+
 from typing import Generic, TypeVar
+from netsentinel.presentation.i18n.text import render_text
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
@@ -41,9 +48,9 @@ class TextTableModel(QAbstractTableModel, Generic[T]):
             return None
         values = self.values(index.row())
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.AccessibleTextRole):
-            return values[index.column()]
+            return render_text(values[index.column()])
         if role in (Qt.ItemDataRole.ToolTipRole, Qt.ItemDataRole.AccessibleDescriptionRole):
-            return "; ".join(values)
+            return render_join('; ', values)
         return None
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
@@ -53,20 +60,20 @@ class TextTableModel(QAbstractTableModel, Generic[T]):
 
 
 class IncidentTableModel(TextTableModel[IncidentResult]):
-    HEADERS = ("Incident ID", "State", "First observed (local)", "Last observed (local)", "Incident revision", "References / limitations")
+    HEADERS = TranslationSequence(lambda: (translate('IncidentsModel', 'Incident ID'), translate('IncidentsModel', 'State'), translate('IncidentsModel', 'First observed (local)'), translate('IncidentsModel', 'Last observed (local)'), translate('IncidentsModel', 'Incident revision'), translate('IncidentsModel', 'References / limitations')))
 
     def values(self, row):
         entry = self.entries[row]
         r = entry.record
         if r is None:
-            return ("Unavailable incident", entry.status.value, "Unknown", "Unknown", "Unknown", "Stored incident could not be read.")
+            return (translate('IncidentsModel', 'Unavailable incident'), display_enum(entry.status), translate('IncidentsModel', 'Unknown'), translate('IncidentsModel', 'Unknown'), translate('IncidentsModel', 'Unknown'), translate('IncidentsModel', 'Stored incident could not be read.'))
         s = r.snapshot
-        counts = f"{len(s.relations)} observations; {len(s.evidence)} evidence; {len(s.assessments)} assessments; {len(s.limitations)} limitations"
-        return (str(r.incident_id), r.state.value, format_local_timestamp(s.first_observed_at),
+        counts = format_text(translate('IncidentsModel', '{value1} observations; {value2} evidence; {value3} assessments; {value4} limitations'), value1=len(s.relations), value2=len(s.evidence), value3=len(s.assessments), value4=len(s.limitations))
+        return (str(r.incident_id), display_enum(r.state), format_local_timestamp(s.first_observed_at),
                 format_local_timestamp(s.last_observed_at), str(r.revision), counts)
 
 class TimelineTableModel(TextTableModel[TimelineEntry]):
-    HEADERS = ("Time (local)", "Kind", "Title", "Explanation", "Current source state")
+    HEADERS = TranslationSequence(lambda: (translate('IncidentsModel', 'Time (local)'), translate('IncidentsModel', 'Kind'), translate('IncidentsModel', 'Title'), translate('IncidentsModel', 'Explanation'), translate('IncidentsModel', 'Current source state')))
 
     MAXIMUM = MAX_LOADED_ROWS
 
@@ -74,8 +81,8 @@ class TimelineTableModel(TextTableModel[TimelineEntry]):
         e = self.entries[row]
         time = format_local_timestamp(e.primary_time)
         if e.kind is TimelineKind.ASSESSMENT and e.assessment_time is None:
-            time = "Assessment time unknown; ordering anchor: " + time
+            time = translate('IncidentsModel', 'Assessment time unknown; ordering anchor: ') + time
         elif e.kind is TimelineKind.INFERENCE:
-            time = "Observation anchor: " + time
-        return (time + " — " + e.time_semantics,
-                e.kind.value, e.title, e.explanation, SOURCE_TEXT[e.source_status])
+            time = translate('IncidentsModel', 'Observation anchor: ') + time
+        return (format_text(translate('IncidentsModel', '{time} — {semantics}'), time=time, semantics=e.time_semantics),
+                display_enum(e.kind), e.title, e.explanation, SOURCE_TEXT[e.source_status])

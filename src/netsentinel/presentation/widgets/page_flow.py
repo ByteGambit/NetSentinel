@@ -1,5 +1,9 @@
 """Natural-height monitoring details and a row-sized table in one page flow."""
 
+from netsentinel.presentation.i18n.text import render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QResizeEvent
 from PyQt6.QtWidgets import (
@@ -41,7 +45,7 @@ class MonitoringPageScroll(QScrollArea):
         super().__init__(parent)
         self.table = table
         self.setObjectName("monitoringPageScroll")
-        self.setAccessibleName(parent.accessibleName() + " page content")
+        self.setAccessibleName(render_text(parent.accessibleName() + translate('PageFlow', ' page content')))
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

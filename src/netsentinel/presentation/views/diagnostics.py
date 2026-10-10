@@ -1,6 +1,15 @@
 """User-facing NS-048 capability matrix; all I/O is owned by the coordinator."""
 
 from __future__ import annotations
+
+from netsentinel.presentation.i18n.text import display_enum
+
+from netsentinel.presentation.i18n.text import translate
+
+from netsentinel.presentation.i18n.text import format_text, render_text
+
+from netsentinel.presentation.i18n.text import TranslationMapping
+from netsentinel.shared.source_text import QT_TRANSLATE_NOOP
 from dataclasses import replace
 
 from PyQt6.QtCore import Qt
@@ -14,92 +23,102 @@ from netsentinel.presentation.widgets.notification_settings import notification_
 from netsentinel.shared.config import AppConfig
 
 
-_REASONS = {
-    "connection_monitoring": "Connection visibility depends on what Windows permits this user to read.",
-    "process_metadata": "Some process details may be restricted by Windows permissions.",
-    "local_storage_available": "Saved metadata can be read locally.",
-    "local_storage_unavailable": "Local storage is unavailable. Saved views may be limited.",
-    "none": "The capture dependency and checked interface are available. Access is confirmed only when you explicitly start capture.",
-    "not_probed": "Packet capture has not been checked.",
-    "dependency_unavailable": "Packet capture dependency or driver is unavailable. Npcap may need installation outside this app.",
-    "permission_denied": "Packet capture or network context permission was denied. Review interface access or, if authorized, restart manually with the required rights. This app never elevates automatically.",
-    "interface_unavailable": "No eligible local interface is available for packet capture.",
-    "network_changed": "The checked network changed. Retry after selecting the current network in Devices.",
-    "transient_failure": "Packet capture could not be checked right now. Retry later.",
-    "context_unavailable": "Network interface information is temporarily unavailable.",
-    "probe_unavailable": "Packet capture readiness could not be checked.",
-    "passive_capture_available": "Passive features can be started explicitly in Devices; no capture is running from this check.",
-    "saved_data_only": "Saved data remains available; live passive capture is limited.",
+_REASONS = TranslationMapping(lambda: {
+    "connection_monitoring": translate('Diagnostics', 'Connection visibility depends on what Windows permits this user to read.'),
+    "process_metadata": translate('Diagnostics', 'Some process details may be restricted by Windows permissions.'),
+    "local_storage_available": translate('Diagnostics', 'Saved metadata can be read locally.'),
+    "local_storage_unavailable": translate('Diagnostics', 'Local storage is unavailable. Saved views may be limited.'),
+    "none": translate('Diagnostics', 'The capture dependency and checked interface are available. Access is confirmed only when you explicitly start capture.'),
+    "not_probed": translate('Diagnostics', 'Packet capture has not been checked.'),
+    "dependency_unavailable": translate('Diagnostics', 'Packet capture dependency or driver is unavailable. Npcap may need installation outside this app.'),
+    "permission_denied": translate('Diagnostics', 'Packet capture or network context permission was denied. Review interface access or, if authorized, restart manually with the required rights. This app never elevates automatically.'),
+    "interface_unavailable": translate('Diagnostics', 'No eligible local interface is available for packet capture.'),
+    "network_changed": translate('Diagnostics', 'The checked network changed. Retry after selecting the current network in Devices.'),
+    "transient_failure": translate('Diagnostics', 'Packet capture could not be checked right now. Retry later.'),
+    "context_unavailable": translate('Diagnostics', 'Network interface information is temporarily unavailable.'),
+    "probe_unavailable": translate('Diagnostics', 'Packet capture readiness could not be checked.'),
+    "passive_capture_available": translate('Diagnostics', 'Passive features can be started explicitly in Devices; no capture is running from this check.'),
+    "saved_data_only": translate('Diagnostics', 'Saved data remains available; live passive capture is limited.'),
+})
+
+# Capability service names are stable lookup identities, not translated keys.
+_FEATURE_NAMES = {
+    'Connections': QT_TRANSLATE_NOOP('Diagnostics', 'Connections'),
+    'Process details': QT_TRANSLATE_NOOP('Diagnostics', 'Process details'),
+    'History': QT_TRANSLATE_NOOP('Diagnostics', 'History'),
+    'Packet capture': QT_TRANSLATE_NOOP('Diagnostics', 'Packet capture'),
+    'Devices': QT_TRANSLATE_NOOP('Diagnostics', 'Devices'),
+    'DNS': QT_TRANSLATE_NOOP('Diagnostics', 'DNS'),
+    'Alerts': QT_TRANSLATE_NOOP('Diagnostics', 'Alerts'),
 }
 
 
 class DiagnosticsView(QWidget):
     def __init__(self, coordinator: CapabilityCoordinator | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setAccessibleName("Capability diagnostics")
+        self.setAccessibleName(translate('Diagnostics', 'Capability diagnostics'))
         self._coordinator = coordinator
         self._active = True
         self._live_capture: CaptureHealthSnapshot | None = None
         self._last_matrix: CapabilityMatrix | None = None
-        title = QLabel("Capabilities and health", self)
-        title.setAccessibleName("Capability diagnostics title")
+        title = QLabel(translate('Diagnostics', 'Capabilities and health'), self)
+        title.setAccessibleName(translate('Diagnostics', 'Capability diagnostics title'))
         title.setStyleSheet("font-size: 22px; font-weight: 700;")
         explanation = QLabel(
-            "Availability describes features on this system. Running health describes current workers. Neither is a security verdict.", self,
+            translate('Diagnostics', 'Availability describes features on this system. Running health describes current workers. Neither is a security verdict.'), self,
         )
         explanation.setWordWrap(True)
-        explanation.setAccessibleName("Capability diagnostics explanation")
-        self.status = QLabel("Not checked", self)
+        explanation.setAccessibleName(translate('Diagnostics', 'Capability diagnostics explanation'))
+        self.status = QLabel(translate('Diagnostics', 'Not checked'), self)
         self.status.setWordWrap(True)
         self.status.setTextFormat(Qt.TextFormat.PlainText)
-        self.status.setAccessibleName("Capability check status")
-        self.privilege = QLabel("Privilege context: Not checked", self)
+        self.status.setAccessibleName(translate('Diagnostics', 'Capability check status'))
+        self.privilege = QLabel(translate('Diagnostics', 'Privilege context: Not checked'), self)
         self.privilege.setWordWrap(True)
-        self.privilege.setAccessibleName("Process privilege context")
+        self.privilege.setAccessibleName(translate('Diagnostics', 'Process privilege context'))
         self.rows: dict[str, QLabel] = {}
         layout = QVBoxLayout(self)
         layout.addWidget(title)
         layout.addWidget(explanation)
         layout.addWidget(self.status)
-        self.summary = QLabel("Current activity: Not checked", self)
+        self.summary = QLabel(translate('Diagnostics', 'Current activity: Not checked'), self)
         self.summary.setWordWrap(True)
-        self.summary.setAccessibleName("Current monitoring activity summary")
+        self.summary.setAccessibleName(translate('Diagnostics', 'Current monitoring activity summary'))
         layout.addWidget(self.summary)
         self.preferences = QLabel(self)
         self.preferences.setWordWrap(True)
-        self.preferences.setAccessibleName("Optional feature preferences")
+        self.preferences.setAccessibleName(translate('Diagnostics', 'Optional feature preferences'))
         layout.addWidget(self.preferences)
-        self.details_button = QPushButton("Show technical details", self)
+        self.details_button = QPushButton(translate('Diagnostics', 'Show technical details'), self)
         self.details_button.setCheckable(True)
-        self.details_button.setAccessibleName("Expand technical diagnostics")
+        self.details_button.setAccessibleName(translate('Diagnostics', 'Expand technical diagnostics'))
         layout.addWidget(self.details_button)
         self.details = QWidget(self)
         detail_layout = QVBoxLayout(self.details)
         detail_layout.addWidget(self.privilege)
-        for name in ("Connections", "Process details", "History", "Packet capture", "Devices", "DNS", "Alerts"):
-            row = QLabel(f"{name}: Not checked", self)
+        for name in _FEATURE_NAMES.values():
+            row = QLabel(format_text(translate('Diagnostics', '{value1}: Not checked'), value1=name), self)
             row.setWordWrap(True)
             row.setTextFormat(Qt.TextFormat.PlainText)
-            row.setAccessibleName(f"{name} capability")
+            row.setAccessibleName(format_text(translate('Diagnostics', '{value1} capability'), value1=name))
             self.rows[name] = row
             detail_layout.addWidget(row)
-        self.health = QLabel("Worker health: Not checked", self)
+        self.health = QLabel(translate('Diagnostics', 'Worker health: Not checked'), self)
         self.health.setWordWrap(True)
-        self.health.setAccessibleName("Worker and database health")
+        self.health.setAccessibleName(translate('Diagnostics', 'Worker and database health'))
         detail_layout.addWidget(self.health)
-        self.notifications = QLabel("Desktop notifications: Not checked", self)
+        self.notifications = QLabel(translate('Diagnostics', 'Desktop notifications: Not checked'), self)
         self.notifications.setWordWrap(True)
         self.notifications.setTextFormat(Qt.TextFormat.PlainText)
-        self.notifications.setAccessibleName("Desktop notification delivery diagnostics")
+        self.notifications.setAccessibleName(translate('Diagnostics', 'Desktop notification delivery diagnostics'))
         detail_layout.addWidget(self.notifications)
         layout.addWidget(self.details)
         self.details.hide()
         self.details_button.toggled.connect(self.details.setVisible)
-        self.details_button.toggled.connect(lambda expanded: self.details_button.setText(
-            "Hide technical details" if expanded else "Show technical details"))
+        self.details_button.toggled.connect(lambda expanded: self.details_button.setText(render_text(translate('Diagnostics', 'Hide technical details') if expanded else translate('Diagnostics', 'Show technical details'))))
         self.set_preferences(AppConfig())
-        self.retry_button = QPushButton("Retry check", self)
-        self.retry_button.setAccessibleName("Retry capability check")
+        self.retry_button = QPushButton(translate('Diagnostics', 'Retry check'), self)
+        self.retry_button.setAccessibleName(translate('Diagnostics', 'Retry capability check'))
         self.retry_button.setEnabled(coordinator is not None)
         layout.addWidget(self.retry_button)
         layout.addStretch()
@@ -114,16 +133,11 @@ class DiagnosticsView(QWidget):
     def set_preferences(self, config: AppConfig, *, credential_available: bool | None = None) -> None:
         self._config = config
         self._credential_available = credential_available
-        credential = ("Unavailable (this desktop has no usable secret backend)" if credential_available is False else
-                      "Available" if credential_available is True else "Not checked here")
-        ti = ("Consent enabled; manual lookup only"
-              if config.threat_intel_consents else "Disabled by user (default: zero requests)")
-        self.preferences.setText(
-            f"Threat intelligence (AbuseIPDB): {ti}.\n"
-            f"Provider credential: {credential}.\n"
-            f"Notifications: {'Enabled; delivery capability checked separately' if config.desktop_notifications_enabled else 'Disabled by user'}.\n"
-            f"Storage: local; scheduled retention {'enabled' if config.storage_retention_enabled else 'disabled by user'}."
-        )
+        credential = (translate('Diagnostics', 'Unavailable (this desktop has no usable secret backend)') if credential_available is False else
+                      translate('Diagnostics', 'Available') if credential_available is True else translate('Diagnostics', 'Not checked here'))
+        ti = (translate('Diagnostics', 'Consent enabled; manual lookup only')
+              if config.threat_intel_consents else translate('Diagnostics', 'Disabled by user (default: zero requests)'))
+        self.preferences.setText(format_text(translate('Diagnostics', 'Threat intelligence (AbuseIPDB): {value1}.\nProvider credential: {value2}.\nNotifications: {value3}.\nStorage: local; scheduled retention {value4}.'), value1=ti, value2=credential, value3=translate('Diagnostics', 'Enabled; delivery capability checked separately') if config.desktop_notifications_enabled else translate('Diagnostics', 'Disabled by user'), value4=translate('Diagnostics', 'enabled') if config.storage_retention_enabled else translate('Diagnostics', 'disabled by user')))
 
     def set_storage_preferences(self, enabled: bool, history_days: int, security_days: int) -> None:
         self.set_preferences(replace(self._config, storage_retention_enabled=enabled,
@@ -134,18 +148,7 @@ class DiagnosticsView(QWidget):
         if self._active:
             self.set_preferences(replace(self._config, desktop_notifications_enabled=enabled),
                                  credential_available=self._credential_available)
-            self.notifications.setText(
-                f"Desktop notifications: {notification_state_text(enabled, snapshot.platform_state)} "
-                f"intents {snapshot.intents_seen}; eligible {snapshot.eligible_for_delivery}; "
-                f"adapter attempts {snapshot.submission_attempts}; OS/session skipped {snapshot.os_policy_skipped}; "
-                f"submitted {snapshot.submitted_to_sink} (display unconfirmed); "
-                "visible delivery UNKNOWN (Qt supplies no display confirmation); "
-                f"last adapter outcome {snapshot.last_submission_outcome.value if snapshot.last_submission_outcome else 'none'}; "
-                f"unavailable {snapshot.sink_unavailable}; failed {snapshot.sink_failure}; "
-                f"queue coalesced {snapshot.queue_coalesced}, dropped {snapshot.queue_dropped}; "
-                f"session capacity skipped {snapshot.capacity_skipped}; "
-                f"navigation succeeded {snapshot.navigation_success}, failed {snapshot.navigation_failure}."
-            )
+            self.notifications.setText(format_text(translate('Diagnostics', 'Desktop notifications: {value1} intents {value2}; eligible {value3}; adapter attempts {value4}; OS/session skipped {value5}; submitted {value6} (display unconfirmed); visible delivery UNKNOWN (Qt supplies no display confirmation); last adapter outcome {value7}; unavailable {value8}; failed {value9}; queue coalesced {value10}, dropped {value11}; session capacity skipped {value12}; navigation succeeded {value13}, failed {value14}.'), value1=notification_state_text(enabled, snapshot.platform_state), value2=snapshot.intents_seen, value3=snapshot.eligible_for_delivery, value4=snapshot.submission_attempts, value5=snapshot.os_policy_skipped, value6=snapshot.submitted_to_sink, value7=snapshot.last_submission_outcome.value if snapshot.last_submission_outcome else 'none', value8=snapshot.sink_unavailable, value9=snapshot.sink_failure, value10=snapshot.queue_coalesced, value11=snapshot.queue_dropped, value12=snapshot.capacity_skipped, value13=snapshot.navigation_success, value14=snapshot.navigation_failure))
 
     def _receive_matrix(self, generation: int, matrix: CapabilityMatrix) -> None:
         if self._active and self._coordinator is not None and generation == self._coordinator.generation:
@@ -157,24 +160,25 @@ class DiagnosticsView(QWidget):
 
     def retry(self) -> None:
         if self._active and self._coordinator is not None and self._coordinator.request():
-            self.status.setText("Checking capabilities…")
+            self.status.setText(translate('Diagnostics', 'Checking capabilities…'))
 
     def set_failure(self) -> None:
-        self.status.setText("Capability check unavailable. Retry later; saved views may still work.")
-        self.summary.setText("Current activity: Unavailable for this check. Optional features and saved data are independent.")
+        self.status.setText(translate('Diagnostics', 'Capability check unavailable. Retry later; saved views may still work.'))
+        self.summary.setText(translate('Diagnostics', 'Current activity: Unavailable for this check. Optional features and saved data are independent.'))
 
     def set_matrix(self, matrix: CapabilityMatrix) -> None:
         self._last_matrix = matrix
         if matrix.is_elevated is True:
-            self.privilege.setText("Running elevated. Capture access still depends on the driver and interface.")
+            self.privilege.setText(translate('Diagnostics', 'Running elevated. Capture access still depends on the driver and interface.'))
         elif matrix.is_elevated is False:
-            self.privilege.setText("Running as a standard user. Capture may need additional access; this app never elevates automatically.")
+            self.privilege.setText(translate('Diagnostics', 'Running as a standard user. Capture may need additional access; this app never elevates automatically.'))
         else:
-            self.privilege.setText("Privilege context not checked. Capture access is confirmed only when started explicitly.")
-        self.status.setText("Check complete. No packet capture was started.")
+            self.privilege.setText(translate('Diagnostics', 'Privilege context not checked. Capture access is confirmed only when started explicitly.'))
+        self.status.setText(translate('Diagnostics', 'Check complete. No packet capture was started.'))
         for item in matrix.features:
-            reason = _REASONS.get(item.reason, "Capability status is unavailable.")
-            self.rows[item.name].setText(f"{item.name}: {item.status.value.capitalize()} — {reason}")
+            reason = _REASONS.get(item.reason, translate('Diagnostics', 'Capability status is unavailable.'))
+            self.rows[item.name].setText(format_text(translate('Diagnostics', '{feature}: {status} — {reason}'),
+                feature=_FEATURE_NAMES.get(item.name, item.name), status=display_enum(item.status, 'human'), reason=reason))
         self._render_health()
         self._show_live_capture()
 
@@ -185,38 +189,27 @@ class DiagnosticsView(QWidget):
         capture = self._live_capture or diagnostics.capture
         writer = diagnostics.persistence
         history = (
-            f"history writer: {writer.state.value}, queue {writer.queue_depth}/{writer.queue_capacity}"
-            if writer is not None else "history writer: not checked"
+            format_text(translate('Diagnostics', 'history writer: {value1}, queue {value2}/{value3}'), value1=writer.state.value, value2=writer.queue_depth, value3=writer.queue_capacity)
+            if writer is not None else translate('Diagnostics', 'history writer: not checked')
         )
         dns = (
-            f"DNS writer: {'running' if diagnostics.dns_writer_running else 'stopped'}, "
-            f"queue {diagnostics.dns_queue_depth}/{diagnostics.dns_queue_capacity}"
-            if diagnostics.dns_writer_running is not None else "DNS writer: not checked"
+            format_text(translate('Diagnostics', 'DNS writer: {value1}, queue {value2}/{value3}'), value1='running' if diagnostics.dns_writer_running else 'stopped', value2=diagnostics.dns_queue_depth, value3=diagnostics.dns_queue_capacity)
+            if diagnostics.dns_writer_running is not None else translate('Diagnostics', 'DNS writer: not checked')
         )
-        self.health.setText(
-            f"Engine: {diagnostics.engine.state.value}; "
-            f"packet capture: {capture.state.value if capture else 'not checked'}; "
-            f"database: {diagnostics.database.status.value}; {history}; {dns}."
-        )
+        self.health.setText(format_text(translate('Diagnostics', 'Engine: {value1}; packet capture: {value2}; database: {value3}; {value4}; {value5}.'), value1=diagnostics.engine.state.value, value2=capture.state.value if capture else translate('Diagnostics', 'not checked'), value3=diagnostics.database.status.value, value4=history, value5=dns))
         features = {item.name: item for item in self._last_matrix.features}
-        connection = features.get("Connections")
-        capture_feature = features.get("Packet capture")
+        connection = features.get(QT_TRANSLATE_NOOP('Diagnostics', 'Connections'))
+        capture_feature = features.get(QT_TRANSLATE_NOOP('Diagnostics', 'Packet capture'))
         capture_status = (self._live_capture.capability.status.value if self._live_capture is not None else
-                          capture_feature.status.value if capture_feature else "not checked")
-        capture_activity = capture.state.value if capture else "not checked"
+                          capture_feature.status.value if capture_feature else translate('Diagnostics', 'not checked'))
+        capture_activity = capture.state.value if capture else translate('Diagnostics', 'not checked')
         if capture_status != "available":
             capture_activity = capture_status
-        dns_feature = features.get("DNS")
-        dns_activity = ("Unavailable" if dns_feature is not None and dns_feature.status.value == "unavailable" else
-                        "Capture running; observations only where capture sees classic DNS" if capture_activity == "running" else
-                        "Limited while capture is stopped or unavailable")
-        self.summary.setText(
-            f"Monitoring engine: {diagnostics.engine.state.value.capitalize()}\n"
-            f"Connection visibility: {connection.status.value.capitalize() if connection else 'Not checked'}\n"
-            f"Packet capture: {capture_activity.capitalize()} (capability: {capture_status})\n"
-            f"DNS observation: {dns_activity}\n"
-            f"Local storage: {diagnostics.database.status.value.capitalize()}"
-        )
+        dns_feature = features.get(QT_TRANSLATE_NOOP('Diagnostics', 'DNS'))
+        dns_activity = (translate('Diagnostics', 'Unavailable') if dns_feature is not None and dns_feature.status.value == "unavailable" else
+                        translate('Diagnostics', 'Capture running; observations only where capture sees classic DNS') if capture_activity == "running" else
+                        translate('Diagnostics', 'Limited while capture is stopped or unavailable'))
+        self.summary.setText(format_text(translate('Diagnostics', 'Monitoring engine: {value1}\nConnection visibility: {value2}\nPacket capture: {value3} (capability: {value4})\nDNS observation: {value5}\nLocal storage: {value6}'), value1=display_enum(diagnostics.engine.state, 'human'), value2=display_enum(connection.status, 'human') if connection else translate('Diagnostics', 'Not checked'), value3=capture_activity.capitalize(), value4=capture_status, value5=dns_activity, value6=display_enum(diagnostics.database.status, 'human')))
 
     def set_live_capture(self, capture: CaptureHealthSnapshot | None) -> None:
         self._live_capture = capture
@@ -227,10 +220,7 @@ class DiagnosticsView(QWidget):
         if capture is None:
             return
         if capture.capability.reason is not CaptureCapabilityReason.NOT_PROBED:
-            self.rows["Packet capture"].setText(
-                f"Packet capture: {capture.capability.status.value.capitalize()} — "
-                f"{_REASONS.get(capture.capability.reason.value, 'Capability status is unavailable.')}"
-            )
+            self.rows['Packet capture'].setText(format_text(translate('Diagnostics', 'Packet capture: {value1} — {value2}'), value1=display_enum(capture.capability.status, 'human'), value2=_REASONS.get(capture.capability.reason.value, translate('Diagnostics', 'Capability status is unavailable.'))))
         self._render_health()
 
 

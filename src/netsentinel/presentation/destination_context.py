@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import format_text, render_join, render_text
+
+from netsentinel.presentation.i18n.text import translate
+from netsentinel.shared.source_text import QT_TRANSLATE_NOOP
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -37,21 +42,21 @@ class DestinationPresentation:
 
 def present_destination(result: DestinationEvidenceResult) -> DestinationPresentation:
     if result.context is None:
-        return DestinationPresentation("No remote destination.", (), "No remote destination.", "")
+        return DestinationPresentation(translate('DestinationContext', 'No remote destination.'), (), translate('DestinationContext', 'No remote destination.'), "")
     if result.source_unavailable:
-        dns_status = "DNS association source unavailable."
+        dns_status = translate('DestinationContext', 'DNS association source unavailable.')
     elif result.legacy_unknown:
-        dns_status = "Legacy DNS observation for this IP; canonical evidence reference unavailable."
+        dns_status = translate('DestinationContext', 'Legacy DNS observation for this IP; canonical evidence reference unavailable.')
     elif result.scope_status is NetworkScopeStatus.AMBIGUOUS:
-        dns_status = "DNS association unavailable: network scope is ambiguous."
+        dns_status = translate('DestinationContext', 'DNS association unavailable: network scope is ambiguous.')
     elif result.scope_status is NetworkScopeStatus.UNKNOWN:
-        dns_status = "DNS association unavailable: network scope is unknown."
+        dns_status = translate('DestinationContext', 'DNS association unavailable: network scope is unknown.')
     elif result.dns.status is DnsAssociationStatus.AMBIGUOUS:
-        dns_status = "Ambiguous DNS associations; multiple domains observed for this IP."
+        dns_status = translate('DestinationContext', 'Ambiguous DNS associations; multiple domains observed for this IP.')
     elif result.dns.status is DnsAssociationStatus.CORRELATED:
-        dns_status = "Correlated DNS evidence for this IP; this does not establish a connection hostname."
+        dns_status = translate('DestinationContext', 'Correlated DNS evidence for this IP; this does not establish a connection hostname.')
     else:
-        dns_status = "No DNS association observed for this IP in the relevant time and scope."
+        dns_status = translate('DestinationContext', 'No DNS association observed for this IP in the relevant time and scope.')
     candidates = tuple(
         DnsCandidatePresentation(
             _candidate_text(item, result.as_of) + _source_suffix(result.source_statuses, index),
@@ -61,46 +66,45 @@ def present_destination(result: DestinationEvidenceResult) -> DestinationPresent
     )
     context = result.context
     if context.status is DestinationContextStatus.MATCHED:
-        context_status = "Matched in current local IP dataset." if result.historical else "Matched in local IP dataset."
+        context_status = translate('DestinationContext', 'Matched in current local IP dataset.') if result.historical else translate('DestinationContext', 'Matched in local IP dataset.')
     elif context.status is DestinationContextStatus.UNKNOWN:
-        context_status = "No match in the current local IP dataset."
+        context_status = translate('DestinationContext', 'No match in the current local IP dataset.')
     elif context.status is DestinationContextStatus.NOT_APPLICABLE:
-        context_status = "Local ASN/country context does not apply to this private or special address."
+        context_status = translate('DestinationContext', 'Local ASN/country context does not apply to this private or special address.')
     elif context.status is DestinationContextStatus.NOT_CONFIGURED:
-        context_status = "Local ASN/country dataset not configured."
+        context_status = translate('DestinationContext', 'Local ASN/country dataset not configured.')
     else:
-        context_status = "Local ASN/country dataset unavailable."
+        context_status = translate('DestinationContext', 'Local ASN/country dataset unavailable.')
     details: list[str] = []
     if context.asn is not None:
         details.append(f"ASN: AS{context.asn}")
     if context.as_name is not None:
-        details.append(f"Organization: {context.as_name}")
+        details.append(format_text(translate('DestinationContext', 'Organization: {value1}'), value1=context.as_name))
     if context.country_code is not None:
-        details.append(f"Country (IP dataset context): {context.country_code}")
+        details.append(format_text(translate('DestinationContext', 'Country (IP dataset context): {value1}'), value1=context.country_code))
     if context.source is not None:
-        details.append(f"Source: {context.source.name} v{context.source.version}")
-    return DestinationPresentation(dns_status, candidates, context_status, "\n".join(details), context.source)
+        details.append(format_text(translate('DestinationContext', 'Source: {value1} v{value2}'), value1=context.source.name, value2=context.source.version))
+    return DestinationPresentation(dns_status, candidates, context_status, render_join('\n', details), context.source)
 
 
 def _candidate_text(item: DomainAssociation, as_of: datetime | None) -> str:
-    provenance = ("Direct DNS answer" if item.provenance is DnsAssociationProvenance.DIRECT_ANSWER
-                  else "CNAME-derived DNS answer")
+    provenance = (translate('DestinationContext', 'Direct DNS answer') if item.provenance is DnsAssociationProvenance.DIRECT_ANSWER
+                  else translate('DestinationContext', 'CNAME-derived DNS answer'))
     effective = item.observed_at + timedelta(seconds=item.retention_seconds)
-    freshness = "fresh" if as_of is None or as_of < effective else "expired by selected time"
+    freshness = "fresh" if as_of is None or as_of < effective else translate('DestinationContext', 'expired by selected time')
     age = max(0, int(((as_of or datetime.now(item.observed_at.tzinfo)) - item.observed_at).total_seconds()))
     chain = ""
     if item.provenance is DnsAssociationProvenance.CNAME_DERIVED:
-        chain = f"; queried {item.queried_domain}; chain {' → '.join(item.cname_chain)}"
-    return (f"{item.domain} — {provenance}; observed {age}s before selected time; "
-            f"TTL {item.ttl}s; {freshness}{chain}")
+        chain = format_text(translate('DestinationContext', '; queried {value1}; chain {value2}'), value1=item.queried_domain, value2=render_join(' → ', item.cname_chain))
+    return (format_text(translate('DestinationContext', '{value1} — {value2}; observed {value3}s before selected time; TTL {value4}s; {value5}{value6}'), value1=item.domain, value2=provenance, value3=age, value4=item.ttl, value5=freshness, value6=chain))
 
 
 def _source_suffix(statuses: tuple[DnsEvidenceSourceStatus, ...], index: int) -> str:
     if index >= len(statuses) or statuses[index] is DnsEvidenceSourceStatus.AVAILABLE:
         return ""
     if statuses[index] is DnsEvidenceSourceStatus.UNKNOWN_LEGACY:
-        return "; legacy DNS record: canonical evidence reference unavailable"
-    return "; source DNS evidence expired or unavailable"
+        return translate('DestinationContext', '; legacy DNS record: canonical evidence reference unavailable')
+    return translate('DestinationContext', '; source DNS evidence expired or unavailable')
 
 
 class DestinationEvidenceWidget(QWidget):
@@ -109,18 +113,18 @@ class DestinationEvidenceWidget(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        self.dns_group = QGroupBox("Observed DNS associations", self)
-        self.dns_group.setAccessibleName("Observed DNS associations")
+        self.dns_group = QGroupBox(translate('DestinationContext', 'Observed DNS associations'), self)
+        self.dns_group.setAccessibleName(translate('DestinationContext', 'Observed DNS associations'))
         dns_layout = QVBoxLayout(self.dns_group)
-        self.dns_status = self._label("DNS evidence status", self.dns_group)
-        self.dns_candidates = self._label("DNS evidence candidates", self.dns_group)
+        self.dns_status = self._label(translate('DestinationContext', 'DNS evidence status'), self.dns_group)
+        self.dns_candidates = self._label(translate('DestinationContext', 'DNS evidence candidates'), self.dns_group)
         dns_layout.addWidget(self.dns_status)
         dns_layout.addWidget(self.dns_candidates)
-        self.context_group = QGroupBox("Local destination context", self)
-        self.context_group.setAccessibleName("Local ASN and country destination context")
+        self.context_group = QGroupBox(translate('DestinationContext', 'Local destination context'), self)
+        self.context_group.setAccessibleName(translate('DestinationContext', 'Local ASN and country destination context'))
         context_layout = QVBoxLayout(self.context_group)
-        self.context_status = self._label("Local destination context status", self.context_group)
-        self.context_details = self._label("ASN country and dataset provenance", self.context_group)
+        self.context_status = self._label(translate('DestinationContext', 'Local destination context status'), self.context_group)
+        self.context_details = self._label(translate('DestinationContext', 'ASN country and dataset provenance'), self.context_group)
         context_layout.addWidget(self.context_status)
         context_layout.addWidget(self.context_details)
         layout.addWidget(self.dns_group)
@@ -132,7 +136,7 @@ class DestinationEvidenceWidget(QWidget):
     @staticmethod
     def _label(name: str, parent: QWidget) -> QLabel:
         label = QLabel(parent)
-        label.setAccessibleName(name)
+        label.setAccessibleName(render_text(name))
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse |
                                       Qt.TextInteractionFlag.TextSelectableByKeyboard)
@@ -140,19 +144,19 @@ class DestinationEvidenceWidget(QWidget):
         label.setWordWrap(True)
         return label
 
-    def clear(self, status: str = "No remote destination selected.") -> None:
-        self.dns_status.setText(status)
+    def clear(self, status: str = QT_TRANSLATE_NOOP('DestinationContext', 'No remote destination selected.')) -> None:
+        self.dns_status.setText(render_text(status))
         self.dns_candidates.clear()
-        self.context_status.setText(status)
+        self.context_status.setText(render_text(status))
         self.context_details.clear()
         self.evidence_references = ()
         self.dataset_source = None
 
     def set_result(self, result: DestinationEvidenceResult) -> None:
         view = present_destination(result)
-        self.dns_status.setText(view.dns_status)
-        self.dns_candidates.setText("\n".join(candidate.text for candidate in view.candidates))
-        self.context_status.setText(view.context_status)
-        self.context_details.setText(view.context_details)
+        self.dns_status.setText(render_text(view.dns_status))
+        self.dns_candidates.setText(render_join('\n', (candidate.text for candidate in view.candidates)))
+        self.context_status.setText(render_text(view.context_status))
+        self.context_details.setText(render_text(view.context_details))
         self.evidence_references = tuple(candidate.evidence_id for candidate in view.candidates)
         self.dataset_source = view.dataset_source

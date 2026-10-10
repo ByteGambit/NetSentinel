@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import TranslationSequence, translate
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
@@ -37,18 +39,18 @@ class HistoryColumn(IntEnum):
     DURATION = 9
 
 
-HEADERS = (
-    "Process",
-    "PID",
-    "Protocol",
-    "Local",
-    "Remote",
-    "State",
-    "First seen",
-    "Last seen",
-    "Closed",
-    "Observed duration",
-)
+HEADERS = TranslationSequence(lambda: (
+    translate('HistoryModel', 'Process'),
+    translate('HistoryModel', 'PID'),
+    translate('HistoryModel', 'Protocol'),
+    translate('HistoryModel', 'Local'),
+    translate('HistoryModel', 'Remote'),
+    translate('HistoryModel', 'State'),
+    translate('HistoryModel', 'First seen'),
+    translate('HistoryModel', 'Last seen'),
+    translate('HistoryModel', 'Closed'),
+    translate('HistoryModel', 'Observed duration'),
+))
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,13 +88,13 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
     duration_end = record.closed_at if record.closed_at is not None else record.last_seen
     duration = max(0.0, (duration_end - record.first_seen).total_seconds())
     if record.observation_gap:
-        observation_status = "Last observed before monitoring gap"
+        observation_status = translate('HistoryModel', 'Last observed before monitoring gap')
     elif record.close_reason is not None:
         observation_status = format_close_reason(record.close_reason)
     elif record.session_id is not None:
-        observation_status = "Currently observed / open"
+        observation_status = translate('HistoryModel', 'Currently observed / open')
     else:
-        observation_status = "Historical status unknown"
+        observation_status = translate('HistoryModel', 'Historical status unknown')
     return HistoryRow(
         record_id=record.record_id,
         process_display=snapshot.process.name or MISSING_VALUE,
@@ -106,7 +108,7 @@ def history_row_from_record(record: ConnectionHistoryRecord) -> HistoryRow:
         closed_display=(
             format_local_timestamp(record.closed_at)
             if record.closed_at is not None
-            else "Unknown (monitoring gap)" if record.observation_gap else MISSING_VALUE
+            else translate('HistoryModel', 'Unknown (monitoring gap)') if record.observation_gap else MISSING_VALUE
         ),
         duration_display=format_duration(duration),
         process_create_time_display=format_process_created(
@@ -136,7 +138,7 @@ def format_close_reason(reason: ConnectionClosureReason | None) -> str:
     if reason is None:
         return MISSING_VALUE
     if reason is ConnectionClosureReason.NOT_OBSERVED:
-        return "No longer observed"
+        return translate('HistoryModel', 'No longer observed')
     return MISSING_VALUE
 
 

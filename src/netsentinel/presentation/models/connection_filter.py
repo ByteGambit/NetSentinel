@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import render_join
+
 from ipaddress import ip_address
 
 from PyQt6.QtCore import QModelIndex, QSortFilterProxyModel, Qt
@@ -38,7 +40,7 @@ class ConnectionsFilterProxyModel(QSortFilterProxyModel):
 
     @property
     def search_text(self) -> str:
-        return " ".join(self._search_terms)
+        return render_join(' ', self._search_terms)
 
     @property
     def protocol_filter(self) -> str | None:
@@ -101,20 +103,7 @@ class ConnectionsFilterProxyModel(QSortFilterProxyModel):
         remote_address = model.data(index, int(ConnectionRole.RAW_REMOTE_ADDRESS))
         remote_port = model.data(index, int(ConnectionRole.RAW_REMOTE_PORT))
 
-        searchable = " ".join(
-            value
-            for value in (
-                _search_value(process),
-                _search_value(pid),
-                _search_value(local_address),
-                _search_value(local_port),
-                _endpoint_search_value(local_address, local_port),
-                _search_value(remote_address),
-                _search_value(remote_port),
-                _endpoint_search_value(remote_address, remote_port),
-            )
-            if value
-        ).casefold()
+        searchable = render_join(' ', (value for value in (_search_value(process), _search_value(pid), _search_value(local_address), _search_value(local_port), _endpoint_search_value(local_address, local_port), _search_value(remote_address), _search_value(remote_port), _endpoint_search_value(remote_address, remote_port)) if value)).casefold()
         return all(term in searchable for term in self._search_terms)
 
     def lessThan(  # noqa: N802 - Qt API

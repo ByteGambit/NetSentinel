@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import format_text
+
+from netsentinel.presentation.i18n.text import TranslationMapping, translate
+
 from netsentinel.presentation.response_commands import ResponseCommandCoordinator
 
 from collections.abc import Callable
@@ -76,16 +80,16 @@ PAGE_ORDER: tuple[PageId, ...] = (
     PageId.DIAGNOSTICS,
 )
 
-PAGE_LABELS: dict[PageId, str] = {
-    PageId.DASHBOARD: "Dashboard",
-    PageId.CONNECTIONS: "Connections",
-    PageId.HISTORY: "History",
-    PageId.DEVICES: "Devices",
-    PageId.DNS: "DNS",
-    PageId.ALERTS: "Alerts",
-    PageId.INCIDENTS: "Incidents",
-    PageId.DIAGNOSTICS: "Diagnostics",
-}
+PAGE_LABELS = TranslationMapping(lambda: {
+    PageId.DASHBOARD: translate('MainWindow', 'Dashboard'),
+    PageId.CONNECTIONS: translate('MainWindow', 'Connections'),
+    PageId.HISTORY: translate('MainWindow', 'History'),
+    PageId.DEVICES: translate('MainWindow', 'Devices'),
+    PageId.DNS: translate('MainWindow', 'DNS'),
+    PageId.ALERTS: translate('MainWindow', 'Alerts'),
+    PageId.INCIDENTS: translate('MainWindow', 'Incidents'),
+    PageId.DIAGNOSTICS: translate('MainWindow', 'Diagnostics'),
+})
 
 
 class MainWindow(QMainWindow):
@@ -133,41 +137,41 @@ class MainWindow(QMainWindow):
         self.statistics = StatisticsService() if statistics is None else statistics
 
         self.setObjectName("mainWindow")
-        self.setAccessibleName("NetSentinel main window")
-        self.setWindowTitle("NetSentinel")
+        self.setAccessibleName(translate('MainWindow', 'NetSentinel main window'))
+        self.setWindowTitle(translate('MainWindow', 'NetSentinel'))
         self.resize(1080, 680)
         self.setMinimumSize(760, 480)
         menu_bar = self.menuBar()
         assert menu_bar is not None
-        settings_menu = menu_bar.addMenu("Settings")
+        settings_menu = menu_bar.addMenu(translate('MainWindow', 'Settings'))
         assert settings_menu is not None
-        self.threat_intel_consent_action = settings_menu.addAction("Threat intelligence / reputation consent…")
+        self.threat_intel_consent_action = settings_menu.addAction(translate('MainWindow', 'Threat intelligence / reputation consent…'))
         assert self.threat_intel_consent_action is not None
         self.threat_intel_consent_action.triggered.connect(self._show_ti_consent)
-        self.application_behavior_action = settings_menu.addAction("Application behavior…")
-        self.notification_settings_action = settings_menu.addAction("Desktop notifications…")
-        self.storage_privacy_action = settings_menu.addAction("Storage & Privacy…")
+        self.application_behavior_action = settings_menu.addAction(translate('MainWindow', 'Application behavior…'))
+        self.notification_settings_action = settings_menu.addAction(translate('MainWindow', 'Desktop notifications…'))
+        self.storage_privacy_action = settings_menu.addAction(translate('MainWindow', 'Storage & Privacy…'))
         assert self.storage_privacy_action is not None
         self.storage_privacy_action.setEnabled(False)
         assert self.notification_settings_action is not None
         self.notification_settings_action.setEnabled(False)
         assert self.application_behavior_action is not None
         self.application_behavior_action.setEnabled(False)
-        file_menu = menu_bar.addMenu("File")
+        file_menu = menu_bar.addMenu(translate('MainWindow', 'File'))
         assert file_menu is not None
-        self.quit_action = file_menu.addAction("Quit NetSentinel")
+        self.quit_action = file_menu.addAction(translate('MainWindow', 'Quit NetSentinel'))
         assert self.quit_action is not None
         self.quit_action.setEnabled(False)
-        help_menu = menu_bar.addMenu("Help")
+        help_menu = menu_bar.addMenu(translate('MainWindow', 'Help'))
         assert help_menu is not None
-        self.onboarding_action = help_menu.addAction("First-run & Privacy guide…")
-        self.feedback_action = help_menu.addAction("Feedback & Support…")
+        self.onboarding_action = help_menu.addAction(translate('MainWindow', 'First-run & Privacy guide…'))
+        self.feedback_action = help_menu.addAction(translate('MainWindow', 'Feedback & Support…'))
         assert self.onboarding_action is not None and self.feedback_action is not None
         self.feedback_action.setEnabled(False)
 
         self.navigation = QListWidget(self)
         self.navigation.setObjectName("navigation")
-        self.navigation.setAccessibleName("Primary navigation")
+        self.navigation.setAccessibleName(translate('MainWindow', 'Primary navigation'))
         # Keep the sidebar bounded without forcing one device-pixel geometry.
         # Qt can therefore expand it when a larger logical font/DPI needs room.
         self.navigation.setMinimumWidth(180)
@@ -180,7 +184,7 @@ class MainWindow(QMainWindow):
             "QListWidget { border: 0; background: #f4f6f8; color: #243b53; "
             "padding: 8px; }"
             "QListWidget::item { border-radius: 5px; color: #243b53; "
-            "padding-left: 12px; }"
+            "padding: 0 12px; }"
             "QListWidget::item:hover:!selected { background: #e7edf3; "
             "color: #102a43; }"
             "QListWidget::item:selected { background: #dce8f7; color: #163a5f; }"
@@ -188,7 +192,7 @@ class MainWindow(QMainWindow):
 
         self.content = QStackedWidget(self)
         self.content.setObjectName("content")
-        self.content.setAccessibleName("Page content")
+        self.content.setAccessibleName(translate('MainWindow', 'Page content'))
 
         self._pages: dict[PageId, QWidget] = {
             PageId.DASHBOARD: DashboardView(
@@ -218,10 +222,7 @@ class MainWindow(QMainWindow):
         for page_id in PAGE_ORDER:
             item = QListWidgetItem(PAGE_LABELS[page_id])
             item.setData(Qt.ItemDataRole.UserRole, page_id.value)
-            item.setData(
-                Qt.ItemDataRole.AccessibleTextRole,
-                f"{PAGE_LABELS[page_id]} page",
-            )
+            item.setData(Qt.ItemDataRole.AccessibleTextRole, format_text(translate('MainWindow', '{value1} page'), value1=PAGE_LABELS[page_id]))
             item.setSizeHint(
                 QSize(0, max(42, self.navigation.fontMetrics().height() + 18))
             )
@@ -383,13 +384,13 @@ class MainWindow(QMainWindow):
         sidebar.setObjectName("sidebar")
         sidebar.setStyleSheet("QFrame#sidebar { background: #f4f6f8; }")
 
-        brand = QLabel("NetSentinel", sidebar)
+        brand = QLabel(translate('MainWindow', 'NetSentinel'), sidebar)
         brand.setObjectName("brand")
         brand.setStyleSheet(
             "font-size: 20px; font-weight: 700; color: #102a43; padding: 8px;"
         )
 
-        tagline = QLabel("Network Security Monitor", sidebar)
+        tagline = QLabel(translate('MainWindow', 'Network Security Monitor'), sidebar)
         tagline.setObjectName("tagline")
         tagline.setStyleSheet("color: #627d98; padding: 0 8px 8px 8px;")
 

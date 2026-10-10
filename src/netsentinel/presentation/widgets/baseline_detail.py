@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.buttons import localize_buttons
+
+from netsentinel.presentation.i18n.text import render_join, render_text
+
+from netsentinel.presentation.i18n.text import translate
+
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QGroupBox, QLabel, QMessageBox, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
@@ -15,9 +21,9 @@ from netsentinel.presentation.widgets.mark_normal import MarkNormalWidget
 class BaselineDetailWidget(QGroupBox):
     def __init__(self, coordinator: BaselineQueryCoordinator | None = None, parent: QWidget | None = None,
                  *, preference_commands: PreferenceCommandCoordinator | None = None) -> None:
-        super().__init__("Behavior baseline — observed behavior", parent)
-        self.setAccessibleName("Behavior baseline")
-        self.setAccessibleDescription("Observed learning and scoped reset, separate from user trust preferences")
+        super().__init__(translate('BaselineDetail', 'Behavior baseline — observed behavior'), parent)
+        self.setAccessibleName(translate('BaselineDetail', 'Behavior baseline'))
+        self.setAccessibleDescription(translate('BaselineDetail', 'Observed learning and scoped reset, separate from user trust preferences'))
         self._coordinator = coordinator
         self._request: BaselineDetailRequest | None = None
         self._selection_id: object = None
@@ -25,10 +31,10 @@ class BaselineDetailWidget(QGroupBox):
         self._detail: BaselineDetail | None = None
         self._pending: tuple[BaselineDetailRequest, BaselineResetSubmission] | None = None
         layout = QVBoxLayout(self)
-        self.text = QLabel("No connection selected.", self)
+        self.text = QLabel(translate('BaselineDetail', 'No connection selected.'), self)
         self.text.setObjectName("behaviorBaselineText")
-        self.text.setAccessibleName("Observed behavior baseline detail")
-        self.text.setAccessibleDescription("Scope, lifecycle, progress, coverage, retained features and limitations")
+        self.text.setAccessibleName(translate('BaselineDetail', 'Observed behavior baseline detail'))
+        self.text.setAccessibleDescription(translate('BaselineDetail', 'Scope, lifecycle, progress, coverage, retained features and limitations'))
         self.text.setTextFormat(Qt.TextFormat.PlainText)
         self.text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
         self.text.setWordWrap(True)
@@ -37,14 +43,14 @@ class BaselineDetailWidget(QGroupBox):
         self.status = QLabel(self)
         self.status.setTextFormat(Qt.TextFormat.PlainText)
         self.status.setWordWrap(True)
-        self.status.setAccessibleName("Baseline reset status")
-        self.refresh_button = QPushButton("Refresh baseline", self)
-        self.refresh_button.setAccessibleName("Refresh observed baseline")
-        self.refresh_button.setAccessibleDescription("Read a fresh local snapshot for the selected scope")
-        self.reset_button = QPushButton("Reset learned baseline…", self)
+        self.status.setAccessibleName(translate('BaselineDetail', 'Baseline reset status'))
+        self.refresh_button = QPushButton(translate('BaselineDetail', 'Refresh baseline'), self)
+        self.refresh_button.setAccessibleName(translate('BaselineDetail', 'Refresh observed baseline'))
+        self.refresh_button.setAccessibleDescription(translate('BaselineDetail', 'Read a fresh local snapshot for the selected scope'))
+        self.reset_button = QPushButton(translate('BaselineDetail', 'Reset learned baseline…'), self)
         self.reset_button.setObjectName("resetBehaviorBaseline")
-        self.reset_button.setAccessibleName("Reset learned baseline")
-        self.reset_button.setAccessibleDescription("Confirm removal of observed baseline data for this application, revision and network only")
+        self.reset_button.setAccessibleName(translate('BaselineDetail', 'Reset learned baseline'))
+        self.reset_button.setAccessibleDescription(translate('BaselineDetail', 'Confirm removal of observed baseline data for this application, revision and network only'))
         for widget in (self.status, self.refresh_button, self.reset_button):
             layout.addWidget(widget)
         self.preferences = MarkNormalWidget(preference_commands, self)
@@ -79,7 +85,7 @@ class BaselineDetailWidget(QGroupBox):
         self._generation = None
         self._detail = None
         self._refresh_timer.stop()
-        self.text.setText("No connection selected.")
+        self.text.setText(translate('BaselineDetail', 'No connection selected.'))
         self.status.clear()
         self.reset_button.setEnabled(False)
         self.refresh_button.setEnabled(False)
@@ -95,7 +101,7 @@ class BaselineDetailWidget(QGroupBox):
         self.status.clear()
         self.reset_button.setEnabled(False)
         self.refresh_button.setEnabled(self._coordinator is not None)
-        self.text.setText("Loading observed behavior baseline…")
+        self.text.setText(translate('BaselineDetail', 'Loading observed behavior baseline…'))
         self.refresh()
         self._refresh_timer.start()
 
@@ -105,7 +111,7 @@ class BaselineDetailWidget(QGroupBox):
 
     def refresh(self) -> None:
         if self._request is None or self._coordinator is None:
-            self.text.setText("Baseline unavailable.")
+            self.text.setText(translate('BaselineDetail', 'Baseline unavailable.'))
             return
         if self._generation is not None:
             return
@@ -119,8 +125,8 @@ class BaselineDetailWidget(QGroupBox):
             return
         self._generation = None
         self._detail = detail
-        lines = detail.text.splitlines()
-        self.text.setText("\n".join(lines[:2]) + "\n\n" + detail.context + "\n\n" + "\n".join(lines[2:]))
+        lines = render_text(detail.text).splitlines()
+        self.text.setText(render_text(render_join('\n', lines[:2]) + '\n\n' + detail.context + '\n\n' + render_join('\n', lines[2:])))
         self.reset_button.setEnabled(detail.reset_available and self._pending is None)
 
     def _failed(self, generation: int | None) -> None:
@@ -128,21 +134,20 @@ class BaselineDetailWidget(QGroupBox):
             return
         self._generation = None
         self._detail = None
-        self.text.setText("UNAVAILABLE: baseline detail could not be loaded. No behavior verdict is available.")
+        self.text.setText(translate('BaselineDetail', 'UNAVAILABLE: baseline detail could not be loaded. No behavior verdict is available.'))
         self.reset_button.setEnabled(False)
 
     def _confirm_reset(self) -> None:
         detail = self._detail
         if detail is None or not detail.reset_available or detail.scope is None or self._coordinator is None:
             return
-        dialog = QMessageBox(self)
-        dialog.setWindowTitle("Reset learned baseline")
-        dialog.setAccessibleName("Confirm scoped baseline reset")
+        dialog = localize_buttons(QMessageBox(self))
+        dialog.setWindowTitle(translate('BaselineDetail', 'Reset learned baseline'))
+        dialog.setAccessibleName(translate('BaselineDetail', 'Confirm scoped baseline reset'))
         dialog.setTextFormat(Qt.TextFormat.PlainText)
-        dialog.setText("Remove the learned baseline for this exact scope?\n\n" + detail.context +
-                       "\n\nThis removes learned behavioral baseline data only. It does not block the application, "
-                       "change trust/preferences, or delete connection history. Current runtime observations remain separate.")
+        dialog.setText(render_text(translate('BaselineDetail', 'Remove the learned baseline for this exact scope?\n\n') + detail.context + translate('BaselineDetail', '\n\nThis removes learned behavioral baseline data only. It does not block the application, change trust/preferences, or delete connection history. Current runtime observations remain separate.')))
         dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        localize_buttons(dialog)
         dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
         dialog.setEscapeButton(QMessageBox.StandardButton.Cancel)
         if dialog.exec() != QMessageBox.StandardButton.Yes:
@@ -152,12 +157,11 @@ class BaselineDetailWidget(QGroupBox):
             submission = self._coordinator.reset(detail.scope)
         except Exception:
             if detail.request == self._request:
-                self.status.setText("Reset unavailable; no durable completion was confirmed.")
+                self.status.setText(translate('BaselineDetail', 'Reset unavailable; no durable completion was confirmed.'))
             return
         self._pending = (detail.request, submission)
         if detail.request == self._request:
-            self.status.setText("Reset accepted; waiting for durable storage completion." if submission.accepted
-                                else "Reset unavailable; no reset was accepted.")
+            self.status.setText(render_text(translate('BaselineDetail', 'Reset accepted; waiting for durable storage completion.') if submission.accepted else translate('BaselineDetail', 'Reset unavailable; no reset was accepted.')))
             self.reset_button.setEnabled(False)
         self._completion_timer.start()
         self._poll_reset()
@@ -174,13 +178,13 @@ class BaselineDetailWidget(QGroupBox):
             return
         result = submission.completion.result()
         if result is BaselineResetResult.COMPLETED:
-            self.status.setText("Learned baseline reset completed in local storage (also valid if already absent).")
+            self.status.setText(translate('BaselineDetail', 'Learned baseline reset completed in local storage (also valid if already absent).'))
         else:
-            self.status.setText("Reset failed or unavailable; durable completion was not confirmed. Storage may retry an accepted reset.")
+            self.status.setText(translate('BaselineDetail', 'Reset failed or unavailable; durable completion was not confirmed. Storage may retry an accepted reset.'))
         if self._coordinator is not None:
             self._coordinator.invalidate()
         self._generation = None
         self._detail = None
         self.reset_button.setEnabled(False)
-        self.text.setText("Refreshing observed baseline after reset…")
+        self.text.setText(translate('BaselineDetail', 'Refreshing observed baseline after reset…'))
         self.refresh()

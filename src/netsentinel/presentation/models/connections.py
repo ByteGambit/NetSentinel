@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.text import TranslationSequence, translate
+
 from enum import IntEnum
 
 from PyQt6.QtCore import (
@@ -39,15 +41,15 @@ class ConnectionColumn(IntEnum):
     DURATION = 6
 
 
-HEADERS: tuple[str, ...] = (
-    "Process",
-    "PID",
-    "Protocol",
-    "Local endpoint",
-    "Remote endpoint",
-    "State",
-    "Duration",
-)
+HEADERS = TranslationSequence(lambda: (
+    translate('ConnectionsModel', 'Process'),
+    translate('ConnectionsModel', 'PID'),
+    translate('ConnectionsModel', 'Protocol'),
+    translate('ConnectionsModel', 'Local endpoint'),
+    translate('ConnectionsModel', 'Remote endpoint'),
+    translate('ConnectionsModel', 'State'),
+    translate('ConnectionsModel', 'Duration'),
+))
 
 
 class ConnectionRole(IntEnum):

@@ -27,9 +27,11 @@ jobs:
       - name: Install locked development dependencies
         run: uv sync --locked --extra dev
       - name: Lint
-        run: .\.venv\Scripts\python.exe -m ruff check src tests packaging
+        run: .\.venv\Scripts\python.exe -m ruff check src tests packaging tools/localization.py
       - name: Type check portable contracts
         run: .\.venv\Scripts\python.exe -m mypy
+      - name: Localization source and resource inventory
+        run: .\.venv\Scripts\python.exe tools/localization.py check
       - name: Audit locked dependencies
         run: uv audit --locked --python-version 3.12 --python-platform windows
 

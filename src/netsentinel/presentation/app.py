@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from netsentinel.presentation.i18n.manager import LocalizationManager
+
+from netsentinel.presentation.i18n.text import translate
+
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from importlib import resources
@@ -229,6 +233,7 @@ class ApplicationShell:
     controller: ApplicationController | None = None
     notifications: DesktopNotificationController | None = None
     storage_maintenance: StorageMaintenanceWorker | None = None
+    localization: LocalizationManager | None = None
 
 
 def create_application(
@@ -257,6 +262,7 @@ def create_application(
     notification_sink: DesktopNotificationSink | None = None,
     storage_maintenance: StorageMaintenanceWorker | None = None,
     response_service_factory: ResponseServiceFactory | None = None,
+    initial_locale: str = 'en',
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -268,6 +274,10 @@ def create_application(
     else:  # pragma: no cover - defensive guard for unusual embedding hosts
         raise RuntimeError("an incompatible Qt core application already exists")
 
+    localization = LocalizationManager(application)
+    localization.activate(initial_locale)
+    # NO_GO: freeze one coherent language before any widget/worker exists.
+    localization.seal()
     application.setApplicationName("NetSentinel")
     application.setOrganizationName("NetSentinel")
     application.setApplicationVersion(__version__)
@@ -429,8 +439,9 @@ def create_application(
         window.threat_intel_consent_action.triggered.connect(
             lambda: diagnostics.set_preferences(current_settings(), credential_available=credential_available))
     if onboarding_pending(config or AppConfig()) and not show_onboarding_at_startup(config or AppConfig()):
-        status_bar.showMessage("Privacy guide updated. Help → First-run & Privacy guide explains consent and feedback.")
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications, storage_maintenance)
+        status_bar.showMessage(translate('App', 'Privacy guide updated. Help → First-run & Privacy guide explains consent and feedback.'))
+    window.destroyed.connect(localization.close)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications, storage_maintenance, localization)
 
 
 def run_application(
@@ -567,7 +578,7 @@ def run_application(
         onboarding = OnboardingDialog(shell.capability_queries, finish, skip=lambda: finish(skipped=True),
                                       config=settings, credential_available=False)
         if config_issues:
-            onboarding.error.setText("Configuration invalid; safe defaults are being used.")
+            onboarding.error.setText(translate('App', 'Configuration invalid; safe defaults are being used.'))
         onboarding.rejected.connect(shell.controller.request_quit)
         onboarding.show()
     try:
