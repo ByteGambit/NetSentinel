@@ -1,5 +1,13 @@
 # Ürün tanımı
 
+NS-106 (2026-10-10): ilk launch'ta rehberden önce bağımsız dil sorusu ve
+kalıcı tercih eklendi. 18 planlı dilin isimleri görünür; doğrulanmış production
+kataloglar yokken yalnız English seçilebilir. Çalışan oturumun dili sabittir;
+Apply kaydı sonraki uygulama açılışında geçerli olur. Dil onayı hiçbir optional
+izin vermez; legacy rehber acknowledgement korunur. Schema **020**.
+[Dil seçimi sözleşmesi ve kabul raporu](LANGUAGE_SELECTION_ACCEPTANCE.md).
+Aşağıdaki NS-105 kaydı kendi teslimat kapsamını anlatır.
+
 NS-105 (2026-10-09): yalnız localization foundation tamamlandı. Mevcut
 application UI metinleri English canonical Qt source olarak işaretlendi;
 English katalog olmadan çalışır. Dil seçimi/kaydı, production çeviriler ve yeni

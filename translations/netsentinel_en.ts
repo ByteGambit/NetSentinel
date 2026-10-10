@@ -584,6 +584,11 @@
       <source>Privacy guide updated. Help → First-run &amp; Privacy guide explains consent and feedback.</source>
       <translation type="unfinished" />
     </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/app.py" />
+      <source>The saved language is invalid or unavailable. English is active.</source>
+      <translation type="unfinished" />
+    </message>
   </context>
   <context>
     <name>ApplicationBehavior</name>
@@ -5672,6 +5677,99 @@ Storage: local; scheduled retention {value4}.</source>
     <message>
       <location filename="../src/netsentinel/presentation/models/incidents.py" />
       <source>{value1} observations; {value2} evidence; {value3} assessments; {value4} limitations</source>
+      <translation type="unfinished" />
+    </message>
+  </context>
+  <context>
+    <name>LanguageSelection</name>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Application language</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Apply</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Cancel</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Choose a language and confirm. Unavailable languages need a reviewed offline translation pack.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Choose your language</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Continue</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Continue in English without saving</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Current and pending language</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Current: {current}. Selected for next launch: {selected}. Language changes require an application restart.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Language preference saved. Restart the application to use the selected language.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Language selection status</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Languages</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>The language preference could not be saved. Retry or continue in English without saving.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>The saved language is invalid or its translation pack is unavailable. English is active; choose an available language to replace the preference.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>This translation pack could not be loaded. Choose an available language or Use English.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Use English</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>Use arrow keys to select an available language, then confirm.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../src/netsentinel/presentation/widgets/language_settings.py" />
+      <source>{language} — unavailable</source>
       <translation type="unfinished" />
     </message>
   </context>

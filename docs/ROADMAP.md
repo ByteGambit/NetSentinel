@@ -1,5 +1,12 @@
 # Yol haritası
 
+NS-106 (2026-10-10): first-launch language/persistence **COMPLETE**;
+M19 **IN PROGRESS**, NS-107–120 **NOT STARTED**. English-only availability,
+18 planned metadata/autonym, independent language-before-guide, explicit atomic
+choice and current/pending restart-required foundation. Schema020; production
+packs/live switching/new tour/Settings menu/VM/installer/tag/release NONE.
+[Kabul](LANGUAGE_SELECTION_ACCEPTANCE.md). Önceki NS-105 kaydı tarihseldir.
+
 NS-105 (2026-10-09): yalnız localization foundation **COMPLETE**; M19 **IN PROGRESS**,
 NS-106–120 **PLANNED / NOT STARTED**, M20 **PLANNED**. Canonical English,
 offline QTranslator/TS/QM ve kaynak envanteri; runtime switching **NO_GO**,
@@ -382,10 +389,10 @@ Ana ürün sorusu: “Bilgisayarım şu anda kimlerle konuşuyor, bunu hangi pro
 
 ## M19 — Localization & Guided Onboarding
 
-- **Durum:** IN PROGRESS (2026-10-09); NS-105 COMPLETE, NS-106–NS-110 PLANNED / NOT STARTED.
+- **Durum:** IN PROGRESS (2026-10-10); NS-105/106 COMPLETE, NS-107–NS-110 PLANNED / NOT STARTED.
 - **Amaç:** Turkish mandatory/English fallback dahil 18 offline UI dili, kalıcı first-launch/Settings dil tercihi ve mevcut M17 rehberinden geliştirilen erişilebilir beginner tour.
 - **Ana teslimatlar:** Qt TS/QM extraction/review/packaging; first-launch language chooser (English Inno installer minimal kalır); coherent runtime retranslation veya NS-105 feasibility gate sonrası explicit restart-required mode; page-aware optional guide/Settings replay/legacy state preservation; RTL/CJK/long-string ve Windows100/125/150/200% acceptance.
-- **Başlatma kapısı:** NS-104 COMPLETE; explicit NS-105 yetkisi yalnız foundation/restart-mode kapsamını kapattı. NS-106 ve sonraki tasklar ayrıca kullanıcı yetkisi gerektirir; NS-110 native gate korunur.
+- **Başlatma kapısı:** NS-104 COMPLETE; explicit NS-105/106 yetkileri foundation/restart-mode ve first-launch preference kapsamını kapattı. NS-107 ve sonraki tasklar ayrıca kullanıcı yetkisi gerektirir; NS-110 native gate korunur.
 - **Açık kapsam dışı:** Yeni detectors, consent değişimi, privileged deployment, installer translations, runtime translation APIs, broad release/signing.
 - **Çıkış ölçütü:** NS-110 frozen matrix ve final18 catalog/reviewer/native UX/resource/state/safety gates PASS; tested switching mode açık. **M19 bitişinde NetSentinel finished ilan edilmez.**
 

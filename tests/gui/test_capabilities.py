@@ -258,6 +258,22 @@ def test_production_startup_uses_one_application_and_one_engine(
         path.write_text("{bad", encoding="utf-8")
     engine = FakeEngine()
     capture = FakeCapture(CaptureCapabilityReason.DEPENDENCY_UNAVAILABLE)
+    from netsentinel.presentation.widgets.language_settings import LanguageSelectionDialog
+    language_choices = []
+
+    def confirm_language(dialog):
+        assert engine.start_calls == 0
+        assert not any(isinstance(widget, OnboardingDialog) and widget.isVisible()
+                       for widget in QApplication.topLevelWidgets())
+        language_choices.append(dialog)
+        dialog.english.click()
+        if initial == 'malformed':
+            # Damaged root is never overwritten by language selection.
+            assert not dialog.preferences.saved
+            dialog.recovery.click()
+        return dialog.result()
+
+    monkeypatch.setattr(LanguageSelectionDialog, 'exec', confirm_language)
     monkeypatch.setattr(bootstrap, "runtime_config_path", lambda: path)
     monkeypatch.setattr(bootstrap, "initialize_runtime", lambda **_kw: load_config_file(path))
     monkeypatch.setattr(bootstrap, "create_desktop_engine", lambda **_kw: engine)
@@ -290,6 +306,7 @@ def test_production_startup_uses_one_application_and_one_engine(
 
     monkeypatch.setattr(QApplication, "exec", inspect_and_exit)
     assert run_application(argv=[]) == 0
+    assert len(language_choices) == 1
     assert engine.start_calls == 1
     assert engine.stop_calls == 1
     assert capture.starts == 0

@@ -262,6 +262,15 @@ guard taşır. Şema 017, diagnostics değişmez. [NS-083 ve M14 exit](RISK_EXPL
 
 ## 1. Mimari hedefler
 
+NS-106 dil tercihi mevcut per-user JSON config'teki typed `ui_language` ve
+`ui_language_confirmed` alanlarında tutulur; SQLite **020** değişmez.
+Qt-free `shared.locales` tek metadata kaynağıdır; presentation katalog staging,
+bootstrap chooser ve current/pending modelini yönetir. Explicit onay atomik
+reload/merge save yapar. Locale normal widget/guide'dan önce active/sealed olur;
+çalışan uygulamada Apply yalnız sonraki launch tercihini değiştirir. Consent,
+onboarding, monitoring ve custody'den bağımsızdır.
+[NS-106 sözleşmesi ve kabul raporu](LANGUAGE_SELECTION_ACCEPTANCE.md).
+
 NetSentinel mimarisi şu nitelikleri korumalıdır:
 
 - Monitoring engine, GUI olmadan test edilebilmeli ve çalıştırılabilmelidir.

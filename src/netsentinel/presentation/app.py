@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from netsentinel.presentation.i18n.manager import LocalizationManager
+from netsentinel.presentation.i18n.preferences import LanguagePreferences, LanguageStartupCancelled, prepare_language
 
 from netsentinel.presentation.i18n.text import translate
 
@@ -234,6 +235,7 @@ class ApplicationShell:
     notifications: DesktopNotificationController | None = None
     storage_maintenance: StorageMaintenanceWorker | None = None
     localization: LocalizationManager | None = None
+    language_preferences: LanguagePreferences | None = None
 
 
 def create_application(
@@ -263,6 +265,7 @@ def create_application(
     storage_maintenance: StorageMaintenanceWorker | None = None,
     response_service_factory: ResponseServiceFactory | None = None,
     initial_locale: str = 'en',
+    language_startup: bool = False,
 ) -> ApplicationShell:
     """Create, but do not show or run, the NetSentinel desktop shell."""
 
@@ -275,7 +278,16 @@ def create_application(
         raise RuntimeError("an incompatible Qt core application already exists")
 
     localization = LocalizationManager(application)
-    localization.activate(initial_locale)
+    language_preferences = None
+    if language_startup and config_path is not None:
+        try:
+            language_preferences = prepare_language(localization, config_path)
+        except LanguageStartupCancelled:
+            localization.close()
+            raise
+        config = language_preferences.config
+    else:
+        localization.activate(initial_locale)
     # NO_GO: freeze one coherent language before any widget/worker exists.
     localization.seal()
     application.setApplicationName("NetSentinel")
@@ -440,8 +452,10 @@ def create_application(
             lambda: diagnostics.set_preferences(current_settings(), credential_available=credential_available))
     if onboarding_pending(config or AppConfig()) and not show_onboarding_at_startup(config or AppConfig()):
         status_bar.showMessage(translate('App', 'Privacy guide updated. Help → First-run & Privacy guide explains consent and feedback.'))
+    if language_preferences is not None and language_preferences.diagnostics.fallback_active:
+        status_bar.showMessage(translate('App', 'The saved language is invalid or unavailable. English is active.'))
     window.destroyed.connect(localization.close)
-    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications, storage_maintenance, localization)
+    return ApplicationShell(application, window, bridge, lifecycle, history_queries, device_inventory, device_profiles, alert_queries, dns_queries, capability_queries, destination_queries, signer_service, baseline_queries, preference_commands, risk_queries, threat_intel_scheduler, incident_queries, incident_risk_queries, controller, notifications, storage_maintenance, localization, language_preferences)
 
 
 def run_application(
@@ -529,30 +543,37 @@ def run_application(
         destination_service_factory = None
         signer_service = None
 
-    shell = create_application(
-        engine,
-        argv=sys.argv if argv is None else argv,
-        history_service_factory=history_service_factory,
-        device_service_factory=device_service_factory,
-        profile_service_factory=profile_service_factory,
-        alert_service_factory=alert_service_factory,
-        dns_service_factory=dns_service_factory,
-        destination_service_factory=destination_service_factory,
-        signer_service=signer_service,
-        capability_service_factory=capability_service_factory,
-        baseline_service_factory=baseline_service_factory,
-        preference_service_factory=preference_service_factory,
-        response_service_factory=response_service_factory,
-        risk_service_factory=risk_service_factory,
-        incident_service_factory=incident_service_factory,
-        threat_intel_consent_service=threat_intel_consent_service,
-        threat_intel_scheduler=threat_intel_scheduler,
-        threat_intel_risk_submit=threat_intel_risk_submit,
-        config=settings,
-        config_path=config_path,
-        credential_available=False if config_path is not None else None,
-        storage_maintenance=storage_maintenance,
-    )
+    try:
+        shell = create_application(
+            engine,
+            argv=sys.argv if argv is None else argv,
+            history_service_factory=history_service_factory,
+            device_service_factory=device_service_factory,
+            profile_service_factory=profile_service_factory,
+            alert_service_factory=alert_service_factory,
+            dns_service_factory=dns_service_factory,
+            destination_service_factory=destination_service_factory,
+            signer_service=signer_service,
+            capability_service_factory=capability_service_factory,
+            baseline_service_factory=baseline_service_factory,
+            preference_service_factory=preference_service_factory,
+            response_service_factory=response_service_factory,
+            risk_service_factory=risk_service_factory,
+            incident_service_factory=incident_service_factory,
+            threat_intel_consent_service=threat_intel_consent_service,
+            threat_intel_scheduler=threat_intel_scheduler,
+            threat_intel_risk_submit=threat_intel_risk_submit,
+            config=settings,
+            config_path=config_path,
+            credential_available=False if config_path is not None else None,
+            storage_maintenance=storage_maintenance,
+            language_startup=config_path is not None,
+        )
+    except LanguageStartupCancelled:
+        from netsentinel.shared.logging import close_logging
+        import logging
+        close_logging(logging.getLogger('netsentinel'))
+        return 0
     assert shell.controller is not None
     onboarding = None
     if first_run:

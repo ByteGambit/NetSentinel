@@ -1,6 +1,5 @@
-"""One GUI-owned QTranslator. Whole-app restart contract, no language UX."""
+"""One GUI-owned QTranslator, offline catalog staging and sealed session locale."""
 
-from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
 from importlib import resources
@@ -9,6 +8,7 @@ from typing import Any, cast
 
 from PyQt6.QtCore import QObject, QThread, QTranslator, QLocale, Qt, pyqtSignal
 from PyQt6.QtWidgets import QApplication
+from netsentinel.shared.locales import PLANNED_LOCALES
 
 
 class LocaleOutcome(str, Enum):
@@ -19,35 +19,6 @@ class LocaleOutcome(str, Enum):
     INVALID = 'invalid_catalog'
     RESTART_REQUIRED = 'restart_required'
 
-
-@dataclass(frozen=True)
-class LocaleMetadata:
-    id: str
-    english_name: str
-    qt_locale: str
-    rtl: bool = False
-
-
-PLANNED_LOCALES = (
-    LocaleMetadata('en', 'English', 'en_US'),
-    LocaleMetadata('tr', 'Turkish', 'tr_TR'),
-    LocaleMetadata('de', 'German', 'de_DE'),
-    LocaleMetadata('fr', 'French', 'fr_FR'),
-    LocaleMetadata('es', 'Spanish', 'es_ES'),
-    LocaleMetadata('it', 'Italian', 'it_IT'),
-    LocaleMetadata('pt-BR', 'Portuguese (Brazil)', 'pt_BR'),
-    LocaleMetadata('nl', 'Dutch', 'nl_NL'),
-    LocaleMetadata('pl', 'Polish', 'pl_PL'),
-    LocaleMetadata('ru', 'Russian', 'ru_RU'),
-    LocaleMetadata('uk', 'Ukrainian', 'uk_UA'),
-    LocaleMetadata('ar', 'Arabic', 'ar_EG', True),
-    LocaleMetadata('ja', 'Japanese', 'ja_JP'),
-    LocaleMetadata('ko', 'Korean', 'ko_KR'),
-    LocaleMetadata('zh-Hans', 'Simplified Chinese', 'zh_CN'),
-    LocaleMetadata('zh-Hant', 'Traditional Chinese', 'zh_TW'),
-    LocaleMetadata('id', 'Indonesian', 'id_ID'),
-    LocaleMetadata('cs', 'Czech', 'cs_CZ'),
-)
 
 MAX_CATALOG_BYTES = 4 * 1024 * 1024
 
@@ -92,8 +63,38 @@ class LocalizationManager(QObject):
 
     @property
     def available_locales(self) -> tuple[str, ...]:
-        # Planned metadata is deliberately separate from shippable languages.
-        return ('en',)
+        return tuple(item.id for item in PLANNED_LOCALES
+                     if self.validate_catalog(item.id) in (LocaleOutcome.ENGLISH, LocaleOutcome.APPLIED))
+
+    def stage(self, locale: str) -> tuple[LocaleOutcome, QTranslator | None, bytes | None]:
+        """Validate without changing translator, Qt locale or direction."""
+        self._require_gui()
+        if not any(item.id == locale for item in PLANNED_LOCALES):
+            return LocaleOutcome.UNSUPPORTED, None, None
+        if locale == 'en':
+            return LocaleOutcome.ENGLISH, None, None
+        candidate = None
+        try:
+            data = bundled_catalog(locale)
+            if data is None:
+                return LocaleOutcome.MISSING, None, None
+            if not isinstance(data, bytes) or not 0 < len(data) <= MAX_CATALOG_BYTES:
+                return LocaleOutcome.INVALID, None, None
+            candidate = QTranslator(self)
+            if not candidate.loadFromData(cast(Any, data)) or candidate.isEmpty():
+                candidate.deleteLater()
+                return LocaleOutcome.INVALID, None, None
+            return LocaleOutcome.APPLIED, candidate, data
+        except (OSError, ValueError, KeyError, TypeError):
+            if candidate is not None:
+                candidate.deleteLater()
+            return LocaleOutcome.INVALID, None, None
+
+    def validate_catalog(self, locale: str) -> LocaleOutcome:
+        outcome, candidate, data = self.stage(locale)
+        if candidate is not None:
+            candidate.deleteLater()
+        return outcome
 
     def seal(self) -> None:
         """Composition seals before constructing any widgets or starting workers."""
@@ -112,29 +113,7 @@ class LocalizationManager(QObject):
             return LocaleOutcome.RESTART_REQUIRED
         self.requested_locale = locale
         metadata = next((item for item in PLANNED_LOCALES if item.id == locale), None)
-        outcome = LocaleOutcome.APPLIED
-        candidate = None
-        data = None
-        if metadata is None:
-            outcome = LocaleOutcome.UNSUPPORTED
-        elif locale == 'en':
-            outcome = LocaleOutcome.ENGLISH
-        else:
-            try:
-                data = bundled_catalog(locale)
-                if data is None:
-                    outcome = LocaleOutcome.MISSING
-                else:
-                    candidate = QTranslator(self)
-                    # PyQt6's buffer overload accepts bytes at runtime; its
-                    # generated stub advertises only array[bytes]. Real QM tests
-                    # exercise this exact offline API and retained buffer lifetime.
-                    if not candidate.loadFromData(cast(Any, data)):
-                        outcome = LocaleOutcome.INVALID
-                        candidate.deleteLater()
-                        candidate = None
-            except (OSError, ValueError, KeyError, TypeError):
-                outcome = LocaleOutcome.INVALID
+        outcome, candidate, data = self.stage(locale)
         if candidate is not None and not self.application.installTranslator(candidate):
             outcome = LocaleOutcome.INVALID
             candidate.deleteLater()

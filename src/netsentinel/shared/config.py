@@ -13,6 +13,7 @@ from pathlib import Path
 import tempfile
 from typing import Any
 from uuid import UUID
+from netsentinel.shared.locales import LOCALE_IDS
 
 from netsentinel.domain.threat_intelligence import (
     MAX_TI_CONSENTS, ThreatIntelConsent, ThreatIntelDataType, ThreatIntelProviderId, ThreatIntelTrigger,
@@ -163,6 +164,8 @@ class AppConfig:
     log_max_bytes: int = 1_048_576
     log_backups: int = 3
     onboarding_completed: bool = False
+    ui_language: str = 'en'
+    ui_language_confirmed: bool = False
     onboarding_completed_version: int = 0
     onboarding_dismissed_version: int = 0
     desktop_notifications_enabled: bool = False
@@ -175,6 +178,10 @@ class AppConfig:
 
     def __post_init__(self) -> None:
         validate_consents(self.threat_intel_consents)
+        if not isinstance(self.ui_language, str) or self.ui_language not in LOCALE_IDS:
+            raise ValueError('ui_language must be an allowlisted locale')
+        if type(self.ui_language_confirmed) is not bool:
+            raise ValueError('ui_language_confirmed must be a boolean')
         if type(self.storage_retention_enabled) is not bool:
             raise ValueError("storage_retention_enabled must be a boolean")
         for value in (self.storage_history_days, self.storage_security_days):
@@ -363,11 +370,41 @@ def _load_threat_intel_consents(value: Any) -> tuple[ThreatIntelConsent, ...]:
     return result
 
 
-def save_config_file(path: str | Path, config: AppConfig) -> None:
+def save_ui_language(path: str | Path, locale: str) -> AppConfig:
+    """Reload/merge only language fields; existing damage still fails TI closed.
+
+    A malformed document cannot safely be overwritten. Field-level damage is
+    normalized by the existing loader. Unknown forward fields are preserved.
+    Atomic replacement is the existing durability boundary, not a process lock.
+    """
+    if not isinstance(locale, str) or locale not in LOCALE_IDS:
+        raise ValueError('invalid language choice')
+    try:
+        with Path(path).open('r', encoding='utf-8') as stream:
+            content = stream.read(16_385)
+        if len(content) > 16_384:
+            raise ValueError('invalid configuration')
+        values = json.loads(content)
+        if not isinstance(values, dict):
+            raise ValueError('invalid configuration')
+    except FileNotFoundError:
+        values = {}
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError('invalid configuration') from error
+    current = load_config_values(values).config
+    selected = replace(current, ui_language=locale, ui_language_confirmed=True)
+    unknown = {key: value for key, value in values.items() if key not in AppConfig.__dataclass_fields__}
+    save_config_file(path, selected, preserved_fields=unknown)
+    return selected
+
+
+def save_config_file(path: str | Path, config: AppConfig, *,
+                     preserved_fields: Mapping[str, Any] | None = None) -> None:
     """Atomically persist validated local config after explicit user action."""
     if not isinstance(config, AppConfig):
         raise TypeError("config must be AppConfig")
-    values = asdict(config)
+    values = dict(preserved_fields or {})
+    values.update(asdict(config))
     for entry in values["threat_intel_consents"]:
         entry["consent_id"] = str(entry["consent_id"])
     content = json.dumps(values, separators=(",", ":"))
@@ -392,6 +429,7 @@ def save_config_file(path: str | Path, config: AppConfig) -> None:
 
 
 __all__ = (
+    'save_ui_language',
     "CURRENT_ONBOARDING_VERSION", "onboarding_pending", "show_onboarding_at_startup", "dismiss_onboarding",
     "DEFAULT_CLEANUP_CHUNK_SIZE",
     "DEFAULT_MAX_HISTORY_ROWS",

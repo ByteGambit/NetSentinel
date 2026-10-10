@@ -53,7 +53,8 @@ def localization(qapp, monkeypatch):
 def test_manager_initialization_and_planned_identity(localization):
     assert localization.current_locale == 'en'
     assert localization.generation == 1
-    assert localization.available_locales == ('en',)
+    # This fixture supplies a valid real QM for every planned target.
+    assert localization.available_locales == tuple(item.id for item in PLANNED_LOCALES)
     assert [item.id for item in PLANNED_LOCALES] == [
         'en', 'tr', 'de', 'fr', 'es', 'it', 'pt-BR', 'nl', 'pl', 'ru', 'uk', 'ar',
         'ja', 'ko', 'zh-Hans', 'zh-Hant', 'id', 'cs',

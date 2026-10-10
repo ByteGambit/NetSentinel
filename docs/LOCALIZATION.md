@@ -3,8 +3,10 @@
 English is the canonical source and fallback. The frozen architecture is
 PyQt6 `QTranslator`, Qt Linguist `.ts` sources and offline compiled `.qm`
 resources. **Runtime switching: NO_GO; whole-application restart required.**
-No production translation pack, chooser, preference, new tour or installer
-language change is added. Schema stays 020. This document defines the NS-105
+NS-105 added no production translation pack, chooser, preference, new tour or
+installer language change. NS-106 adds the staged-availability chooser and
+durable preference in [NS-106 acceptance](LANGUAGE_SELECTION_ACCEPTANCE.md).
+Schema stays 020. This document defines the NS-105
 foundation; [acceptance and measured results](LOCALIZATION_ACCEPTANCE.md) and
 [surface inventory](localization/surface-inventory.md) record its verification.
 
@@ -13,8 +15,15 @@ foundation; [acceptance and measured results](LOCALIZATION_ACCEPTANCE.md) and
 `presentation.app.create_application` creates/reuses QApplication, constructs
 one GUI-owned `LocalizationManager`, activates the initial locale, then seals
 the manager **before constructing any window, dialog, model or worker**. Its
-`initial_locale` argument is an internal composition/test API; normal bootstrap
-passes English. There is no saved language field or selector.
+`initial_locale` argument is an internal composition/test API. In NS-105 normal
+bootstrap passed English and had no saved language field or selector.
+
+Production NS-106 bootstrap resolves `ui_language` / `ui_language_confirmed`
+and runs its language-only chooser before activation/seal and normal widgets.
+The `initial_locale` argument remains an internal embedding/test API. Shared
+immutable metadata holds 18 planned IDs/autonyms/mappings; catalog validation
+determines actual availability (currently English only). Apply publishes only
+the persisted next-launch choice; the running session stays sealed.
 
 The manager owns the translator and its backing bytes, resolves only bundled
 resources, installs/removes translators on the GUI thread and applies QLocale
@@ -35,8 +44,8 @@ After sealing, every activation request returns `restart_required` and leaves
 current/requested locale, generation, translator, direction and live UI state
 unchanged. It does not save a preference, restart automatically or rebuild domain
 state. The current shippable-language list is English only; planned metadata
-is explicitly separate from availability. NS-106/107 will connect accepted
-catalog availability to the future chooser.
+is explicitly separate from availability. NS-106 connects validated catalog
+availability to its chooser; NS-107 supplies reviewed production packs later.
 
 ## Locale identity
 
@@ -289,8 +298,9 @@ manual review and inclusion in SOURCES. It does not flag every technical value.
 The full accent/expansion pseudo output preserves fields and Qt numerus, stresses
 coverage, and is never an available production locale or human-review substitute.
 
-Remaining work: NS-106 chooser/persistence/restart; NS-107 seventeen reviewed
+NS-106 chooser/persistence/restart is documented in its linked acceptance report.
+Remaining work: NS-107 seventeen reviewed
 target packs plus English plural review/resource availability; NS-108 new
 page-aware guide; NS-109 Settings/replay and final string delta; NS-110 complete
-native multilingual/RTL/CJK/accessibility acceptance. NS-106–120 remain not
+native multilingual/RTL/CJK/accessibility acceptance. NS-107–120 remain not
 started; VMware M20 and release work are outside this task.

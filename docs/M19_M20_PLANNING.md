@@ -6,8 +6,10 @@ Historical frozen planning baseline: at plan creation this was **PLANNING ONLY**
 and NS-105–NS-120 were **PLANNED / NOT STARTED**. The later explicit NS-105 request
 completed only the localization foundation with runtime **NO_GO / whole-app
 restart required**. [Current acceptance](LOCALIZATION_ACCEPTANCE.md) and TASKS
-carry current status; NS-106–120 remain NOT STARTED. The frozen requirements below
-remain unchanged.
+carry current status. The explicit NS-106 request later completed the independent
+first-launch/persistence/restart foundation, with production English-only staged
+availability; [NS-106 acceptance](LANGUAGE_SELECTION_ACCEPTANCE.md).
+NS-107–120 remain NOT STARTED. The frozen requirements below remain unchanged.
 Implementation, translations, migrations, installer builds, VM execution,
 attack execution, commit/push and tag/release are not authorized by this plan.
 

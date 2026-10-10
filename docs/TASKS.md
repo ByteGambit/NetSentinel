@@ -1239,7 +1239,7 @@ işlevsel tamamlandığı anlamına gelmez; NS-120 PASS ayrıca gerekir.
 
 ### NS-106 — First-launch language selection & persistence
 
-- **Durum:** PLANNED / NOT STARTED.
+- **Durum:** ✅ COMPLETE (2026-10-10; offline first-launch/persistence/restart acceptance). [Kabul raporu](LANGUAGE_SELECTION_ACCEPTANCE.md).
 - **Amaç:** İlk launch ve Settings için tekrar değiştirilebilir, kalıcı ve izinlerden bağımsız dil preference akışı sağlamak.
 - **Yapılacaklar:** ui_language/ui_language_confirmed typed bounded config fields, BCP-47→Qt mapping ve atomic reload/merge save ekle. Fresh/legacy kullanıcının bir defalık language-only chooser'ını guide öncesine koy; autonym+English names, explicit Continue/Use English, Cancel/Esc exit; supported OS language yalnız suggestion. Stage/load/save/publish transaction ve Settings Apply/Cancel contract'ını NS-105 mode'a göre uygula; invalid/removed/missing pack English fallback ve current/pending notice; mock catalogs ile permission/setting bağımsızlığını doğrula.
 - **Etkilenecek muhtemel dosyalar/alt sistemler:** shared/config.py, presentation/app.py, presentation/i18n/, widgets/language_settings.py (yeni), tests/unit/shared/, tests/gui/; packaging entry self-test sözleşmesi sonraki kabul için.
@@ -1248,6 +1248,18 @@ işlevsel tamamlandığı anlamına gelmez; NS-120 PASS ayrıca gerekir.
 - **Test yöntemi:** Fresh/legacy/future/invalid config, atomic save failure/concurrent setting update, load fallback ve repeated fake-catalog switching; offscreen chooser/Apply/Cancel; permission invariants ve restart fixtures.
 - **Kapsam dışı:** Çeviri üretimi, installer language system/handoff, privacy consent verme veya online locale service.
 - **Başlatma kapısı:** NS-105 toolchain ve runtime/restart karar kapısı geçmiş olmalıdır.
+
+Teslimat: 18 immutable locale metadata/autonym; production English-only staged
+availability; typed ui_language/ui_language_confirmed ve atomik reload/merge;
+guide öncesi independent chooser, explicit confirmation/English recovery,
+X/Esc no-write exit, pending/current restart mode. Schema **020 → 020**.
+Targeted169 + final startup/config/GUI89 PASS; full offline4810 PASS + sandbox'ta
+junction fixture kurulumu reddedilen aynı3 unchanged test ayrı native retry3/3
+PASS (seçili4813 doğrulandı, live9 deselected). Coverage **91.43%** (gate85),
+Ruff/mypy/extraction/wheel-resource/whitespace/privacy PASS. Production packs,
+live switching, new guide/Settings menu/replay, VM/installer/release work yok;
+NS-107–120 NOT STARTED. Acceptance snapshot commit/push NONE; NS-106 checkpoint
+commit and normal main push approved 2026-10-10. Tag/release NONE.
 
 ### NS-107 — Reviewed translation packs & offline packaging
 
@@ -1430,6 +1442,6 @@ sayılmaz. In-product privileged writes ve broad release NO_GO korunur.
 
 | Milestone | Task aralığı | Sayı | Durum |
 |---|---|---:|---|
-| M19 Localization & Guided Onboarding | NS-105–NS-110 | 6 | IN PROGRESS; NS-105 COMPLETE, NS-106–110 PLANNED / NOT STARTED |
+| M19 Localization & Guided Onboarding | NS-105–NS-110 | 6 | IN PROGRESS; NS-105/106 COMPLETE, NS-107–110 PLANNED / NOT STARTED |
 | M20 Full-System VMware Validation | NS-111–NS-120 | 10 | PLANNED / NOT STARTED |
-| Post-M18 plan toplamı | NS-105–NS-120 | 16 | Yalnız NS-105 implementation COMPLETE; NS-106–120 NOT STARTED; VM execution/commit/push/tag/release NONE |
+| Post-M18 plan toplamı | NS-105–NS-120 | 16 | NS-105/106 implementation COMPLETE; NS-107–120 NOT STARTED; NS-106 checkpoint commit/push approved; VM execution/tag/release NONE |
